@@ -220,6 +220,21 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 		return d.obj.save( split_url[2] );
 	},
 
+	_itemDelete: function() {
+
+		if( this._notYetCreated() ) {
+			var	split_url = adstream.data._splitURL( this._url ),
+				d = adstream.data.schema._descend( split_url[1], this._service.root );
+
+			if( d.rel_url )	throw Error( "Object at " + this._url + " is not connected to schema" );
+		
+			return d.obj.del( split_url[2] );
+
+		} else {
+			return this._service.DELETE( this._url, { version: this._.version } );
+		}
+	},
+
 	url: function() { return this._url; },
 	
 	service: function() { return this._service; },
@@ -315,7 +330,9 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 		this._defaultSetting( 'view' );
 		this._defaultSetting( 'extra' );
 
-		this._subschema.item.del = this._itemDelete;
+		if( 'del' in this._subschema.item )	// Container in container
+				this._subschema.item._itemDel = this._subschema.item._itemDelete;
+		else	this._subschema.item.del = this._subschema.item._itemDelete;
 	},
 
 	_defaultGetDepth: 1,
@@ -332,21 +349,6 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 	_schemaProp: function( path_item ) {
 		//	Assuming that any item ID except '_' is valid
 		return path_item == '_' ? null : this._subschema.item;
-	},
-
-	_itemDelete: function() {	// Visitor on the item object
-
-		if( this._notYetCreated() ) {
-			var	split_url = adstream.data._splitURL( this._url ),
-				d = adstream.data.schema._descend( split_url[1], this._service.root );
-
-			if( d.rel_url )	throw Error( "Object at " + this._url + " is not connected to schema" );
-		
-			return d.obj.del( split_url[2] );
-
-		} else {
-			return this._service.DELETE( this._url, { version: this._.version } );
-		}
 	},
 
 	_unmarshal: function( data, props ) {
@@ -378,10 +380,10 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 		return result;
 	},
 
-	_marshal: function() { // Depth is ignored as new objects are always saved completely
+	_marshal: function( depth ) {
 		var result = null, to = {}, item;
 
-		for( var i in this )
+		if( depth < 0 ) for( var i in this )
 			if( this.hasOwnProperty(i) && i.charAt(0)=='@' &&
 				(item = this[i]._marshal( -1 )) ) {
 				to[i] = item;
@@ -417,6 +419,13 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 	},
 
 	del: function( item_id ) {
+
+		if( !item_id ) {
+			if( !(_itemDel in this) )	
+				throw Error( "Container.del() should have a parameter if container is not an item itself" );
+			return this._itemDel();
+		}
+
 		if( this._notYetCreated() || item_id.charAt(0)=='@' ) {
 			delete this[item_id];
 			return null;
@@ -428,12 +437,18 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 	save: function( item_id, depth ) {
 		
 		if( item_id ) {
+			if( this._notYetCreated() )
+				throw Error( "Cannot save " + this._composeURL( item_id ) + " as its parent has not yet been saved" );
 			if( !(item_id in this) )
 				throw Error( "Attempt to save a non-existing item " + this._composeURL( item_id ) );
 			if( item_id.toString().charAt(0) == '@' )
 					return this._service.POST( this._url, this[item_id]._wrap( this[item_id]._marshal( -1 ) ) );
 			else	return this[item_id].save( depth );
-		} else		return this._service.POST( this._url, this._wrap( this._marshal() ) );
+		} else {
+			if( this._notYetCreated() )
+					return this._saveIfNotCreated();
+			else	return this._service.POST( this._url, this._wrap( this._marshal( -1 ) ) );
+		}
 	},
 
 	filter: function( new_filter ) {
