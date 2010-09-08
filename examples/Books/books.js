@@ -71,14 +71,13 @@ dojo.declare( 'bsb.TopControls', null, {
 			searchPending:  null
 		} );
 
-		dojo.connect( dojo.byId('searchBox'), 'onkeyup', this, this.onSearchKeyUp );
-
 		var _this = this;
 		dojo.when( bsb.templates, function() {
 			dojo.place( getTemplate( 'TopControls' )().toDom(), elt );
 			dojo.query( '.tab', elt ).forEach( function(tab){
 				dojo.connect( tab, 'onclick', _this, _this.onclick );
 			} );
+			dojo.connect( dojo.byId('searchBox'), 'onkeyup', _this, _this.onSearchKeyUp );
 		} );
 	},
 
@@ -121,7 +120,7 @@ dojo.declare( 'bsb.TopControls', null, {
 		if( data.view().offset != this.lastViewOffset )	{
 			this.displayOffset = 0;
 			this.lastViewOffset = data.view().offset;
-		}
+		} else if( 'lastVisible' in this )	delete this.lastVisible;
 
 		dojo.place( getTemplate( this.contentTemplates[name] )( data, this ).toParsedDom(), 'list', 'only' );
 
@@ -130,29 +129,57 @@ dojo.declare( 'bsb.TopControls', null, {
 			box = dojo.contentBox( list );
 
 		this.displayCount = 0;
-		for( var i = name=='books' ? 1:0; i<tbl.rows.length; ++i, ++this.displayCount ) {
+
+		if( 'lastVisible' in this )	{
+			this.lastVisible -= this.lastViewOffset;
+			this.trimBackward( tbl, box, name=='books' ? 1:0 );
+		}
+
+		this.trimForward( tbl, box, name=='books' ? 1:0 );
+
+		this.attachPageControls( dojo.byId( 'list' ) );
+	},
+
+	trimForward: function( tbl, box, skip ) {
+		for( var i = skip; i<tbl.rows.length; ++i, ++this.displayCount ) {
 			var b = dojo.marginBox( tbl.rows[i] );
 			if( b.t + b.h > box.t + box.h )	break;
 		}
 
 		while( tbl.rows.length > i )
 			tbl.deleteRow( tbl.rows.length - 1 );
+	},
 
-		this.attachPageControls( dojo.byId( 'list' ) );
+	trimBackward: function( tbl, box, skip ) {
+		var last;
+		while( tbl.rows.length-1-skip >= this.lastVisible - this.displayOffset ) {
+			var b = dojo.marginBox( tbl.rows[this.lastVisible - this.displayOffset + skip] );
+			if( b.t + b.h > box.t + box.h )	{
+				++this.displayOffset;
+				tbl.deleteRow( skip );
+			} else break;
+		}
+
+		delete this.lastVisible;
 	},
 
 	prevPage: function(e) {
 		var data = bsb.root[ this.selectedTab ],
 			offs = data.view().offset,
-			move_total = Math.min( offs, 30 ),
+			move_total = Math.min( offs + this.displayOffset, 30 /* Big enough to fill the page */ ),
 			move_now = Math.min( this.displayOffset, move_total );
 
 		this.displayOffset -= move_now;
-		if( this.move_now )	this.refresh( this.selectedTab, data );
+		move_total -= move_now;
 
-		data.view( { offset: offs - move_total, count: null } );
+		if( move_total ) {
+			data.view( { offset: offs - move_total, count: null } );
+			this.lastVisible = offs-1;
+			data.get();
+		}
 
-		data.get();
+		if( move_now )	this.refresh( this.selectedTab, data );
+
 		dojo.stopEvent( e );
 	},
 
