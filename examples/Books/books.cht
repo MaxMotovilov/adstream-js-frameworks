@@ -1,0 +1,119 @@
+<? template TopControls ?>
+	<span>Search: <input id='searchBox' type='text'></span>
+	<div class='tab' name='authors'>Authors</div>
+	<div class='tab' name='books'>Books</div>
+<? /template ?>
+
+<? template BookItem ?>
+	<tr>
+		<td width='40%'><div>
+			<? foreach "from:authors" ?>
+				<? if "$# != 0" ?>
+					<br>
+				<? /if ?>
+				<a author_id='{{id}}'>{{firstName}} {{lastName}}</a>
+			<? /foreach ?>
+		</div></td>
+
+		<td width='60%' colspan='2'><div>
+
+			<? BookTitle ?>
+
+		</div></td>
+	</tr>
+<? /template ?>
+
+<? template BookTitle ?>
+	<a dojoType='bsb.InplaceEditField' editTemplate='InplaceEditFieldMultiline' displayTemplate='BookTitle' data='{{ref:$}}' field='title'>{{title}}
+		<img style="float:right;position:relative;top:-0.5ex;cursor:pointer" prompt="{{i18n:Do you really want to delete this book?}}" src="img/del.png">
+	</a>
+<? /template ?>
+
+<? template BookList ?>
+	<table>
+		<tr dojoType='bsb.NewBookPane' valign='top'>
+			<? NewBookPlaceholder ?>
+		</tr>
+		<? foreach "[*][?title][/title]" ?>
+			<? if "$#>=$1.displayOffset" ?>
+				<? BookItem ?>
+			<? /if ?>
+		<? /foreach ?>
+	</table>
+<? /template ?>
+
+<? template NewBookPlaceholder ?>
+	<td colspan='3'><div>
+		<a><b>New book...</b>
+			<img style="display:none;float:left;position:relative;margin-right:2em;margin-left:-1em;top:-0.5ex;cursor:pointer" src="img/larrow.png" command='prevPage'>
+			<img style="display:none;float:right;position:relative;top:-0.5ex;cursor:pointer" src="img/rarrow.png", command='nextPage'>
+		</a>
+	</div></td>
+<? /template ?>
+
+<? template NewBookPane ?>
+
+	<td width='40%'><div>
+		<? AuthorSelect ?>
+	</div></td>
+
+	<td width='45%'>
+		<textarea type='text' style="width:100%;height:100%"></textarea>
+	</td>
+
+	<td>
+		<button style="width:100%" name='OK'>Save</button><br>
+		<button style="width:100%">Cancel</button>
+	</td>
+
+<? /template ?>
+
+<? template AuthorSelect ?>
+
+	<select dojoType='dijit.form.ComboBox' onchange='this.newBookPane.onAuthorChanged( this, this.indexInAuthorsList )'>
+		<script type="dojo/method">
+			this.newBookPane={{ref:$1}};
+			this.indexInAuthorsList = {{$1.authors.length}};
+		</script>
+		<option selected></option>
+		<? foreach "from:$" ?>
+			<option>{{firstName}} {{lastName}}</option>
+		<? /foreach ?>
+	</select>
+
+<? /template ?>
+
+<? template AuthorItem ?>
+	<tr>
+		<td width='100%'><div>
+			<? AuthorName ?>
+		</div></td>
+	</tr>
+<? /template ?>
+
+<? template AuthorName ?>
+	<a dojoType='bsb.InplaceEditField' editTemplate='InplaceEditField' displayTemplate='AuthorName' data='{{ref:$}}' field='firstName' onclose='bsb.root.books.refresh()'>{{firstName}}</a>
+	<a dojoType='bsb.InplaceEditField' editTemplate='InplaceEditField' displayTemplate='AuthorName' data='{{ref:$}}' field='lastName' onclose='bsb.root.books.refresh()'>{{lastName}}</a>
+<? /template ?>
+
+<? template AuthorList ?>
+	<table>
+		<? foreach "[*][?lastName][/lastName]" ?>
+			<? if "$#>=$1.displayOffset" ?>
+				<? AuthorItem ?>
+			<? /if ?>
+		<? /foreach ?>
+	</table>
+<? /template ?>
+
+<? template InplaceEditField ?>
+
+	<input type='text' value="{{$[dojo.attr($1,'field')]}}" style="position:absolute; width:{{$1.offsetWidth}}px">
+
+<? /template ?>
+
+<? template InplaceEditFieldMultiline ?>
+
+	<textarea style="position:absolute;width:100%;height:100%;top:0px;left:0px">{{$[dojo.attr($1,'field')]}}</textarea>
+
+<? /template ?>

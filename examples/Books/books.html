@@ -1,0 +1,129 @@
+<html>
+<head>
+
+<script src="http://ajax.googleapis.com/ajax/libs/dojo/1.5/dojo/dojo.xd.js" type="text/javascript" 
+		djConfig="parseOnLoad: true, baseUrl: './', modulePaths: { 'dojox.jtlc': 'js/jtlc', 'adstream.data': 'js/data' }"></script>
+<link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/dojo/1.5/dijit/themes/claro/claro.css">
+
+<!-- The following scripts are normally loaded by Dojo but with 
+     static file access XHRs often don't work =============== -->
+
+<script type="text/javascript" src="books.js"></script>
+
+<title>Bookshelf Browser</title>
+
+<style type='text/css'>
+body {
+	margin: 0px;
+	padding: 0px;
+	font-family: Tahoma,sans-serif;
+	font-size: 9pt;
+}
+
+div#screen {
+	width: 100%;
+	height: 100%;
+	background-color: lightblue;
+	max-width: 800px;
+	max-height: 600px;
+	position: relative;
+}
+
+div#topBar {
+	left:  0px;
+	right: 0px;
+	background-color: lightcyan;
+	padding: 1ex 0px 1ex 2em;
+	height: 2em;
+	position: absolute;
+}
+
+div#topBar>span {
+	border: white 2px groove;
+	padding: 2px 2px 2px 1em;
+}
+
+input#searchBox {
+	width: 10em;
+	border: 0px;
+}
+
+div.tab {
+	padding: 1ex 3em 1ex 3em;
+	width: auto;
+	float: right;
+	border: 2px groove;
+	border-color: lightblue;
+	border-bottom: 0px !important;
+	color: darkgray;
+	cursor: pointer;
+}
+
+div.tab.selected {
+	border: 2px outset;
+	border-color: white lightblue lightblue white;
+	color: black;
+}
+
+div#list {
+	position: absolute;
+	bottom: 1em;
+	left: 1em;
+	right: 1em;
+	top: 4em;
+	background-color: #f0f0f0;
+	overflow: hidden;
+}
+
+div#list table {
+	width:100%;
+	border-spacing: 0px;
+}
+
+div#list table td {
+	position: relative;
+	border-bottom: 1px solid darkgray;
+	border-top: 1px solid white;
+	margin: 0px;
+}
+
+div#list table td>div {
+	position: relative;
+	left: 0px;
+	right: 0px;	
+	padding: 1ex 2em 1ex 2em;
+	min-height: auto;
+	height: 100%;
+}
+
+textarea {
+	font-family: Tahoma,sans-serif;
+	font-size: 9pt;
+}
+
+div#list a {
+	cursor: pointer;
+}
+
+div#list a:hover {
+	color: darkblue;
+	text-decoration: underline;
+}
+
+div.dijitComboBox {
+	margin-bottom: 1ex;
+}
+
+</style>
+
+</head>
+<body>
+	
+<div id='screen'>
+	<div id='topBar' dojoType='bsb.TopControls'></div>
+	<div id='list'>&nbsp;</div>
+</div>
+
+</body>
+</html>
+

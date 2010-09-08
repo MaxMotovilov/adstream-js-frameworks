@@ -1,0 +1,494 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+<title>jtlc/JXL Documentation</title>
+
+<script src="http://ajax.googleapis.com/ajax/libs/dojo/1.5/dojo/dojo.xd.js"
+		djConfig="parseOnLoad: true, baseUrl: './', modulePaths: { 'dojox.jtlc': 'js/jtlc' }">
+</script>
+
+<!-- Cannot load dependencies from static files with WebKit!-->
+
+<script src="js/jtlc/compile.js"></script>
+<script src="js/jtlc/tags.js"></script>
+<script src="js/jtlc/JXL.js"></script>
+
+<script src="js/docs.js"></script>
+
+<style type="text/css">
+body {
+	font: small Verdana,sans-serif;
+	max-width: 60em;
+	line-height: 150%;
+	text-align: justify;
+}
+
+h1 {
+	font-size: 150%;
+	color: darkblue;
+}
+
+h2 {
+	font-size: 120%;
+	color: darkblue;
+}
+
+h3 {
+	font-size: 100%;
+	color: darkblue;
+}
+
+a {
+	color: inherit;
+}
+
+dt {
+	font-weight: bold;
+	margin-left: 2em;
+}
+
+dd {
+	margin-left: 4em;
+	margin-bottom: 1ex;
+}
+
+blockquote {
+	margin-left: 2em;
+}
+
+.example {
+	width: 60em;
+	margin: 2ex 0px 2ex 0px;
+	padding: 0px;
+	clear: right;
+	background-color: #f0f0f0;
+	max-height: 50ex;
+	overflow-y: auto;
+}
+
+.example>div {
+	width: 17em;
+	float: left;
+	padding: 2ex 0px 2ex 2em;
+	text-align: left;
+	vertical-align: top;
+}
+
+.example>div>div {
+	font-weight: bold;
+	color: darkblue;
+	padding: 0px;
+	margin-bottom: 1ex;
+}
+
+.example>div>hr {
+	width: 13em;
+	margin: 2ex 0px 2ex 2em;
+	border: 1px inset #f8f8f8;
+}
+
+</style> 
+</head>
+<body>
+
+	<h1>Introduction to jtlc</h1>
+
+	This document provides a brief description of <strong>jtlc</strong> (<strong>J</strong>avascript
+	<strong>T</strong>emplate <strong>L</strong>anguage <strong>C</strong>ompiler) &mdash; an infrastructure
+	for creating declarative templates compiled into Javascript code &mdash; as well as <strong>JXL</strong>
+	(<strong>J</strong>SON Transformation <strong>L</strong>anguage) &mdash; a specific template language 
+	implemented with jtlc for transforming and re-shaping JSON data. At the moment the two
+	concepts are very much intertwined and may be considered one and the same; the author does, however, expect
+	to see &mdash; and come up with &mdash; template languages with different syntax and purpose built on
+	jtlc infrastructure.
+
+	<h2>Usage model</h2>
+
+	The jtlc is designed around the two-stage model of template execution: first, the template is compiled
+	into a Javascript function with a call to <strong>dojox.jtlc.compile</strong>(<em>template</em>,
+	<em>language</em>) where <em>language</em> is an object instance encapsulating both the specifics
+	of the template language and the optional setting selected by the user. The returned evaluator function 
+	may then be executed as many times as necessary on different inputs. Structure of the input and output 
+	data for the template depends on the language; JXL treats both as anonymous (i.e. without a custom 
+	constructor) Javascript objects and arrays in keeping with the philosophy of JSON. 
+
+	<h2>Performance</h2>
+
+	The primary reason behind the two-stage execution model is performance: the code compiled from templates
+	should generally be expected to compare well to handwritten Javascript in the efficiency of execution.
+	Care is taken to avoid or minimize spurious copying, use efficient loop constructs, evaluate complex
+	subexpressions once etc. All data structures maintained during the execution of the template remain 
+	under direct control of the template's programmer: the compiler introduces only local variables and no
+	additional arrays or objects. Turning on optional argument checks may lead to introduction of function
+	calls to contexts where default settings produce only inline code: choosing uncompromising performance
+	vs. timely detection of errors in input data is a tradeoff left to the user of the library.
+	
+	<h1>Introduction to JXL</h1>
+
+	JXL is similar in purpose to XSLT: it provides a concise notation describing the transformation
+	of one JSON structure into another. The language itself is also based on Javascript object notation but
+	it is not JSON compliant: aside from the primitive types and object and array literals it also requires
+	the use of functional <strong>tags</strong> which expand into non-anonymous &mdash; and invisible
+	to the user of the library &mdash; Javascript objects.
+
+	<h2>Execution model</h2>
+
+	The execution of a JXL template is best described in terms of the dataflow programming model: values are
+	<em>generated</em> by some primitives, are operated upon by others resulting in new values and end up
+	in <em>sinks</em> provided by a third kind of primitives. The behavior of most languages entities depends 
+	on whether they appear in a context of a <em>singleton</em> or an <em>iteration</em>:
+
+	<h3>Singleton context</h3>
+
+	In singleton context only a single value is processed. All primitives with parameters operate as functions
+	insofar as they have no side effects.
+
+	<h3>Iterative context</h3>
+
+	In iterative context the values are produced in sequence by the innermost generator, undergo processing 
+	imposed by the primitives enclosing the generator and ultimately end up in a sink which limits the context.
+	Array is the most typical sink for the iterative contexts though it is also possible to populate dictionaries
+	(anonymous Javascript objects) iteratively or aggregate the results to a single value. The generators
+	typically iterate over arrays passed in as template's arguments, produced by executing a query over input
+	data or built by other parts of the same template; it is also possible to iterate over keys in a dictionary.
+
+	<h2>Usage examples</h2>
+
+	As JXL was designed to build upon and extend the capabilities provided by <strong>dojox.json.query</strong>
+	rather than as a replacement for the latter library, the examples in this section concentrate on use cases
+	where <strong>dojox.json.query</strong> in itself is not sufficient to do the job. The author hopes that
+	simpler patterns of JXL use can be easily derived from these examples by the reader.
+
+	<h3>Grouping</h3>
+
+	<div class='example' id='Grouping_example_1'><div></div><div></div><div></div></div>
+
+	Note that strings <strong>"author"</strong>, <strong>"$[0].author"</strong> and <strong>"[/author]"</strong> 
+	are implicitly treated as expressions and a query, respectively, based on the execution context. At the
+	same time, string <strong>"title"</strong> requires an explicit tag around it since it appears in an iterative
+	context. <p>Using <strong>$[0]</strong> in an expression within group body is an easy way to access the key 
+	fields as they are equal for the entire group anyway and the group is guaranteed to have at least one element.
+	Simple expressions referencing the properties of the current input do not have <strong>"$."</strong> in front
+	of the name as it is implicitly assumed by <strong>expr()</strong>.
+
+	<div class='example' id='Grouping_example_2'><div></div><div></div><div></div></div>
+
+	For optimal performance, only one sorting on a composite key occurs here. The inner <strong>group()</strong> 
+	operates on the	current value (sequence of records with identical <strong>continent</strong> key) of the outer 
+	one so it does not need the third argument.
+
+	<h3>Aggregation</h3>
+
+	<div class='example' id='Aggregation_example_1'><div></div><div></div><div></div></div>
+	
+	In this example, using an object literal at JXL level to form the output records is not possible since it 
+	establishes an execution context of its own. Hiding it inside an expression solves the problem for simple
+	cases. More complex aggregation patterns may require external accumulators implemented using an object or
+	a closure:
+
+	<div class='example' id='Aggregation_example_2'><div></div><div></div><div></div></div>
+
+	Here, <strong>each()</strong> is used to evaluate the object literal for each input array element (iteration
+	over current input is assumed by <strong>each()</strong> when it is given only one argument).
+
+	<h3>Flattening nested arrays</h3>
+
+	<div class='example' id='Flattening_example_1'><div></div><div></div><div></div></div>
+
+	Again, it is much easier to move object construction inside the inline expression than to deal with an
+	object literal with a context of its own.
+
+	<div class='example' id='Flattening_example_2'><div></div><div></div><div></div></div>
+
+	Note that the second expression does create an intermediate copy: it is necessary to pass multiple properties
+	to the innermost iteration. This copy however is shallow and performance impact of it should be minimal.
+
+	<h3>Transforming dictionaries</h3>
+
+	<div class='example' id='Dictionary_example_1'><div></div><div></div><div></div></div>
+
+	The example above takes a simple record and transforms it into a data structure suitable to populate
+	the names and values for controls in a form template.
+
+	<h3>Simple joins</h3>
+
+	At the moment, JXL lacks comprehensive support for SQL-like joins. Nevertheless some simple yet important
+	cases &mdash; such as lookup by an unique key &mdash; can be implemented in a straightforward manner:
+
+	<div class='example' id='Join_example_1'><div></div><div></div><div></div></div>
+
+	The association of the two tables relies on an intermediate dictionary with the key field of the join serving
+	as the key in the dictionary. The same approach can be extended to compound keys by using <strong>replace()</strong>
+	to build their string representations.
+
+	<h1>JXL and jtlc reference</h1>
+
+	<h2>dojox.jtlc.compile</h2>
+	
+	<blockquote>compile( <em>template</em>, <em>language</em> )</blockquote>
+
+	Accepts template as its first argument and language description (such as an instance of dojo.jtlc.JXL) as
+	its second argument. Returns the compiled evaluator function for the template or throws an exception in
+	case of errors.
+
+	<h2>dojox.jtlc.JXL</h2>
+
+	<blockquote>new JXL( <strong>{</strong> <em>setting</em>... <strong>}</strong> )</blockquote>
+
+	Instantiates language description for JXL that can be customized by specifying the following settings:
+
+	<dl>
+		<dt>elideNulls
+		<dd>When <strong>true</strong>, null values are not placed into array or dictionary sinks but are thrown
+		away instead (with their corresponding keys in case of a dictionary).
+		<dt>failOnDuplicateKeys
+		<dd>When <strong>true</strong>, an attempt to insert a duplicate key into the dictionary sink results in
+		an exception.
+		<dt>singletonQuery.failOnNoResults
+		<dd>Set to <strong>true</strong> to verify that queries in singleton contexts produce at least one result
+		or throw an exception otherwise.
+		<dt>singletonQuery.failOnManyResults
+		<dd>Set to <strong>true</strong> to verify that queries in singleton contexts produce no more than one result
+		or throw an exception otherwise.
+		<dt>queryLanguage
+		<dd>By default this option is set to <strong>dojox.json.query</strong>. You may substitute a query language
+		compiler with compatible API.
+		<dt>replaceLanguage
+		<dd>By defualt this option is set to <strong>dojo.replace</strong>. You may substitute a formatting function
+		of your own with compatible API.
+	</dl>
+
+	Note that default settings always favor performance over other concerns; turning on additional checking in the
+	code is likely to make it somewhat more complex and, as a result, slower.
+
+	<h2>JXL literals</h2>
+
+	<h3>Object literals</h3>
+
+	<blockquote><strong>{</strong> <em>key0</em>: <em>input0 [</em>, ...<em>keyN</em>: <em>inputN]</em> <strong>}</strong></blockquote>
+
+	Object literals are sinks producing dictionaries (anonymous Javascript objects). By default, all inputs
+	of an object literal are evaluated in singleton mode and the resulting values inserted into the resulting
+	dictionary with literal key values. In order to populate a dictionary with keys generated from an input
+	sequence, use the <strong>setkey()</strong>	primitive from a sub-template enclosed within 
+	<strong>many()</strong>. In this case the key associated with this sub-template within the literal will be 
+	ignored and the computed value will be used instead.
+
+	<h3>Array literals</h3>
+
+	<blockquote><strong>[</strong> <em>input0 [</em>, ...<em>inputN]</em> <strong>]</strong></blockquote>
+
+	Array literals are sinks producing anonymous Javascript arrays. By default, each input of an array literal
+	is evaluated in an iterative context of its own. In order to evaluate a singleton sub-template and put its
+	value in an array, enclose the sub-template within <strong>one()</strong>.
+
+	<p>Note that array literals themselves are not generators and should not appear in an iterative context
+	even though they establish an iterative context of their own inside the brackets. In order to use the value
+	produced by an array literal as a generator, enclose it in <strong>from()</strong>.
+
+	<h3>String literals</h3>
+
+	String literals may appear in place of a sub-template anywhere in JXL. They are interpreted differently
+	depending on the context: in the context of a singleton, the string is taken to be an inline expression
+	as if it were enclosed in an <strong>expr()</strong> tag. In an iterative context, the string is assumed
+	to be a query without additional parameters, which is to say, an equivalent of <strong>query(</strong> 
+	<em>string</em>, <strong>current() )</strong>.
+
+	<h3>Numeric and boolean literals</h3>
+
+	Numeric and boolean literals are always interpreted as if they were enclosed in <strong>quote()</strong>.
+	Consequently they may not appear in an iterative context.
+
+	<h3>Functions</h3>
+
+	Values with the type of <strong>function</strong> are treated as if they were enclosed in <strong>bind()</strong>.
+
+	<h2>JXL tags</h2>
+
+	<h3>dojox.jtlc.tags.acc</h3>
+
+	<blockquote>acc( <em>input</em> )</blockquote>
+
+	Ensures that the value of its argument (usually a constant) is stored in a local variable (accumulator). 
+	Usually used as part of an aggregation construct such as <strong>expr(</strong> '$1+=<em>expression</em>', 
+	<em>input</em>, <strong>acc(</strong>0<strong>) )</strong>. It is not an error to use <strong>acc()</strong>
+	in an iterative context but the tag will have no effect as the accumulator will be overwritten by the next
+	iteration.
+
+	<h3>dojox.jtlc.tags.arg</h3>
+
+	<blockquote>arg( <em>index</em> )</blockquote>
+
+	Returns one of the arguments passed into the evaluator of the template. While <strong>current()</strong>
+	defaults to iterating over <strong>arg( </strong>0 <strong>)</strong>, the two are not equivalent: 
+	<strong>arg()</strong> is not a generator and should be enclosed in <strong>from()</strong> to produce
+	one. The argument of <strong>arg()</strong> should be a numeric value (usually a constant).
+
+	<h3>dojox.jtlc.tags.bind</h3>
+
+	<blockquote>bind( <em>function [</em>, <em>input0</em>...<em>inputN ]</em> )</blockquote>
+
+	Evaluates the <em>input0</em>...<em>inputN</em> arguments, then applies <em>function</em> to them. In
+	the iterative context, <em>input0</em> is treated as the generator, the rest of the arguments are 
+	evaluated only once. If the <em>input</em> arguments are omitted completely, <strong>bind()</strong>
+	assumes that the function should be applied to <strong>current()</strong>.
+
+	<h3>dojox.jtlc.tags.current</h3>
+
+	<blockquote>current()</blockquote>
+
+	In a singleton context, returns the value of the current input. Current input defaults to the value of
+	<strong>arg(</strong>0<strong>)</strong> but may be temporarily reset to different objects in a 
+	sub-template enclosed in primitives such as	<strong>each()</strong>, <strong>group()</strong> and 
+	<strong>setkey()</strong>. In an iterative context, <strong>current()</strong> serves as a generator
+	of values from current input.
+
+	<h3>dojox.jtlc.tags.defined</h3>
+
+	<blockquote>defined( <em>[ input ]</em> )</blockquote>
+
+	Serves as a filter passing only the defined values (that is, values whose <strong>typeof</strong> is
+	not equal to <strong>'undefined'</strong>) from the <em>input</em>. Should not be used outside of 
+	iterative contexts.
+
+	<h3>dojox.jtlc.tags.each</h3>
+
+	<blockquote>each( <em>input0 [</em>, <em>input1</em>...<em>inputN ]</em> )</blockquote>
+
+	Performs nested iterations by evaluating its first argument with current input set to the value 
+	generated by the second argument and so on. Thus the rightmost argument forms the outermost
+	iteration and the leftmost argument forms the innermost iteration. This primitive can only be used
+	in iterative contexts and evaluates every one of its arguments in an iterative context of its own.
+	Note that <strong>each()</strong> does not nest sinks, only the iterations. In fact, its usual
+	application is flattening hierarchies formed by nested arrays passed into the template.
+
+	<h3>dojox.jtlc.tags.expr</h3>
+
+	<blockquote>expr( <em>expression [</em>, <em>input0</em>...<em>inputN ]</em> )</blockquote>
+
+	Evaluates its <em>input0</em>...<em>inputN</em> arguments, then evaluates the inline <em>expression</em>,
+	substituting the values of the arguments for placeholders <strong>$</strong> and 
+	<strong>$0</strong>...<strong>$9</strong> as follows:
+
+	<dl>	
+		<dt>$0...$9
+		<dd>Values of <em>input0</em> through <em>input9</em>.
+		<dt>$
+		<dd>In singleton context, equivalent to <strong>$0</strong>. In an iterative context, current
+		value generated by <em>input0</em>.
+	</dl>
+
+	If the expression contains no placeholder strings and begins with an identifier, <strong>expr()</strong>
+	assumes it to be a property reference on the current input and prepends <strong>"$."</strong> to it.
+
+	<p>If no <em>input</em> arguments are provided, the <em>expression</em> is evaluated with <em>input0</em>
+	equal to current input. Note that <em>expr()</em> is entirely similar to <strong>bind()</strong> except that
+	<strong>bind()</strong> refers to a function outside of the template's evaluator and <em>expr()</em>
+	injects Javascript code directly into the evaluator's body.
+
+	<h3>dojox.jtlc.tags.from</h3>
+
+	<blockquote>from( <em>input</em> )</blockquote>
+
+	Evaluates the <em>input</em> argument as a singleton and generates values from the array it returns as its 
+	result. Applying <strong>from()</strong> to <strong>current()</strong> has no effect because 
+	<strong>current()</strong> already serves as a generator in iterative contexts and <strong>from()</strong>
+	cannot be used as a singleton.
+
+	<h3>dojox.jtlc.tags.group</h3>
+
+	<blockquote>group( <em>keys</em>, <em>body [</em>, <em>input ]</em> )</blockquote>
+
+	Provides SQL-like grouping capability by evaluating its <em>body</em> over subsequences from
+	<em>input</em>. The subsequences are established by evaluating the <em>keys</em> (either a single
+	sub-template or an array of subtemplates, typically inline expressions) over each element of the
+	sequence and comparing the results. The longest contiguous subsequence of generated values where 
+	<em>keys</em> are equal forms a group. The <em>body</em> is then evaluated with 
+	current input set to the entire group. The <strong>group()</strong> primitive can be used only 
+	in iterative contexts; it generates values returned by the <em>body</em>: one value per group. 
+
+	<p>Note that for the grouping to work properly the <em>input</em> sequence should already be
+	ordered in respect to the <em>keys</em> so usually <strong>group()</strong> is applied to the 
+	results produced by a <em>query()</em>. However, the user is left free to group sorted sequences 
+	originated elsewhere. If <em>input</em> argument is omitted, current input is used.	
+
+	<h3>dojox.jtlc.tags.keys</h3>
+
+	<blockquote>keys( <em>[ input ]</em> )</blockquote>
+
+	Generates keys from the <em>input</em>: property names if <em>input</em> is an object, indices 
+	if it is an array. If <em>input</em> is omitted, current input is used. Cannot be used outside
+	of an iterative context.
+
+	<h3>dojox.jtlc.tags.last</h3>
+
+	<blockquote>last( <em>[ input ]</em> )</blockquote>
+
+	Serves as a special type of sink, returning only the last value generated by <em>input</em>. Usually
+	used for aggregation purposes. If <em>input</em> is omitted, current input is used.
+
+	<h3>dojox.jtlc.tags.many</h3>
+
+	<blockquote>many( <em>input</em> )</blockquote>
+
+	Evaluates its <em>input</em> in an iterative context if none exist already. If <em>many()</em>
+	is used within an externally established iterative context it does nothing.
+
+	<h3>dojox.jtlc.tags.one</h3>
+
+	<blockquote>one( <em>input</em> )</blockquote>
+
+	Evaluates its <em>input</em> in a singleton context even when used within an externally established
+	iterative context (in which case <strong>one()</strong> effectively works as a generator
+	returning a single value).
+
+	<h3>dojox.jtlc.tags.query</h3>
+
+	<blockquote>query( <em>query [</em>, <em>input0</em>...<em>inputN ]</em> )</blockquote>
+
+	Executes a query over the specified inputs (each of the arguments <em>input0</em>...<em>inputN</em>
+	is evaluated as a singleton). By default, the <em>query</em> is pre-compiled with 
+	<strong>dojox.json.query</strong> and the resulting evaluator is associated with the compiled template 
+	via a closure; changing the	<strong>queryLanguage</strong> setting allow the user to use a different 
+	query language implementation following the same paradigm.
+
+	<p>In iterative contexts, <strong>query()</strong> works as a generator returning individual 
+	matches from the <em>query</em>. In singleton contexts <strong>query()</strong> assumes that one 
+	and only one result should be produced, which is returned on its own. If <em>query</em> returns
+	no matches, the result will have an "undefined" value; if <em>query</em> returns more than one
+	match only the first one will be used. This default behavior may be modified with the settings
+	<strong>singletonQuery.failOnNoResults</strong> and <strong>singletonQuery.failOnManyResults</strong>.
+
+	<p>Using <strong>query()</strong> without the <em>input</em> arguments applies it to current input.
+
+	<h3>dojox.jtlc.tags.quote</h3>
+
+	<blockquote>quote( <em>value</em> )</blockquote>
+
+	Treats <em>value</em> as a literal even if it is a Javascript object, array or string.
+
+	<h3>dojox.jtlc.tags.replace</h3>
+
+	<blockquote>replace( <em>format [</em>, <em>input ]</em> )</blockquote>
+
+	Formats and returns its <em>input</em> by performing substitutions within the <em>format</em> string.
+	By default, <strong>replace()</strong> uses <strong>dojo.replace()</strong>; user can change this
+	behavior with <strong>replaceLanguage</strong> setting. If the <em>input</em> argument is omitted,
+	<strong>replace()</strong> works with current input.
+	
+	<h3>dojox.jtlc.tags.setkey</h3>
+
+	<blockquote>setkey( <em>body [</em>, <em>input ]</em> )</blockquote>
+
+	Changes the key (property name) under which computed values are stored in a dictionary. The <em>input</em>
+	argument is evaluated first, then <em>body</em> is evaluated as a singleton with current input set to 
+	the value returned by <em>input</em>; usually, the body consists of a <strong>replace()</strong>, possibly
+	in combination with <strong>expr()</strong>. The result returned by the <em>body</em> is used as the key,
+	the value from the <em>input</em> serves as the result of the <strong>setkey()</strong> itself. The 
+	<strong>setkey()</strong> primitive can be used both within singletons and iterative contexts, but makes
+	little sense in the former. Without the <em>input</em> argument, <strong>setkey()</strong> operates
+	on the current input.
+
+</body>
+</html>
+

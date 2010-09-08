@@ -1,0 +1,55 @@
+<html>
+<head>
+
+<script src="http://ajax.googleapis.com/ajax/libs/dojo/1.5/dojo/dojo.xd.js" type="text/javascript"></script>
+
+<!-- The following scripts are normally loaded by Dojo but with 
+     static file access XHRs often don't work =============== -->
+<script type="text/javascript" src="js/jtlc/compile.js"></script>
+<script type="text/javascript" src="js/jtlc/tags.js"></script>
+<script type="text/javascript" src="js/jtlc/JXL.js"></script>
+<script type="text/javascript" src="js/jtlc/qplus.js"></script>
+<script type="text/javascript" src="js/jtlc/CHT.js"></script>
+<!-- ======================================================== -->
+
+<script type="text/javascript" src="js/data/schema.js"></script>
+<script type="text/javascript" src="js/data/Service.js"></script>
+
+<script language="javascript">
+function $(id)
+{
+	return document.getElementById(id);
+}
+
+function xhr( method )
+{
+	param = { 
+		url: $('url').value,
+		handleAs: 'json',
+		handle: function( response, ioargs ) {
+			if( response instanceof Error )	
+				response = dojo.fromJson( ioargs.xhr.responseText );
+			$('result').innerHTML = '<pre>' + dojo.toJson( response, true ).replace( /[\t]/g, '  ' ) + '</pre>';
+		} 
+	};
+
+	if( method=='POST' )		param.postData = $('params').value;
+	else if( method=='PUT' )	param.putData = $('params').value;
+
+	({ GET: dojo.xhrGet, POST: dojo.xhrPost, DELETE: dojo.xhrDelete, PUT: dojo.xhrPut }[method])( param );
+}
+
+</script>
+</head>
+<body>
+	<input type="text" id="url" style="width:50em"><br>
+	<textarea id="params" style="width:50em; height: 30ex"></textarea><br>
+	<input type="button" onclick="xhr( 'GET' )" value="GET">
+	<input type="button" onclick="xhr( 'POST' )" value="POST">
+	<input type="button" onclick="xhr( 'PUT' )" value="PUT">
+	<input type="button" onclick="xhr( 'DELETE' )" value="DELETE">
+	<br>
+	<div id="result" style="width:50em;color:blue;padding:1em"></div> 
+</body>
+</html>
+
