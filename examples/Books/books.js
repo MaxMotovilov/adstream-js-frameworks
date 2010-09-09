@@ -1,8 +1,8 @@
 dojo.provide( 'bsb' );
 
 dojo.require( 'dijit.form.ComboBox' );
-dojo.require( 'adstream.data.Service' );
 dojo.require( 'dojox.jtlc.CHT' );
+dojo.require( 'adstream.data.Service' );
 
 bsb.downloaded_templates = dojo.xhrGet( { url: 'books.cht' } ).then( 
 	function(v){ return bsb.downloaded_templates = v; } 
@@ -49,10 +49,7 @@ dojo.ready( function() {
 
 	dojo.when(
 		dojo.when( bsb.downloaded_templates, compileTemplates ),
-		function() {
-			bsb.topControls.ready();
-			bsb.topControls.selectTab( 'books' );
-		}
+		dojo.hitch( bsb.topControls, bsb.topControls.connectData )
 	);
 } );
 
@@ -86,9 +83,10 @@ dojo.declare( 'bsb.TopControls', null, {
 
 	contentTemplates: { authors: 'AuthorList', books: 'BookList' },
 
-	ready: function() {
+	connectData: function() {
 		bsb.root.on_sync( dojo.hitch( this, this.refresh, 'books' ), 'books' );
 		bsb.root.on_sync( dojo.hitch( this, this.refresh, 'authors' ), 'authors' );
+		bsb.topControls.selectTab( 'books' );
 	},
 
 	onclick: function(e) {
@@ -108,7 +106,7 @@ dojo.declare( 'bsb.TopControls', null, {
 			this.displayOffset = 0;
 			this.lastViewOffset = 0;
 
-			dojo.when( bsb.root.get( name ), dojo.hitch( this, this.refresh, name ) );
+			bsb.root.get( name );
 		}
 	},
 	
