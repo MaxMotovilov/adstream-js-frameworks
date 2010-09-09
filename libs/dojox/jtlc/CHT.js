@@ -143,20 +143,18 @@ dojox.jtlc._CHTTemplateInstance = dojo.extend(
 
 		toParsedDom: function( options ) {
 
-			var	gbl = dojo.delegate( dojo.global, { _refs: this._refs } ),
-				parse_args = {};
-
-			if( options ) {
-				if( options.globalNames )	dojo.mixin( gbl, options.globalNames );
-				if( options.noStart )		parse_args.noStart = true;
-				if( options.inherited )		parse_args.inherited = options.inherited;
-			}
-
 			var	master = dojo.create('div');
 
 			dojo.place( this.toDom(), master, 'only' );
 
-			var l = dojo.withGlobal( gbl, dojo.parser.parse, dojo.parser, [ master, parse_args ] );
+			var	old_refs = dojo.global._refs;
+			dojo.global._refs = this._refs;
+
+			var l = dojo.parser.parse( master, options );
+
+			if( old_refs )	dojo.global._refs = old_refs;
+			else			dojo.global._refs = {}; // IE throws a hissy fit on delete 
+
 			if( options && options.instances )	
 				Array.prototype.push.apply( options.instances, l );
 

@@ -25,7 +25,7 @@ adstream.data._collectOnSyncItemsFrom = function( list, path, remaining_depth, d
 			url:		path,
 			cb : 		item.cb,
 			max_depth: 	item.max_depth - remaining_depth,
-			min_depth: 	item.min_depth - remaining_depth,
+			min_depth: 	item.min_depth - remaining_depth
 		};
 	}, dst );
 
@@ -246,7 +246,7 @@ dojo.declare( 'adstream.data.Service', null, {
 
 					var new_qi = {
 						url: qi.url + '/' + i, obj: qi.obj[i], data: props[i], 
-						sync_more: qi.sync_more && qi.sync_more[i],
+						sync_more: qi.sync_more && qi.sync_more[i]
 					};
 
 					new_qi.sync_list = new_qi.sync_more ?

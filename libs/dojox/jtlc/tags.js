@@ -25,7 +25,7 @@ dojox.jtlc._declareTag = function( name, proto_or_class, make_constructor ) {
 			var t = dojo.delegate( cls.prototype );
 			cls.apply( t, arguments ); 
 			return t;
-		}
+		};
 }
 
 /* All tags follow the visitor pattern: their compile() method is executed

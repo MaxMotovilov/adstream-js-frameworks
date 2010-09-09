@@ -156,8 +156,8 @@ dojo.declare( 'dojox.jtlc.qplus', dojox.jtlc.JXL, {
 
 	filters: {
 		lower: '$.toString().toLowerCase()', 
-		upper: '$.toString().toUpperCase()',
-	},
+		upper: '$.toString().toUpperCase()'
+	}
 });
 
 })();
