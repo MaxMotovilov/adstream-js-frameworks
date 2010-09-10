@@ -76,29 +76,32 @@ dojo.declare( 'adstream.data.Service', null, {
 		var	result = new dojo.Deferred();
 
 		seed.url = this._ep_url + rel_url;
-		seed.content = params || {};
 		seed.handle = dojo.hitch( this, '_ioComplete', result, rel_url );
 		seed.handleAs = 'json';
 
-		method( seed );
+		if( (method in { PUT:1,POST:1 }) && params )
+				seed.url += '?' + dojo.objectToQuery( params );
+		else 	seed.content = params || {};			
+
+		dojo.xhr( method, seed );
 
 		return result;
 	},
 
 	GET: function( rel_url, params ) { 
-		return this._xhr( dojo.xhrGet, {}, rel_url, params ); 
+		return this._xhr( "GET", {}, rel_url, params ); 
 	},
 
 	DELETE: function( rel_url, params ) { 
-		return this._xhr( dojo.xhrDelete, {}, rel_url, params ); 
+		return this._xhr( "DELETE", {}, rel_url, params ); 
 	},
 
 	POST: function( rel_url, body, params ) {
-		return this._xhr( dojo.xhrPost, { postData: dojo.toJson( body ) }, rel_url, params );
+		return this._xhr( "POST", { postData: dojo.toJson( body ) }, rel_url, params );
 	},
 
 	PUT: function( rel_url, body, params ) {
-		return this._xhr( dojo.xhrPut, { putData: dojo.toJson( body ) }, rel_url, params );
+		return this._xhr( "PUT", { putData: dojo.toJson( body ) }, rel_url, params );
 	},
 
 	_ioComplete: function( promise, arg_url, response, ioargs ) {
@@ -142,17 +145,17 @@ dojo.declare( 'adstream.data.Service', null, {
 
 		//	Step I: seed the processing queue with all top-level branches in the response
 
-		var result = false, q = [], del_q = {};
+		var result, q = [];
+
+		for( var i in response ) 
+			if( !response[i] || response[i]._ && response[i]._.replaces ) {
+				// These items ought to be processed by their respective containers
+				var	split_url = adstream.data._splitURL( i );
+				(response[split_url[1]] = response[split_url[1]] || {})[split_url[2]] = response[i];
+				delete response[i];
+			}
 
 		for( var i in response ) {
-
-			if( !response[i] )	{
-				//	Deletion report from server
-				var	split_url = adstream.data._splitURL( i );
-				(del_q[split_url[1]]=del_q[split_url[1]]||{})[ split_url[2] ] = null;
-				if( arg_url == i )	result = null;
-				continue;
-			}
 
 			var s = adstream.data._collectOnSyncItems( i, this._on_sync ),
 				d = adstream.data._descend( i, this.root, adstream.data.schema._byAutoInstantiatedSchema ),
@@ -168,15 +171,6 @@ dojo.declare( 'adstream.data.Service', null, {
 			q.push( { 
 				url: i, obj: d.obj, data: response[i], 
 				sync_list: s.list, sync_more: !s.rel_url && s.obj 
-			} );
-		}
-
-		for( var i in del_q ) {
-			var	d = adstream.data._descend( i, this.root ),
-				s = adstream.data._collectOnSyncItems( i, this._on_sync );
-			if( d.rel_url )	continue;
-			q.push( {
-				url: i, obj: d.obj, data: del_q[i], sync_list: s.list
 			} );
 		}
 
@@ -261,7 +255,7 @@ dojo.declare( 'adstream.data.Service', null, {
 						} );		
 
 					q.push( new_qi );
-				}
+				} else if( qi.url + '/' + i == arg_url ) result = null;
 			}
 		}
 

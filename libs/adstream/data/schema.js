@@ -71,7 +71,7 @@ adstream.data.schema._byAutoInstantiatedSchema = function( obj, path_item ) {
 		return p;
 
 	if( (p = obj._schemaProp( path_item )) && p.constructor === adstream.data.schema.Node )
-		return obj[path_item] = p._new( obj._service, obj._url + '/' + path_item );
+		return obj[path_item] = p._new( obj._service, obj._.url + '/' + path_item );
 
 	return null;
 }
@@ -79,7 +79,7 @@ adstream.data.schema._byAutoInstantiatedSchema = function( obj, path_item ) {
 adstream.data.schema._descendSchema = function( rel_url, obj )
 {
 	var d = adstream.data._descend( rel_url, obj, adstream.data.schema._bySchema );
-	if( d.rel_url )	throw Error( obj._url + '/' + rel_url + ' does not specify an object in the schema' );
+	if( d.rel_url )	throw Error( obj._.url + '/' + rel_url + ' does not specify an object in the schema' );
 	return d.obj;
 }
 
@@ -105,9 +105,8 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 	_new: function( svc, url ) {
 		var	ego = this._ego(),
 			impl = dojo.delegate( ego, {
-				_: 			dojo.delegate( ego._, {} ),
-				_service: 	svc,
-				_url:		url
+				_: 			dojo.delegate( ego._, { url: url } ),
+				_service: 	svc
 			} );
 
 		return dojo.delegate( impl, {} );
@@ -122,7 +121,7 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 	},
 
 	_composeURL: function( rel_url ) {
-		return rel_url ? this._url ? this._url + '/' + rel_url : rel_url : this._url;
+		return rel_url ? this._.url ? this._.url + '/' + rel_url : rel_url : this._.url;
 	},
 
 	_schemaProp: function( path_item ) {
@@ -130,9 +129,9 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 	},
 
 	_wrap: function( data ) {
-		if( !data )	throw Error( "Attempt to save a read-only or unmodified object " + this._url );
+		if( !data )	throw Error( "Attempt to save a read-only or unmodified object " + this._.url );
 		var result = {};
-		result[this._url] = data;
+		result[this._.url] = data;
 		return result;
 	},
 
@@ -195,27 +194,27 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 	},
 
 	_notYetCreated: function() {
-		return this._url.indexOf( '@' ) >= 0;
+		return this._.url.indexOf( '@' ) >= 0;
 	},
 
-	_URL_Params: function( verb, depth ) { 
+	_URL_Params: function( depth ) { 
 		var result = {};
 		if( depth )
 			for( var sp in this._subschema ) 
 				if( !adstream.data.schema._mixIfNotPresent( 
-					result, (this[sp] || this._subschema[sp])._URL_Params( verb, depth-1 ) 
+					result, (this[sp] || this._subschema[sp])._URL_Params( depth-1 ) 
 				) )
-					throw Error( "URL parameters conflict in request to " + this._url + " with depth " + depth );
+					throw Error( "URL parameters conflict in request to " + this._.url + " with depth " + depth );
 		return result;
 	},
 
 	_saveIfNotCreated: function() {
-		if( /@.*[\/]/.test( this._url ) )
-			throw Error( "Cannot save " + this._url + " as its parent has not yet been saved" );
-		var split_url = adstream.data._splitURL( this._url ),
+		if( /@.*[\/]/.test( this._.url ) )
+			throw Error( "Cannot save " + this._.url + " as its parent has not yet been saved" );
+		var split_url = adstream.data._splitURL( this._.url ),
 			d = adstream.data._descend( split_url[1], this._service.root );
 
-		if( d.rel_url )	throw Error( "Object at " + this._url + " is not connected to schema" );
+		if( d.rel_url )	throw Error( "Object at " + this._.url + " is not connected to schema" );
 
 		return d.obj.save( split_url[2] );
 	},
@@ -223,19 +222,19 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 	_itemDelete: function() {
 
 		if( this._notYetCreated() ) {
-			var	split_url = adstream.data._splitURL( this._url ),
-				d = adstream.data.schema._descend( split_url[1], this._service.root );
+			var	split_url = adstream.data._splitURL( this._.url ),
+				d = adstream.data._descend( split_url[1], this._service.root );
 
-			if( d.rel_url )	throw Error( "Object at " + this._url + " is not connected to schema" );
+			if( d.rel_url )	throw Error( "Object at " + this._.url + " is not connected to schema" );
 		
 			return d.obj.del( split_url[2] );
 
 		} else {
-			return this._service.DELETE( this._url, { version: this._.version } );
+			return this._service.DELETE( this._.url, { version: this._.version } );
 		}
 	},
 
-	url: function() { return this._url; },
+	url: function() { return this._.url; },
 	
 	service: function() { return this._service; },
 
@@ -244,7 +243,7 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 		if( !d.rel_url && !d.obj._.outOfSync && (depth||d.obj._defaultGetDepth||0) <= (d.obj._.depth||0) ) return d.obj;
 
 		var	schema_obj = adstream.data.schema._descendSchema( d.rel_url, this ),
-			params = schema_obj._URL_Params( "GET", depth );
+			params = schema_obj._URL_Params( depth );
 
 		if( depth = depth||schema_obj._defaultGetDepth||0 )
 			params.depth = depth;
@@ -266,7 +265,7 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 	save: function( depth ) {
 		if( this._notYetCreated() )
 			return this._saveIfNotCreated();
-		return this._service.PUT( this._url, this._wrap( this._marshal( depth||0 ) ) );
+		return this._service.PUT( this._.url, this._wrap( this._marshal( depth||0 ) ) );
 	}
 } );
 
@@ -372,7 +371,7 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 				}
 			} else if( props[i]._ && props[i]._.replaces &&
 					   props[i]._.replaces in this ) {
-				this[i] = this[ props[i]._.replaces ];
+				(this[i] = this[ props[i]._.replaces ])._.url = this._composeURL( i );
 				delete this[ props[i]._.replaces ];
 				result = true;
 			}
@@ -393,7 +392,7 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 		return result;		
 	},
 
-	_URL_Params: function( verb, depth ) {
+	_URL_Params: function( depth ) {
 
 		var result = {};
 		dojo.forEach( [ 'filter', 'view', 'extra' ], function(p) {
@@ -404,9 +403,9 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 			for( var i in this ) 
 				if( this.hasOwnProperty(i) && this[i] instanceof adstream.data.schema.Node &&
 					!adstream.data.schema._mixIfNotPresent( 
-						result, this[i]._URL_Params( verb, depth-1 ) 
+						result, this[i]._URL_Params( depth-1 ) 
 				) )
-					throw Error( "URL parameters conflict in request to " + this._url + " with depth " + depth );
+					throw Error( "URL parameters conflict in request to " + this._.url + " with depth " + depth );
 
 		return result;
 	},
@@ -442,12 +441,12 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 			if( !(item_id in this) )
 				throw Error( "Attempt to save a non-existing item " + this._composeURL( item_id ) );
 			if( item_id.toString().charAt(0) == '@' )
-					return this._service.POST( this._url, this[item_id]._wrap( this[item_id]._marshal( -1 ) ) );
+					return this._service.POST( this._.url, this[item_id]._wrap( this[item_id]._marshal( -1 ) ), this._URL_Params( -1 ) );
 			else	return this[item_id].save( depth );
 		} else {
 			if( this._notYetCreated() )
 					return this._saveIfNotCreated();
-			else	return this._service.POST( this._url, this._wrap( this._marshal( -1 ) ) );
+			else	return this._service.POST( this._.url, this._wrap( this._marshal( -1 ) ), this._URL_Params( -1 ) );
 		}
 	},
 
