@@ -8,9 +8,6 @@
 	<tr>
 		<td width='40%'><div>
 			<? foreach "from:authors" ?>
-				<? if "$# != 0" ?>
-					<br>
-				<? /if ?>
 				<a author_id='{{id}}'>{{firstName}} {{lastName}}</a>
 			<? /foreach ?>
 		</div></td>

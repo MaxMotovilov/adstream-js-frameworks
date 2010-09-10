@@ -203,7 +203,7 @@ def addBooks( data, **kwargs ):
 	result = { 'books' : books }
 	
 	if len(new_authors):
-		result['authors'] = dict( ( (i,reprAuthor(i,False)) for i in new_authors ) )
+		result['authors'] = dict( ( (i,db['authors'][i]) for i in new_authors ) )
 
 	return result
 
@@ -244,7 +244,7 @@ def putBook( data, book_id, **kwargs ):
 	result = wrappedBook( book_id )
 
 	if len(new_authors):
-		result['authors'] = dict( ( (i,reprAuthor(i,False)) for i in new_authors ) )
+		result['authors'] = dict( ( (i,db['authors'][i]) for i in new_authors ) )
 
 	return result
 

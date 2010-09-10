@@ -106,12 +106,13 @@ dojo.declare( 'bsb.TopControls', null, {
 			this.displayOffset = 0;
 			this.lastViewOffset = 0;
 
-			bsb.root.get( name );
+			this.refresh( name, bsb.root.get( name ) );
 		}
 	},
 	
 	refresh: function( name, data ) {
-		if( name != this.selectedTab )	return;
+		if( name != this.selectedTab || data instanceof dojo.Deferred )	
+			return;
 
 		this.searching = false;
 
