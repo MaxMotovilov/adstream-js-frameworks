@@ -79,7 +79,7 @@ dojo.declare( 'adstream.data.Service', null, {
 		seed.handle = dojo.hitch( this, '_ioComplete', result, rel_url );
 		seed.handleAs = 'json';
 
-		if( (method in { PUT:1,POST:1 }) && params )
+		if( params && (method in { PUT:1,POST:1 }) )
 				seed.url += '?' + dojo.objectToQuery( params );
 		else 	seed.content = params || {};			
 
@@ -97,11 +97,11 @@ dojo.declare( 'adstream.data.Service', null, {
 	},
 
 	POST: function( rel_url, body, params ) {
-		return this._xhr( "POST", { postData: dojo.toJson( body ) }, rel_url, params );
+		return this._xhr( "POST", { postData: dojo.toJson( body ), headers: { 'Content-Type': 'application/json' } }, rel_url, params );
 	},
 
 	PUT: function( rel_url, body, params ) {
-		return this._xhr( "PUT", { putData: dojo.toJson( body ) }, rel_url, params );
+		return this._xhr( "PUT", { putData: dojo.toJson( body ), headers: { 'Content-Type': 'application/json' } }, rel_url, params );
 	},
 
 	_ioComplete: function( promise, arg_url, response, ioargs ) {
