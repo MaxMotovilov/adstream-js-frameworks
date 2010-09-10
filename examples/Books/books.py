@@ -112,22 +112,27 @@ def wrappedAuthor( author_id ):
 def matchAuthor( author ):
 	for i in db['authors'].iterkeys():
 		if reprAuthor( i, False ) == author:
-			return i
+			return (i,False)
 	
 	author['_'] = { 'version': 1 }
 	db['last_id'] = db['last_id']+1
 	author_id = str(db['last_id'])
 	db['authors'][author_id] = author
-	return author_id
+	return (author_id,True)
 
 def matchBookAuthors( book ):
+
+	new_author_ids = []
+	
 	for j in xrange( 0, len(book['authors']) ):
 		if type(book['authors'][j]) == dict:
 			if 'id' in book['authors'][j]:
 				del book['authors'][j]['id']
-			book['authors'][j] = matchAuthor( book['authors'][j] )
+			book['authors'][j],new = matchAuthor( book['authors'][j] )
+			if new: new_author_ids.append( book['authors'][j] )
 		elif book['authors'][j] not in db['authors']:
 			raise HTTPError( 400, 'Author does not exist' )
+	return new_author_ids
 
 def trimView( result, sort_key, offset, count ):
 	if offset==None and count==None: return
@@ -174,15 +179,16 @@ def addBooks( data, **kwargs ):
 
 	data = normalizePostData( data, 'books' )
 	books = {}
+	new_authors = []
 
 	for i in data.iteritems():
 		temp, book = i
 
-		matchBookAuthors( book )
+		new_authors.extend( matchBookAuthors( book ) )
 
 		book.setdefault('_', {})['version'] = 1
-		book_id = db['last_id']+1
-		db['last_id'] = book_id
+		db['last_id'] = db['last_id']+1
+		book_id = str(db['last_id'])
 		db['books'][book_id] = book
 
 		if bookMatches( book, **kwargs ):
@@ -190,11 +196,16 @@ def addBooks( data, **kwargs ):
 			book['_']['replaces'] = '@'+temp
 			books[book_id] = book
 		else:
-			books[temp] = None
+			books['@'+temp] = None
 
 	saveDb()
 
-	return { 'books' : books }
+	result = { 'books' : books }
+	
+	if len(new_authors):
+		result['authors'] = dict( ( (i,reprAuthor(i,False)) for i in new_authors ) )
+
+	return result
 
 @no_input 
 @as_json
@@ -212,6 +223,8 @@ def putBook( data, book_id, **kwargs ):
 	if book_id not in db['books']:
 		raise HTTPError( 404, 'Book does not exist' )	
 
+	new_authors = []
+
 	for i in data.iteritems():
 		path,value = i
 		if path != 'books/' + str(book_id):
@@ -221,14 +234,19 @@ def putBook( data, book_id, **kwargs ):
 		if value['_']['version'] != db['books'][book_id]['_']['version']:
 			raise HTTPError( 409, 'Modification collision', wrappedBook( book_id ) )
 		
-		matchBookAuthors( value )
+		new_authors.extend( matchBookAuthors( value ) )
 
 		value['_']['version'] = value['_']['version'] + 1
 		db['books'][book_id] = value
 
 	saveDb()
 
-	return wrappedBook( book_id )
+	result = wrappedBook( book_id )
+
+	if len(new_authors):
+		result['authors'] = dict( ( (i,reprAuthor(i,False)) for i in new_authors ) )
+
+	return result
 
 @no_input 
 @as_json
@@ -308,7 +326,10 @@ def getStatic( path_name, headers={}, **kwargs ):
 			'html': 'text/html', 'css': 'text/css', 'js': 'application/javascript',
 			'gif': 'image/gif', 'jpeg': 'image/jpeg', 'png': 'image/png'
 		}.get( m.group(1).lower(), 'text/plain' )
-	return open( os.path.join( localpath, path_name ), 'r' )
+	
+	path = os.path.abspath( os.path.join( localpath, path_name ) )
+
+	return open( path, 'r' )
 
 ##########################################################
 

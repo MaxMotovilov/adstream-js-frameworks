@@ -315,7 +315,6 @@ dojo.declare( 'bsb.NewBookPane', null, {
 			);
 
 			book.save();
-			bsb.root.authors.refresh();
 		}
 		
 		dojo.place( getTemplate( 'NewBookPlaceholder' )( bsb.books, bsb.topControls ).toDom(), this.element, 'only' );
