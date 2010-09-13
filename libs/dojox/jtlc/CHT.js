@@ -182,6 +182,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 	constructor: function( settings ) {
 		this.qplus = new dj.qplus( dojo.mixin( {}, { tags: this.tags }, settings ) );
+		dojo.mixin( this, settings );
 	},
 
 	parse: function( input, ns ) {
