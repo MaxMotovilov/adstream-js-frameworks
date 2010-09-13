@@ -122,12 +122,14 @@ dojo.declare( 'dojox.jtlc.qplus', dojox.jtlc.JXL, {
 			if( (t = this.tags[tag[0]]) || (t = dj.tags[tag[0]]) )
 				return t.apply( null, args );
 			else if( t = this.filters[tag[0]] ) {
-				args.unshift( t );
-				if( typeof t === 'function' )
+				if( typeof t === 'function' ) {
+					args.unshift( t );
 					return dojox.jtlc.tags.bind.apply( null, args );
-				else if( typeof t === 'string' )
-					return dojox.jtlc.tags.expr.apply( null, args );
-				else
+				} else if( typeof t === 'string' ) {
+					if( args.length == 1 )
+							return dojox.jtlc.tags.expr( t, args[0] );
+					else	return dojox.jtlc.tags.expr( t, dojox.jtlc.tags.expr( args[1], args[0] ) );
+				} else
 					throw Error( "Filter '" + tag[0] + "' is neither string nor function" );
 			}
 		}
