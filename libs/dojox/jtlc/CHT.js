@@ -25,10 +25,11 @@ dojox.jtlc._tokenizeCHT = function( input )
 			{ prefix: '{', suffix: '}', allow: [ '"', "'", '(', '[', '{', '}' ] },
 			{ prefix: '(', suffix: ')', allow: [ '"', "'", '(', '[', '{', ')' ] },
 			{ prefix: '[', suffix: ']', allow: [ '"', "'", '(', '[', '{', ']' ] },
-			{ prefix: '"', suffix: '"', allow: [ '"' ], inSubstitution: true },
-			{ prefix: '"', suffix: '"', allow: [ '"', '{{' ], inSubstitution: false },
-			{ prefix: "'", suffix: "'", allow: [ "'" ], inSubstitution: true },
-			{ prefix: "'", suffix: "'", allow: [ "'", '{{' ], inSubstitution: false }
+			{ prefix: '"', suffix: '"', allow: [ '"', '\\' ], inSubstitution: true },
+			{ prefix: '"', suffix: '"', allow: [ '"', '\\', '{{' ], inSubstitution: false },
+			{ prefix: "'", suffix: "'", allow: [ "'", '\\' ], inSubstitution: true },
+			{ prefix: "'", suffix: "'", allow: [ "'", '\\', '{{' ], inSubstitution: false },
+			{ prefix: '\\', escape: true }
 		],
 
 		script_bracket = { suffix: '</script', allow: [ '"', "'", '{{', '</script' ] },
@@ -42,8 +43,13 @@ dojox.jtlc._tokenizeCHT = function( input )
 		in_substitution = false,
 
 		parsed = input.replace( 
-			/(?:<(?:[?]\s*)?[/]?[a-z_]\w*|<!--|-->|[?]?>|[{][{]?|[}][}]?|["'\[\]()]|\\.)/ig,
+			/(?:<(?:[?]\s*)?[/]?[a-z_]\w*|<!--|-->|[?]?>|[{][{]?|[}][}]?|["'\[\]()\\])/ig,
 			function( s, pos, src ) {
+
+				if( stack[0].escape ) {
+					stack.shift();
+					if( pos == lp+1 )	return s;
+				}
 
 				var pfx = dj._hasPrefix( s.toLowerCase(), stack[0].allow ),
 					lp = last_pos;
@@ -75,6 +81,8 @@ dojox.jtlc._tokenizeCHT = function( input )
 								else return b.prefix; 
 							} 
 					) ) {
+						if( pfx.escape )	return s;
+
 						if( s.charAt(0) == '<' )
 							html_tag = /^<(\/?[a-z_]*)/i.exec( s )[1].toLowerCase();
 
@@ -656,6 +664,11 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 	} ) );
 
 	djcp._declareTag( 'i18n', dojo.declare( djcp.tags._replaceN, {
+		constructor: function() {
+			if( !(this.args instanceof Array) )
+				this.args = [ this.args ];
+		},
+
 		formatString: function( self ) {
 			if( this.i18nDictionary && !(self.format in this.i18nDictionary) )
 				this.i18nDictionary[self.format] = false;

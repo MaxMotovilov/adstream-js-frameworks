@@ -62,8 +62,9 @@ dojo.declare( 'dojox.jtlc.qplus', dojox.jtlc.JXL, {
 			},
 			stack = [ { close: '', allow: '[](){}"\'|,' } ],
 
-			prep = query.replace( multiple ? /[\[\](){}"'|,]/g : /[\[\](){}"'|]/g,
+			prep = query.replace( multiple ? /(?:[\[\](){}"'|,]|\\.)/g : /(?:[\[\](){}"'|]|\\.)/g,
 				function( c ) {
+					if( c[0] == '\\' ) return c[1];
 					if( stack[0].allow.indexOf( c ) >= 0 ) {
 						if( c == stack[0].close )
 							stack.shift();
@@ -109,8 +110,8 @@ dojo.declare( 'dojox.jtlc.qplus', dojox.jtlc.JXL, {
 
 		var	args = [];
 		if( arg1 ) {
-			args.push( arg1 );
 			if( arg2 )	args.push( arg2 );
+			args.push( arg1 );
 		}
 
 		tag = tag.split( /\s*[.]\s*/ );
@@ -119,17 +120,16 @@ dojo.declare( 'dojox.jtlc.qplus', dojox.jtlc.JXL, {
 
 			var	t;
 
-			if( (t = this.tags[tag[0]]) || (t = dj.tags[tag[0]]) )
+			if( (t = this.tags[tag[0]]) || (t = dj.tags[tag[0]]) ) {
+				args.reverse();
 				return t.apply( null, args );
-			else if( t = this.filters[tag[0]] ) {
-				if( typeof t === 'function' ) {
-					args.unshift( t );
+			} else if( t = this.filters[tag[0]] ) {
+				args.unshift( t );
+				if( typeof t === 'function' )
 					return dojox.jtlc.tags.bind.apply( null, args );
-				} else if( typeof t === 'string' ) {
-					if( args.length == 1 )
-							return dojox.jtlc.tags.expr( t, args[0] );
-					else	return dojox.jtlc.tags.expr( t, dojox.jtlc.tags.expr( args[1], args[0] ) );
-				} else
+				else if( typeof t === 'string' )
+					return dj.tags.expr.apply( null, args );
+				else
 					throw Error( "Filter '" + tag[0] + "' is neither string nor function" );
 			}
 		}
