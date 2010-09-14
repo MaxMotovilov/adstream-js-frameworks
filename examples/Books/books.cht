@@ -8,6 +8,7 @@
 	<tr>
 		<td width='40%'><div>
 			<? foreach "from:authors" ?>
+				<? if $# ?><br><? /if ?>
 				<a author_id='{{id}}'>{{firstName}} {{lastName}}</a>
 			<? /foreach ?>
 		</div></td>
@@ -22,7 +23,7 @@
 
 <? template BookTitle ?>
 	<a dojoType='bsb.InplaceEditField' editTemplate='InplaceEditFieldMultiline' displayTemplate='BookTitle' data='{{ref:$}}' field='title'>{{title}}
-		<img style="float:right;position:relative;top:-0.5ex;cursor:pointer" prompt="{{i18n:Do you really want to delete this book?}}" src="img/del.png">
+		<img style="float:right;position:relative;top:-0.5ex;cursor:pointer" prompt="{{$.title|i18n:Do you really want to delete book \"{0}\"?}}" src="img/del.png">
 	</a>
 <? /template ?>
 
@@ -105,7 +106,7 @@
 
 <? template InplaceEditField ?>
 
-	<input type='text' value="{{$[dojo.attr($1,'field')]}}" style="position:absolute; width:{{$1.offsetWidth}}px">
+	<input type='text' value="{{$[dojo.attr($1,'field')]}}" style="position:absolute; width:{{$1.offsetWidth}}px; font-size: smaller">
 
 <? /template ?>
 
