@@ -15,7 +15,7 @@ dojox.jtlc._varName = function( n )
 
 dojox.jtlc.stringLiteral = function( s )
 {
-	return '"' + s.toString().replace( /[\\"\n\t]/g, function(x){ return { '\\': '\\\\', '"': '\\"', '\n': '\\n', '\t': '\\t' }[x]; } ) + '"';
+	return '"' + s.toString().replace( /[\\"\r\n\t]/g, function(x){ return { '\\': '\\\\', '"': '\\"', '\n': '\\n', '\t': '\\t', '\r': '' /* Thank you, Bill Gates! */ }[x]; } ) + '"';
 }
 
 dojox.jtlc.arrayAppend = function( dst, src )
@@ -37,10 +37,9 @@ dojox.jtlc.compile = function( tpl, lang, mixin )
 	};
 
 	if( mixin )	state = dojo.mixin( {}, mixin, state );
-
 	state = dojo.delegate( lang, state );
 
-	if( mixin )	dojo.mixin( state, mixin );
+	state.compileArguments = { language: lang, options: mixin };
 
 	state.compileBody( tpl );
 

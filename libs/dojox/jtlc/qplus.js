@@ -195,7 +195,8 @@ dojo.declare( 'dojox.jtlc.qplus', dojox.jtlc.JXL, {
 			var	v =	this.popExpression(),
 				t = this.addLocal();
 
-			this.code.push( t + '=[' + v + '].concat($.slice(1));' );
+			this.code.push( t + '=' + this.addGlobal( dj._copyArguments ) + '($);' );
+			this.code.push( t + '[0]=' + v + ';' );
 
 			return this.addGlobal( this.queryLanguage( self.query ) ) + '.apply(null,' + t + ')';
 		}

@@ -9,7 +9,7 @@ dojo.require( "dojox.jtlc.compile" );
 dojo.declare( 'dojox.jtlc.JXL', dojox.jtlc.Language, {
 
 	replaceLanguage:		dojo.replace,
-//	queryLanguage:			dojox.json.query,
+	queryLanguage:			dojox.json.query,
 
 	/* String: if in position of a loop generator, 
 	   assumed to be a query. Otherwise it is assumed
@@ -47,6 +47,4 @@ dojo.declare( 'dojox.jtlc.JXL', dojox.jtlc.Language, {
 		this.expressions.push( 'null' );
 	}
 } );
-
-dojo.ready( function(){ dojox.jtlc.JXL.prototype.queryLanguage = dojox.json.query; } );
 

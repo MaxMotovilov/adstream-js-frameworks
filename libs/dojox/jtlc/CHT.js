@@ -301,7 +301,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 	_buildAST: function( rp, ns ) {
 
 		for( var elt_name in rp.parsed )
-			ns[elt_name] = new this._userDefinedElement( rp.parsed[elt_name].sections );
+			ns[elt_name] = new this._userDefinedElement( rp.parsed[elt_name] );
 
 		var	refs = dojo.mixin( rp.refs, ns, this.elements ),
 			_this = this;
@@ -454,8 +454,14 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 	),
 
 	_userDefinedElement: dojo.extend( 
-		function( sections ) {
-			if( sections )	this.sections = sections;
+		function( elt ) {
+			if( elt.kwarg && elt.kwarg.compiled ) {
+				if( elt.sections )	throw Error( "Compiled template " + elt.openTag + " should not have sections" );
+				this.alwaysCompile = true;
+			}
+
+			if( elt.sections )	this.sections = sections;
+			this.name = elt.openTag;
 		},{
 			_tag: dojo.extend(
 				function( cht, elt, def ) {
@@ -498,7 +504,55 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 				}
 			),
 
-			tag: function( cht, elt ) {	return new this._tag( cht, elt, this ); },
+			_compiledTag: dojo.extend(
+				function( cht, elt, tag ) {
+					this.name = elt.openTag;
+					this.tag = tag;
+					if( elt.arg )	this.arg = elt.arg;
+					this.bind = cht.tags.bind;					
+				}, {
+					compile: function( self ) {
+
+						if( !('compiledTemplates' in this) )	this.compiledTemplates = {};
+						if( !(self.name in this.compiledTemplates) ) {
+							// Create a forwarding thunk to resolve issues with template recursion
+							var forward_to = null;
+							this.compiledTemplates[self.name] = function(){ return forward_to.apply( this, arguments ); }
+
+							this.compiledTemplates[self.name] = forward_to =
+								dj.compile( self.tag, this.compileArguments.language, 
+											dojo.mixin( { compiledTemplates: this.compiledTemplates }, this.compileArguments.options )
+								);
+						}
+
+						var fn = this.addGlobal( this.compiledTemplates[self.name] );
+
+						if( self.arg )	this.compile( self.arg );
+						else			this.generator();
+
+						var v = this.popExpression(),
+							t = this.addLocal();
+
+						if( v == '$[0]' ) {
+							this.code.push( t + '=' + fn + '.apply(null,$);' );
+						} else {
+							var t = this.addLocal();
+							this.code.push( t + '=' + this.addGlobal( dj._copyArguments ) + '($);' );
+							this.code.push( t + '[0]=' + v + ';' );
+							this.code.push( t + '=' + fn + '.apply(null,' + t + ');' );
+						}
+						this.code.push( 'if(' + t + '._refs.length)' + this._chtRefs + '=' + this._chtRefs + '.concat(' + t + '._refs);' );
+
+						this.expressions.push( t + '.toString()' );
+					}
+				}
+			),
+
+			tag: function( cht, elt ) {
+				if( this.alwaysCompile && elt.openTag )
+						return new cht._appendToOutput( [ new this._compiledTag( cht, elt, new this._tag( cht, {}, this ) ) ] );
+				else	return new this._tag( cht, elt, this ); 
+			},
 
 			compile: function( self ) {
 				this.compile( self.tag( this, {} ) );
@@ -587,6 +641,9 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 			}
 		}
 	},
+
+	string: dojox.jtlc.qplus.prototype.string,
+	queryLanguage: dojox.json.query,
 
 	_declareTag: dj._declareTag,
 
@@ -752,12 +809,4 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 	} );
 
 })( dojox.jtlc.CHT.prototype );
-
-dojo.ready( function(){ 
-	dojo.mixin( dojox.jtlc.CHT.prototype, {
-		string: dojox.jtlc.qplus.prototype.string,
-		queryLanguage: dojox.json.query
-	} );
-});
-		
 
