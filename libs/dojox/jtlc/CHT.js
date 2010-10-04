@@ -328,7 +328,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 								  &&  parent.def_sections[tag];
 
 					if( tag == 'section' ) {
-						body[i] = new _this._userDefinedSection( body[i].arg, parseDefinition( body[i].body ) );
+						body[i] = new _this._userDefinedSection( body[i].arg, parseDefinition( body[i].body ), elt_name );
 						continue;
 					}
 
@@ -412,6 +412,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 	compileBody: function( tpl ) {
 		this._chtRefs = this.addLocal();
+		this._chtSections = {};
 		this.code.push( this._chtRefs + '=[];' );
 		this.accumulated( 
 			'=[];', new dj._ArraySink( this ), null, 
@@ -456,12 +457,12 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 	_userDefinedElement: dojo.extend( 
 		function( elt ) {
 			if( elt.kwarg && elt.kwarg.compiled ) {
-				if( elt.sections )	throw Error( "Compiled template " + elt.openTag + " should not have sections" );
+				if( elt.sections )	throw Error( "Compiled template " + elt.arg + " should not have sections" );
 				this.alwaysCompile = true;
 			}
 
-			if( elt.sections )	this.sections = sections;
-			this.name = elt.openTag;
+			if( elt.sections )	this.sections = elt.sections;
+			this.name = elt.arg;
 		},{
 			_tag: dojo.extend(
 				function( cht, elt, def ) {
@@ -476,7 +477,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 					}
 				}, {
 					compile: function( self ) {
-						var old_current_input, old_cht_sections;
+						var old_current_input;
 						
 						if( self.arg ) {
 							old_current_input = this.hasOwnProperty( 'current_input' ) ? this.current_input : null;
@@ -484,17 +485,13 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 							this.current_input = this.popExpression();
 						}
 
-						if( self.sections ) {
-							old_cht_sections = this.hasOwnProperty( '_cht_sections' ) ? this._cht_sections : null;
-							this._cht_sections = self.sections;
-						}
+						if( self.sections )	
+							this._chtSections[ self.def.name ] = self.sections;
 
 						this.compileSequence( self.def.body );
 						
-						if( self.sections ) {
-							if( old_cht_sections )	this._cht_sections = old_cht_sections;
-							else					delete this._cht_sections;
-						}
+						if( self.sections )
+							delete this._chtSections[ self.def.name ];
 
 						if( self.arg ) {					
 							if( old_current_input )	this.current_input = old_current_input;
@@ -561,12 +558,13 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 	),
 
 	_userDefinedSection: dojo.extend(
-		function( name, body ) {
+		function( name, body, tpl_name ) {
 			this.body = body;
 			this.name = name;
+			this.tplName = tpl_name;
 		}, {
 			compile: function( self ) {
-				this.compileSequence( this._cht_sections[self.name] || self.body );
+				this.compileSequence( (this._chtSections[self.tplName]||{})[self.name] || self.body );
 			}
 		}
 	),
