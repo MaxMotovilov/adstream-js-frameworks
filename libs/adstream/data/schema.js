@@ -9,7 +9,7 @@ adstream.data._splitURL = function( url ) {
 	return /^(.*)\/([^\/]*)$/.exec( url ) || [ url, url, '' ];
 }
 
-adstream.data.schema._identical = function( a, b ) {
+adstream.data.schema._identical = function( a, b, ignore_schema_objects ) {
 
 	if( typeof a !== 'object' && typeof b !== 'object' )
 		return !a == !b && a.toString() == b.toString();
@@ -17,11 +17,14 @@ adstream.data.schema._identical = function( a, b ) {
 		return false;
 
 	for( var i in a )
-		if( !adstream.data.schema._identical( a[i], b[i] ) )
+		if( a.hasOwnProperty(i) && !adstream.data.schema._identical( a[i], b[i] ) )
 			return false;
 
 	for( var i in b )
-		if( !(i in a) )	return false;
+		if( b.hasOwnProperty(i) && 
+			!(ignore_schema_objects && b[i] instanceof adstream.data.schema.Node) && 
+			!(i in a) )	
+				return false;
 
 	return true;	
 }
@@ -85,9 +88,16 @@ adstream.data.schema._descendSchema = function( rel_url, obj )
 
 dojo.declare( 'adstream.data.schema.Node', null, {
 
-	constructor: function( sub ) {
+	constructor: function( sub, options, proto ) {
 		this._subschema = sub || {};
 		this._ = {};
+
+		if( options ) for( var i in options )
+			this['_'+i] = options[i];
+
+		if( proto ) for( var i in proto )
+			if( !( i in this ) )	
+				this[i] = proto[i];
 
 		for( var i in this._subschema ) {
 			if( this._subschema[i] instanceof adstream.data.schema.Method )
@@ -251,6 +261,7 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 		return this._service.GET( this._composeURL( rel_url ), params );
 	},
 
+	// Retained for backward compatibility only, use watch() instead
 	on_sync: function( cb, rel_url, max_depth, min_depth ) {
 
 		if( typeof rel_url === 'number' ) {
@@ -259,7 +270,25 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 			rel_url = '';
 		}
 
-		this._service.on_sync( cb, this._composeURL( rel_url ), max_depth||0, min_depth||0 );
+		var opt = {};
+		if( max_depth )	opt.maxDepth = max_depth;
+		if( min_depth )	opt.minDepth = min_depth;
+
+		this.watch( cb, rel_url, opt );
+	},
+
+	watch: function( cb, rel_url, options ) {
+
+		if( typeof rel_url === 'object' ) {
+			options = rel_url;
+			rel_url = '';
+		}
+
+		this._service.watch( cb, this._composeURL( rel_url ), options );
+	},
+
+	ignore: function( rel_url ) {
+		this._service.ignore( this._composeURL( rel_url ) );
 	},
 
 	save: function( depth ) {
@@ -272,17 +301,11 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 
 dojo.declare( 'adstream.data.schema.Object', [ adstream.data.schema.Node ], {
 
-	constructor: function() {
-		if( this._subschema.readOnly ) {
-			this.readOnly = true;
-			delete this._subschema.readOnly;
-		}
-	},
-	
 	_unmarshal: function( data ) {
 
-		if( data._ &&
-			!this._copyPropsIfChanged( data, [ 'version' ] ) )
+		if( data._ && !this._copyPropsIfChanged( data, [ 'version' ] ) || 
+			this._readOnly && adstream.data.schema._identical( data, this, true )
+		)
 			return false;
 
 		for( var i in this )
@@ -292,12 +315,15 @@ dojo.declare( 'adstream.data.schema.Object', [ adstream.data.schema.Node ], {
 		for( var i in data )
 			if( i != '_' )	this[i] = data[i];
 
+		if( this._readOnly && !this._.hasOwnProperty( 'depth' ) )
+			this._.depth = 1;
+
 		return true;
 	},
 
 	_marshal: function( depth ) {
 
-		if( this.readOnly )	return null;
+		if( this._readOnly )	return null;
 	
 		var to = {}, item;
 
@@ -350,16 +376,9 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 		return path_item == '_' ? null : this._subschema.item;
 	},
 
-	_unmarshal: function( data, props ) {
+	_unmarshal: function( data, props, incremental ) {
 
-		if( data._ &&
-			this._copyPropsIfChanged( data, [ 'filter', 'view', 'extra' ] ) ) {
-			//	Replacing the entire content
-			for( var i in this )
-				if( this.hasOwnProperty(i) )
-					delete this[i];
-			return true;
-		}
+		if( data._ )	this._copyPropsIfChanged( data, [ 'filter', 'view', 'extra', 'version' ] );
 
 		var	result = false;
 
@@ -374,12 +393,23 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 				(this[i] = this[ props[i]._.replaces ])._.url = this._composeURL( i );
 				delete this[ props[i]._.replaces ];
 				result = true;
-			}
+			} else if( !(i in this) )
+				result = true;
+
+		if( !incremental )
+			for( var i in this )
+				if( this.hasOwnProperty( i ) && !(i in props) && this[i] instanceof adstream.data.schema.Node ) {
+					delete this[i];
+					result = true;
+				}
 
 		return result;
 	},
 
 	_marshal: function( depth ) {
+
+		if( this._readOnly )	return null;
+
 		var result = null, to = {}, item;
 
 		if( depth < 0 ) for( var i in this )
@@ -411,6 +441,9 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 	},
 
 	create: function() {
+
+		if( this._readOnly )	throw Error( "Cannot create items in a read only container " + this._.url );
+
 		var temp_id = '@' + adstream.data.schema._uniqueID(),
 			result = this._subschema.item._new( this._service, this._composeURL( temp_id ) );
 		result._instantiateSchema();

@@ -63,17 +63,36 @@ dojo.declare( 'adstream.data.Service', null, {
 		this._on_sync_id = 0;
 	},
 
-	on_sync: function( cb, rel_url, max_depth, min_depth ) {
-		cb._on_sync_id = cb.__on_sync_id || ++this._on_sync_id;
+	watch: function( cb, rel_url, options ) {
+		cb._on_sync_id = cb._on_sync_id || ++this._on_sync_id;
 		adstream.data._descend( rel_url, this._on_sync, function( obj, path_item ) {
 			return obj[path_item] = obj[path_item] || { _: [] };
 		} ).obj._.push( {
-			cb: cb, max_depth: max_depth, min_depth: min_depth
+			cb: cb, max_depth: options&&options.maxDepth || 0, min_depth: options&&options.minDepth || 0
 		} );
 	},
 
+	ignore: function( rel_url ) {
+
+		var parent = null, 
+			last_path_item = null;
+
+		if( !adstream.data._descend( rel_url, this._on_sync, function( obj, path_item ) {
+				return (parent = obj)[last_path_item = path_item]||null;
+			} ).rel_url )	
+			delete parent[last_path_item];
+	},
+
+	catchAll: function( cb ) {
+		var	old = this._error_cb || null;
+		this._error_cb = cb;
+		return old;
+	},
+
 	_xhr: function( method, seed, rel_url, params ) {
+
 		var	result = new dojo.Deferred();
+		if( this._error_cb )	result.then( null, dojo.hitch( this, this._error_cb ) );
 
 		seed.url = this._ep_url + rel_url;
 		seed.handle = dojo.hitch( this, '_ioComplete', result, rel_url );
@@ -102,6 +121,14 @@ dojo.declare( 'adstream.data.Service', null, {
 
 	PUT: function( rel_url, body, params ) {
 		return this._xhr( "PUT", { putData: dojo.toJson( body ), headers: { 'Content-Type': 'application/json' } }, rel_url, params );
+	},
+
+	push: function( arg_url, data ) {
+		try {
+			this._sync( data, arg_url );
+		} catch( e ) {
+			if( this._error_cb )	this._error_cb( e );
+		}
 	},
 
 	_ioComplete: function( promise, arg_url, response, ioargs ) {
@@ -180,7 +207,9 @@ dojo.declare( 'adstream.data.Service', null, {
 
 		while( q.length ) {
 
-			var qi = q.shift(),	props = {};
+			var qi = q.shift(),	
+				props = {},
+				incremental = qi.obj._.url.substr( 0, arg_url.length ) !== arg_url;
 
 			for( var i in qi.data ) {
 				
@@ -209,7 +238,7 @@ dojo.declare( 'adstream.data.Service', null, {
 
 			if( qi.obj._.outOfSync )	delete qi.obj._.outOfSync;
 		
-			if( qi.obj._unmarshal( qi.data, props ) )
+			if( qi.obj._unmarshal( qi.data, props, incremental ) )
 				adstream.data._filter(
 					qi.sync_list,
 					function( item ) {
@@ -271,9 +300,9 @@ dojo.declare( 'adstream.data.Service', null, {
 			var last_id = 0;
 			while( from < curr ) {
 				var item = on_sync[from++];
-				if( last_id != item.cb.id ) {
+				if( last_id != item.cb._on_sync_id ) {
 					item.cb( item.obj ); 
-					last_id = item.cb.id;
+					last_id = item.cb._on_sync_id;
 				}
 			}
 		}
