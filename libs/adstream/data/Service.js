@@ -123,9 +123,9 @@ dojo.declare( 'adstream.data.Service', null, {
 		return this._xhr( "PUT", { putData: dojo.toJson( body ), headers: { 'Content-Type': 'application/json' } }, rel_url, params );
 	},
 
-	push: function( arg_url, data ) {
+	push: function( data, arg_url ) {
 		try {
-			this._sync( data, arg_url );
+			this._sync( data, arg_url || "" );
 		} catch( e ) {
 			if( this._error_cb )	this._error_cb( e );
 		}
@@ -208,8 +208,7 @@ dojo.declare( 'adstream.data.Service', null, {
 		while( q.length ) {
 
 			var qi = q.shift(),	
-				props = {},
-				incremental = qi.obj._.url.substr( 0, arg_url.length ) !== arg_url;
+				props = {};
 
 			for( var i in qi.data ) {
 				
@@ -229,16 +228,18 @@ dojo.declare( 'adstream.data.Service', null, {
 				}
 			}
 
-			var sync_list = [];
+			var sync_list = [],
+				has_depth = false;
 
 			if( qi.data._ ) {
+				has_depth = 'depth' in qi.data._;
 				if( qi.data._.depth )		qi.obj._.depth = qi.data._.depth;
 				else if( qi.obj._.depth )	delete qi.obj._.depth;
 			}
 
 			if( qi.obj._.outOfSync )	delete qi.obj._.outOfSync;
 		
-			if( qi.obj._unmarshal( qi.data, props, incremental ) )
+			if( qi.obj._unmarshal( qi.data, props, !has_depth ) )
 				adstream.data._filter(
 					qi.sync_list,
 					function( item ) {
