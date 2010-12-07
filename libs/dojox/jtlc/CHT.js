@@ -151,7 +151,7 @@ dojox.jtlc._CHTTemplateInstance = dojo.extend(
 
 		toParsedDom: function( options ) {
 
-			var	master = dojo.create('div');
+			var	master = dojo.create( 'div' );
 
 			dojo.place( this.toDom(), master, 'only' );
 
@@ -692,6 +692,11 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 		formatString: function( self ) {
 			return dj.stringLiteral( self.format );
+		},
+
+		compileArgs: function( self ) {
+			for( var i=self.args.length-1; i >= 0; --i )
+				this.compile( self.args[i] );
 		},
 
 		compile: function( self ) {
