@@ -73,8 +73,8 @@ adstream.data.schema._byAutoInstantiatedSchema = function( obj, path_item ) {
 	if( p = adstream.data.schema._byInstance( obj, path_item ) )	
 		return p;
 
-	if( (p = obj._schemaProp( path_item )) && p.constructor === adstream.data.schema.Node )
-		return obj[path_item] = p._new( obj._service, obj._.url + '/' + path_item );
+	if( (p = obj._schemaProp( path_item )) && p instanceof adstream.data.schema.Node )
+		return obj[path_item] = p._new( obj._service, obj._composeURL( path_item ) );
 
 	return null;
 }
@@ -186,7 +186,7 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 
 		if( src._ )	dojo.forEach( props, function(prop) {
 			
-			if( !src._[prop] )	return;
+			if( !( prop in src._ ) )	return;
 
 			if( typeof src._[prop] === 'object' )
 				any = this._safePropSet( prop, src._[prop] ) || any;
@@ -248,11 +248,14 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 	
 	service: function() { return this._service; },
 
-	get: function( rel_url, depth ) {
+	get: function( rel_url, depth, force ) {
 		var	d = adstream.data._descend( rel_url||'', this );
-		if( !d.rel_url && !d.obj._.outOfSync && (depth||d.obj._defaultGetDepth||0) <= (d.obj._.depth||0) ) return d.obj;
 
-		var	schema_obj = adstream.data.schema._descendSchema( d.rel_url, this ),
+		if( !force && !d.rel_url && !d.obj._.outOfSync && 
+			(depth||d.obj._defaultGetDepth||0) <= (d.obj._.depth||0) ) 
+			return d.obj;
+
+		var	schema_obj = adstream.data.schema._descendSchema( d.rel_url, d.obj ),
 			params = schema_obj._URL_Params( depth );
 
 		if( depth = depth||schema_obj._defaultGetDepth||0 )
@@ -282,6 +285,15 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 		if( typeof rel_url === 'object' ) {
 			options = rel_url;
 			rel_url = '';
+		}
+
+		if( !options || !('maxDepth' in options) ) {
+			var	d = adstream.data._descend( rel_url||'', this ),
+				ref_obj = d.rel_url ?
+					adstream.data.schema._descendSchema( d.rel_url, d.obj ) : 
+					d.obj;
+			if( '_defaultGetDepth' in ref_obj )
+				(options||(options={})).maxDepth = ref_obj._defaultGetDepth;
 		}
 
 		this._service.watch( cb, this._composeURL( rel_url ), options );

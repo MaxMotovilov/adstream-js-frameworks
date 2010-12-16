@@ -16,14 +16,21 @@ adstream.data._filter = function( src, flt, dst ) {
 	return dst;
 }
 
-adstream.data._collectOnSyncItemsFrom = function( list, path, remaining_depth, dst ) {
+adstream.data._isPrefix = function( a, b ) {
+	return a == b.substr( 0, a.length );
+}
+
+adstream.data._collectOnSyncItemsFrom = function( list, path, remaining_depth, bind_to, dst ) {
 
 	dst = dst || [];
+
+	if( !bind_to )	throw Error( "BUG -- attempt to trigger watch on a non-existing object" );
 
 	adstream.data._filter( list, function( item ) {
 		return item.max_depth >= remaining_depth && {
 			url:		path,
-			cb : 		item.cb,
+			item : 		item,
+			obj:		bind_to,
 			max_depth: 	item.max_depth - remaining_depth,
 			min_depth: 	item.min_depth - remaining_depth
 		};
@@ -32,22 +39,23 @@ adstream.data._collectOnSyncItemsFrom = function( list, path, remaining_depth, d
 	return dst;
 }
 
-adstream.data._collectOnSyncItems = function( url, obj ) {
+adstream.data._collectOnSyncItems = function( url, obj, bind_to ) {
 	var depth = adstream.data._urlDepth( url ),
 		result = [],
 		path = '',
 		s = adstream.data._descend( 
 			url, obj, 
 			function( obj, path_item ) {
-				if( obj._ ) adstream.data._collectOnSyncItemsFrom( obj._, path, depth, result );
+				if( obj._ ) adstream.data._collectOnSyncItemsFrom( obj._, path, depth, bind_to, result );
 				--depth;
 				path += (path ? '/' : '') + path_item;
+				bind_to = bind_to[path_item];
 				return obj[path_item] || null;
 			}
 		);
 
 	if( !s.rel_url )
-		adstream.data._collectOnSyncItemsFrom( s.obj._, path, depth, result );
+		adstream.data._collectOnSyncItemsFrom( s.obj._, path, depth, bind_to, result );
 
 	s.list = result;
 
@@ -57,9 +65,11 @@ adstream.data._collectOnSyncItems = function( url, obj ) {
 dojo.declare( 'adstream.data.Service', null, {
 
 	constructor: function( ep_url ) {
-		this._on_sync = {};
 		this._ep_url = ep_url;
 		if( !/[\/]$/.test( this._ep_url ) )	this._ep_url += '/';
+
+		this._on_sync = {};
+		this._refresh_queue = [];
 		this._on_sync_id = 0;
 	},
 
@@ -68,8 +78,14 @@ dojo.declare( 'adstream.data.Service', null, {
 		adstream.data._descend( rel_url, this._on_sync, function( obj, path_item ) {
 			return obj[path_item] = obj[path_item] || { _: [] };
 		} ).obj._.push( {
-			cb: cb, max_depth: options&&options.maxDepth || 0, min_depth: options&&options.minDepth || 0
+			cb: 		cb, 
+			max_depth: 	options && options.maxDepth || 0, 
+			min_depth: 	options && options.minDepth || 0,
+			refresh: 	options && options.refreshRate || 0
 		} );
+
+		if( !this._refresh_timer && options && options.refreshRate )	
+			this._startRefreshTimer( 0 );
 	},
 
 	ignore: function( rel_url ) {
@@ -81,6 +97,8 @@ dojo.declare( 'adstream.data.Service', null, {
 				return (parent = obj)[last_path_item = path_item]||null;
 			} ).rel_url )	
 			delete parent[last_path_item];
+
+		this._purgeRefreshQueue( rel_url );
 	},
 
 	catchAll: function( cb ) {
@@ -108,10 +126,12 @@ dojo.declare( 'adstream.data.Service', null, {
 	},
 
 	GET: function( rel_url, params ) { 
+		this._purgeRefreshQueue( rel_url, params.depth || 0 );
 		return this._xhr( "GET", {}, rel_url, params ); 
 	},
 
 	DELETE: function( rel_url, params ) { 
+		this._purgeRefreshQueue( rel_url, 65535 );
 		return this._xhr( "DELETE", {}, rel_url, params ); 
 	},
 
@@ -184,8 +204,8 @@ dojo.declare( 'adstream.data.Service', null, {
 
 		for( var i in response ) {
 
-			var s = adstream.data._collectOnSyncItems( i, this._on_sync ),
-				d = adstream.data._descend( i, this.root, adstream.data.schema._byAutoInstantiatedSchema ),
+			var d = adstream.data._descend( i, this.root, adstream.data.schema._byAutoInstantiatedSchema ),
+				s = adstream.data._collectOnSyncItems( i, this._on_sync, this.root ),
 				next = null;
 			
 			if( d.rel_url && (next = d.obj._schemaProp( d.rel_url )) instanceof adstream.data.schema.Node )
@@ -239,27 +259,25 @@ dojo.declare( 'adstream.data.Service', null, {
 
 			if( qi.obj._.outOfSync )	delete qi.obj._.outOfSync;
 		
-			if( qi.obj._unmarshal( qi.data, props, !has_depth ) )
-				adstream.data._filter(
-					qi.sync_list,
-					function( item ) {
-						return item.min_depth <= 0 && {
-							url: item.url, cb: item.cb, obj: qi.obj
-						};
-					}, on_sync
-				);
-			else
-				adstream.data._filter(
-					qi.sync_list,
-					function( item ) {
-						if( item.max_depth >= 1 ) {
-							item.max_depth--;
-							item.min_depth--;
-							return item;
-						}
-						return null;
-					}, sync_list
-				);
+			var	modified = qi.obj._unmarshal( qi.data, props, !has_depth ),
+				ts = (new Date()).valueOf();
+			
+			dojo.forEach( qi.sync_list, function( item ) {
+
+				if( item.min_depth <= 0 ) {
+					if( item.item.refresh )	item.item.last_updated = ts;
+					if( modified ) {
+						on_sync.push( item ); 
+						return;
+					}
+				}
+					
+				if( item.max_depth >= 1 ) {
+					item.max_depth--;
+					item.min_depth--;
+					sync_list.push( item );
+				}
+			} );
 
 			for( var i in props ) {
 
@@ -273,18 +291,13 @@ dojo.declare( 'adstream.data.Service', null, {
 						sync_more: qi.sync_more && qi.sync_more[i]
 					};
 
-					new_qi.sync_list = new_qi.sync_more ?
-						adstream.data._collectOnSyncItemsFrom( new_qi.sync_more._, new_qi.url, 0 ) :
-						dojo.map( sync_list, function(i) {
-							return {
-								min_depth:	i.min_depth,
-								max_depth:	i.max_depth,
-								url:		new_qi.url,
-								cb: 		i.cb
-							};
-						} );		
+					new_qi.sync_list = sync_list.slice( 0 ); // Shallow copy
+	
+					if( new_qi.sync_more )
+						adstream.data._collectOnSyncItemsFrom( new_qi.sync_more._, new_qi.url, 0, new_qi.obj, new_qi.sync_list );
 
 					q.push( new_qi );
+
 				} else if( qi.url + '/' + i == arg_url ) result = null;
 			}
 		}
@@ -292,7 +305,7 @@ dojo.declare( 'adstream.data.Service', null, {
 		//	Step III: disambiguate and fire the notifications
 		
 		on_sync.sort( function( a, b ) { 
-			return a.url.localeCompare( b.url ) || a.cb._on_sync_id - b.cb._on_sync_id;
+			return a.url.localeCompare( b.url ) || a.item.cb._on_sync_id - b.item.cb._on_sync_id;
 		} );
 
 		var url = null, from = 0, curr;
@@ -301,22 +314,97 @@ dojo.declare( 'adstream.data.Service', null, {
 			var last_id = 0;
 			while( from < curr ) {
 				var item = on_sync[from++];
-				if( last_id != item.cb._on_sync_id ) {
-					item.cb( item.obj ); 
-					last_id = item.cb._on_sync_id;
+				if( last_id != item.item.cb._on_sync_id ) {
+					item.item.cb( item.obj );
+					if( item.item.refresh && !this._refresh_timer )	
+						this._startRefreshTimer( 0 );
+					last_id = item.item.cb._on_sync_id;
 				}
 			}
 		}
 
 		for( curr=0; curr<on_sync.length; ++curr )
 			if( url !== on_sync[curr].url ) {
-				fireCallbacks();
+				fireCallbacks.call( this );
 				url = on_sync[curr].url;
 			}
 
-		fireCallbacks();
+		fireCallbacks.call( this );
 
 		return result;
+	},
+
+	_startRefreshTimer: function( ms ) {
+		this._refresh_timer = dojo.global.setTimeout( dojo.hitch( this, this._onRefresh ), ms );
+	},
+
+	_purgeRefreshQueue: function( url, depth ) {
+		var ad = adstream.data,
+			d = depth + ad._urlDepth( url );
+
+		for( var i=0; i<this._refresh_queue.length; ) {
+			var q = this._refresh_queue[i];
+			if( ad._isPrefix( url, q.url ) && d >= ad._urlDepth( q.url ) + q.depth )
+				this._refresh_queue.splice( i, 1 );
+			else ++i;
+		}
+	},
+
+	_pushRefreshQueue: function( url, depth ) {
+		var ad = adstream.data,
+			d = depth + ad._urlDepth( url );
+
+		for( var i=0; i<this._refresh_queue.length; ++i ) {
+			var q = this._refresh_queue[i];
+			if( ad._isPrefix( q.url, url ) && ad._urlDepth( q.url ) + q.depth >= d )
+				return;
+			else if( ad._isPrefix( url, q.url ) && d >= ad._urlDepth( q.url ) + q.depth ) {
+				this._refresh_queue[i] = { url: url, depth: depth };
+				return;
+			}
+		}
+
+		this._refresh_queue.push( { url: url, depth: depth } );
+	},
+
+	_onRefresh: function( err ) {
+
+		console.log( 'Refreshing at ' + (new Date()).toTimeString() );
+
+		if( this._refresh_queue.length == 0 ) {
+			
+			var	queue = [ { d: this.root, w: this._on_sync } ],
+				ts = (new Date()).valueOf(),
+				next = NaN;
+		
+			while( queue.length ) {
+				var q = queue.shift();
+				for( var i in q.w )
+					if( q.w.hasOwnProperty(i) && q.d.hasOwnProperty(i) ) {
+						for( var j in q.w[i]._ )
+							if( q.w[i]._[j].refresh ) {
+								var ripe = (q.w[i]._[j].last_updated||0) + q.w[i]._[j].refresh;
+								if( ripe <= ts ) {
+									this._pushRefreshQueue( q.d[i].url(), q.w[i]._[j].max_depth );
+									console.log( q.d[i].url() + ' was due at ' + (new Date(ripe)).toTimeString() );
+								}
+								else if( isNaN(next) || next > ripe )
+									next = ripe;
+							}
+						queue.push( { d: q.d[i], w: q.w[i] } );
+					}
+			}
+		}
+
+		if( this._refresh_queue.length != 0 ) {
+			var me = dojo.hitch( this, this._onRefresh );
+			this.root.get( this._refresh_queue[0].url, this._refresh_queue[0].depth, true ).then( me, me );
+		} else {
+			if( isNaN(next) )	delete this._refresh_timer;
+			else 				this._startRefreshTimer( next - ts );
+		}
+
+		if( err && err instanceof Error )	throw err;			
 	}
 } );
 
