@@ -84,8 +84,8 @@ dojo.declare( 'bsb.TopControls', null, {
 	contentTemplates: { authors: 'AuthorList', books: 'BookList' },
 
 	connectData: function() {
-		bsb.root.on_sync( dojo.hitch( this, this.refresh, 'books' ), 'books' );
-		bsb.root.on_sync( dojo.hitch( this, this.refresh, 'authors' ), 'authors' );
+		bsb.root.watch( dojo.hitch( this, this.refresh, 'books' ), 'books', { refreshRate: 5000 } );
+		bsb.root.watch( dojo.hitch( this, this.refresh, 'authors' ), 'authors' );
 		bsb.topControls.selectTab( 'books' );
 	},
 
