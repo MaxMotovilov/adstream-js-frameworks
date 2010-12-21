@@ -2,6 +2,7 @@ dojo.provide( "dojox.jtlc.CHT" );
 
 dojo.require( "dojox.jtlc.qplus" );
 dojo.require( "dojo.parser" );
+dojo.require( "dijit._Widget" );
 
 dojox.jtlc._beginsWith = function( a, b ) {
 	return a.substr( 0, b.length ) == b;
@@ -172,6 +173,48 @@ dojox.jtlc._CHTTemplateInstance = dojo.extend(
 			var dom = dojo.doc.createDocumentFragment();
 			while( master.firstChild )	
 				dom.appendChild( master.removeChild( master.firstChild ) );
+
+			return dom;
+		},
+
+		place: function( ref_node, pos, options ) {
+
+			ref_node = dojo.byId( ref_node );
+			switch( typeof pos ) {
+				case 'object':		options = pos;
+				case 'undefined':	pos = 'last';
+			}
+
+			var	opts = dojo.mixin(
+				options ? dojo.mixin( {}, options ) : {},
+				{ noStart: true, instances: [] }
+			);
+
+			var dom = this.toParsedDom( opts ),
+				ref_w = pos == 'only' && dijit.byNode( ref_node );
+
+			if( pos == 'only' || pos == 'replace' )
+				// It would be better to check for dojoType, but unfortunately dijit.byNode() does
+				// not handle stray nodes gracefully.
+				dojo.query( '[widgetId]', ref_node ).forEach( function( node ) {
+					var w = dijit.byNode( node );
+					if( w && w !== ref_w )	w.destroy();
+				} );
+
+			dojo.place( dom, ref_node, pos );
+
+			// The following code has been lifted from dojo.parser as there's no convenience API for it
+			if( !(options && options.noStart) )	
+				dojo.forEach( opts.instances, function(instance){
+					if(	instance && instance.startup &&	!instance._started && 
+						(!instance.getParent || !instance.getParent())
+					){
+						instance.startup();
+					}
+				});
+			
+			if( options && options.instances )
+				Array.prototype.push.apply( options.instances, opts.instances );
 
 			return dom;
 		}
