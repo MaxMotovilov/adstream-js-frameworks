@@ -1,5 +1,6 @@
-dojo.provide( 'bsb' );
+dojo.provide( 'bsb.books' );
 
+dojo.require( 'dijit._Widget' );
 dojo.require( 'dijit.form.ComboBox' );
 dojo.require( 'dojox.jtlc.CHT' );
 dojo.require( 'adstream.data.Service' );
@@ -53,28 +54,28 @@ dojo.ready( function() {
 	);
 } );
 
-dojo.declare( 'bsb.TopControls', null, {
-	
-	constructor: function( bag, elt ) {
-		dojo.mixin( this, bag );
+dojo.declare( 'bsb.TopControls', dijit._Widget, {
 
-		bsb.topControls = this;
-
+	constructor: function() {
 		dojo.mixin( this, {
-			element:		elt,
 			displayOffset: 	0,
 			lastViewOffset: 0,
 			searching:		false,
 			searchPending:  null
 		} );
+	},
+	
+	postCreate: function() {
+
+		bsb.topControls = this;
 
 		var _this = this;
 		dojo.when( bsb.templates, function() {
-			dojo.place( getTemplate( 'TopControls' )().toDom(), elt );
-			dojo.query( '.tab', elt ).forEach( function(tab){
-				dojo.connect( tab, 'onclick', _this, _this.onclick );
+			getTemplate( 'TopControls' )().place( _this.domNode );
+			dojo.query( '.tab', _this.domNode ).forEach( function(tab){
+				_this.connect( tab, 'onclick', _this.onclick );
 			} );
-			dojo.connect( dojo.byId('searchBox'), 'onkeyup', _this, _this.onSearchKeyUp );
+			_this.connect( dojo.byId('searchBox'), 'onkeyup', _this.onSearchKeyUp );
 		} );
 	},
 
@@ -121,7 +122,7 @@ dojo.declare( 'bsb.TopControls', null, {
 			this.lastViewOffset = data.view().offset;
 		} else if( 'lastVisible' in this )	delete this.lastVisible;
 
-		dojo.place( getTemplate( this.contentTemplates[name] )( data, this ).toParsedDom(), 'list', 'only' );
+		getTemplate( this.contentTemplates[name] )( data, this ).place( 'list', 'only' );
 
 		var list = dojo.byId( 'list' ),
 			tbl = dojo.query( 'table', list )[0],
@@ -139,6 +140,12 @@ dojo.declare( 'bsb.TopControls', null, {
 		this.attachPageControls( dojo.byId( 'list' ) );
 	},
 
+	_deleteRow: function( tbl, row ) {
+		if( row < 0 )	row += tbl.rows.length;
+		dojo.forEach( dijit.findWidgets( tbl.rows[row] ), function(w){w.destroy();} );
+		tbl.deleteRow( row );
+	},
+
 	trimForward: function( tbl, box, skip ) {
 		for( var i = skip; i<tbl.rows.length; ++i, ++this.displayCount ) {
 			var b = dojo.marginBox( tbl.rows[i] );
@@ -146,7 +153,7 @@ dojo.declare( 'bsb.TopControls', null, {
 		}
 
 		while( tbl.rows.length > i )
-			tbl.deleteRow( tbl.rows.length - 1 );
+			this._deleteRow( tbl, -1 );
 	},
 
 	trimBackward: function( tbl, box, skip ) {
@@ -155,7 +162,7 @@ dojo.declare( 'bsb.TopControls', null, {
 			var b = dojo.marginBox( tbl.rows[this.lastVisible - this.displayOffset + skip] );
 			if( b.t + b.h > box.t + box.h )	{
 				++this.displayOffset;
-				tbl.deleteRow( skip );
+				this._deleteRow( tbl, skip );
 			} else break;
 		}
 
@@ -222,13 +229,12 @@ dojo.declare( 'bsb.TopControls', null, {
 	}
 } );
 
-dojo.declare( 'bsb.InplaceEditField', null, {
+dojo.declare( 'bsb.InplaceEditField', dijit._Widget, {
 
-	constructor: function( bag, elt ) {
-		dojo.mixin( this, bag );
-		this.onclick_cookie = [	dojo.connect( elt, 'onclick', this, this.onclick ) ];
-		var img = dojo.query( 'img', elt )[0];
-		if( img )	this.onclick_cookie.push( dojo.connect( img, 'onclick', this, this.deleteMe ) );
+	postCreate: function() {
+		this.onclick_cookie = [	this.connect( this.domNode, 'onclick', this.onclick ) ];
+		var img = dojo.query( 'img', this.domNode )[0];
+		if( img )	this.onclick_cookie.push( this.connect( img, 'onclick', this.deleteMe ) );
 	},
 
 	data: null,
@@ -239,14 +245,12 @@ dojo.declare( 'bsb.InplaceEditField', null, {
 	onclose: function(){},
 
 	onclick: function(e) {
-		dojo.forEach( this.onclick_cookie, dojo.disconnect );
-		dojo.place( getTemplate( this.editTemplate )( this.data, e.target ).toParsedDom(), e.target, 'before' );
+		dojo.forEach( this.onclick_cookie, dojo.hitch( this, this.disconnect ) );
+		getTemplate( this.editTemplate )( this.data, e.target ).place( e.target, 'before' );
 		e.target.style.visibility = 'hidden';
 		this.editor = e.target.previousSibling;
 		dojo.forEach( [ 'onchange', 'onblur', 'onfocus' ],
-			function(evt) {
-				dojo.connect( this.editor, evt, this, evt );
-			}, this
+			function(evt) {	this.connect( this.editor, evt, evt ); }, this
 		);
 		this.editor.focus();
 		dojo.stopEvent(e);
@@ -270,7 +274,7 @@ dojo.declare( 'bsb.InplaceEditField', null, {
 	closeEditor: function() {
 		this.data.save();
 		this.onclose();
-		dojo.place( getTemplate( this.displayTemplate )( this.data ).toParsedDom(), this.editor.parentNode, 'only' );
+		getTemplate( this.displayTemplate )( this.data ).place( this.editor.parentNode, 'only' );
 	},
 
 	deleteMe: function(e) {
@@ -282,28 +286,26 @@ dojo.declare( 'bsb.InplaceEditField', null, {
 	}
 } );
 
-dojo.declare( 'bsb.NewBookPane', null, {
+dojo.declare( 'bsb.NewBookPane', dijit._Widget, {
 
-	constructor: function( bag, elt ) {
-		dojo.mixin( this, bag );
-		this.onclick_cookie = dojo.connect( elt, 'onclick', this, this.onclickInit );
-		this.element = elt;
+	postCreate: function() {
+		this.onclick_cookie = this.connect( this.domNode, 'onclick', this.onclickInit );
 	},
 
 	onclickInit: function(e) {
-		dojo.disconnect( this.onclick_cookie );
+		this.disconnect( this.onclick_cookie );
 		dojo.when( bsb.root.get( 'authors' ), dojo.hitch( this, this.openEditor ) );
 		dojo.stopEvent(e);
 	},
 
 	onclickDone: function(e) {
-		dojo.forEach( this.onclick_cookie, dojo.disconnect );
+		dojo.forEach( this.onclick_cookie, dojo.hitch( this, this.disconnect ) );
 
 		function nonempty(i) { return i }
 
 		if( dojo.attr( e.target, 'name' )=='OK' ) {
 			book = bsb.root.books.create();
-			book.title = dojo.query('textarea',this.element)[0].value;
+			book.title = dojo.query('textarea',this.domNode)[0].value;
 			book.authors = dojo.map(
 				dojo.filter( this.authors, nonempty ),
 				function( full_name ) {
@@ -318,17 +320,17 @@ dojo.declare( 'bsb.NewBookPane', null, {
 			book.save();
 		}
 		
-		dojo.place( getTemplate( 'NewBookPlaceholder' )( bsb.books, bsb.topControls ).toDom(), this.element, 'only' );
-		bsb.topControls.attachPageControls( this.element );
-		this.onclick_cookie = dojo.connect( this.element, 'onclick', this, this.onclickInit );
+		getTemplate( 'NewBookPlaceholder' )( bsb.books, bsb.topControls ).place( this.domNode, 'only' );
+		bsb.topControls.attachPageControls( this.domNode );
+		this.onclick_cookie = this.connect( this.domNode, 'onclick', this.onclickInit );
 		dojo.stopEvent( e );
 	},
 
 	openEditor: function(authors) {
 		this.authors = [];
-		dojo.place( getTemplate( 'NewBookPane' )( authors, this ).toParsedDom(), this.element, 'only' );
-		this.onclick_cookie = dojo.query( 'button', this.element ).map( function(elt) {		
-			return dojo.connect( elt, 'onclick', this, this.onclickDone );
+		getTemplate( 'NewBookPane' )( authors, this ).place( this.domNode, 'only' );
+		this.onclick_cookie = dojo.query( 'button', this.domNode ).map( function(elt) {		
+			return this.connect( elt, 'onclick', this.onclickDone );
 		}, this );
 	},
 
@@ -337,7 +339,7 @@ dojo.declare( 'bsb.NewBookPane', null, {
 			widget.domNode.parentNode.removeChild( widget.domNode );
 		} else if( widget.value && index == this.authors.length ) {
 			this.authors.push( widget.value );
-			dojo.place( getTemplate( 'AuthorSelect' )( bsb.root.authors, this ).toParsedDom(), widget.domNode, 'after' );
+			getTemplate( 'AuthorSelect' )( bsb.root.authors, this ).place( widget.domNode, 'after' );
 		} else this.authors[index] = widget.value;
 	}
 } );

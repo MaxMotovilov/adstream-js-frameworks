@@ -4,13 +4,16 @@
 <head>
 
 <script src="http://ajax.googleapis.com/ajax/libs/dojo/1.5/dojo/dojo.xd.js" type="text/javascript" 
-		djConfig="parseOnLoad: true, baseUrl: './', modulePaths: { 'dojox.jtlc': 'js/jtlc', 'adstream.data': 'js/data' }"></script>
+		djConfig="isDebug: true, debugAtAllCosts: true, parseOnLoad: true, baseUrl: './', modulePaths: { 'dojox.jtlc': 'js/jtlc', 'adstream.data': 'js/data', 'bsb': '.' }"></script>
 <link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/dojo/1.5/dijit/themes/claro/claro.css">
 
 <!-- The following scripts are normally loaded by Dojo but with 
      static file access XHRs often don't work =============== -->
 
-<script type="text/javascript" src="books.js"></script>
+<script type="text/javascript">
+dojo.provide( 'bsb' );
+dojo.require( 'bsb.books' );
+</script>
 
 <title>Bookshelf Browser</title>
 
