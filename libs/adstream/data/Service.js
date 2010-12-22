@@ -285,6 +285,7 @@ dojo.declare( 'adstream.data.Service', null, {
 
 					if( !qi.obj.hasOwnProperty( i ) )
 						qi.obj[i] = qi.obj._schemaProp( i )._new( this, qi.obj._composeURL( i ) );
+					else qi.obj[i]._.url = qi.obj._composeURL( i ); // Fixing @N URLs
 
 					var new_qi = {
 						url: qi.url + '/' + i, obj: qi.obj[i], data: props[i], 

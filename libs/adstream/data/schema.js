@@ -402,7 +402,7 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 				}
 			} else if( props[i]._ && props[i]._.replaces &&
 					   props[i]._.replaces in this ) {
-				(this[i] = this[ props[i]._.replaces ])._.url = this._composeURL( i );
+				this[i] = this[ props[i]._.replaces ]; // URL is now fixed by Service._sync()
 				delete this[ props[i]._.replaces ];
 				result = true;
 			} else if( !(i in this) )
