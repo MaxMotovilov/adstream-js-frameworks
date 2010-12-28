@@ -498,7 +498,8 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 	filter: function( new_filter ) {
 		if( typeof new_filter !== 'undefined' )	{
 			if( new_filter )			this._safePropSet( 'filter', new_filter );
-			else if( this._.filter )	delete this._.filter;
+			else if( this._.hasOwnProperty( 'filter' ) )	
+				delete this._.filter;
 			this._.outOfSync = true;
 		}
 
@@ -508,7 +509,8 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 	view: function( new_view ) {
 		if( typeof new_view !== 'undefined' )	{
 			if( new_view )			this._safePropSet( 'view', new_view );
-			else if( this._.view )	delete this._.view;
+			else if( this._.hasOwnProperty( 'view' ) )	
+				delete this._.view;
 			this._.outOfSync = true;
 		}
 
