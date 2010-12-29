@@ -11,8 +11,12 @@ adstream.data._splitURL = function( url ) {
 
 adstream.data.schema._identical = function( a, b, ignore_schema_objects ) {
 
+	if( typeof a === 'undefined' || typeof b === 'undefined' )
+		return typeof a === typeof b;
+
 	if( typeof a !== 'object' && typeof b !== 'object' )
-		return !a == !b && a.toString() == b.toString();
+		return a.toString() == b.toString();
+
 	else if( typeof a !== typeof b )
 		return false;
 
