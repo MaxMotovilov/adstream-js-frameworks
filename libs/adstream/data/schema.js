@@ -441,7 +441,7 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 	_URL_Params: function( depth ) {
 
 		var result = {};
-		dojo.forEach( [ 'filter', 'view', 'extra' ], function(p) {
+		dojo.forEach( [ 'filter', 'view' ], function(p) {
 			if( p in this._ )	dojo.mixin( result, this._[p] );
 		}, this );
 
