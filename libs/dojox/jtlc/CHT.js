@@ -1,225 +1,8 @@
 dojo.provide( "dojox.jtlc.CHT" );
 
+dojo.require( "dojox.jtlc.CHT.scanner" );
+dojo.require( "dojox.jtlc.CHT.instance" );
 dojo.require( "dojox.jtlc.qplus" );
-dojo.require( "dojo.parser" );
-dojo.require( "dijit._Widget" );
-
-dojox.jtlc._beginsWith = function( a, b ) {
-	return a.substr( 0, b.length ) == b;
-}
-
-dojox.jtlc._hasPrefix = function( s, pfxs, map ) {
-	for( var i=0; i<pfxs.length; ++i )
-		if( dojox.jtlc._beginsWith( s, map ? map( pfxs[i] ) : pfxs[i] ) )	return pfxs[i];
-	return null;
-}
-
-dojox.jtlc._tokenizeCHT = function( input )
-{
-	var	dj = dojox.jtlc,
-
-		brackets = [
-			{ prefix: '<!--', suffix: '-->', allow: [ '-->' ], extra: '\ufffc' },
-			{ prefix: '<?', suffix: '?>', allow: [ '"', "'", '?>', '<!--' ], markup: true, extra: '\uffff' },
-			{ prefix: '<', suffix: '>', allow: [ '"', "'", '{{', '>', '<!--' ], extra: '\ufffe' },
-			{ prefix: '{{', suffix: '}}', allow: [ '"', "'", '(', '[', '{', '}}' ], substitution: true, extra: '\ufffd' },
-			{ prefix: '{', suffix: '}', allow: [ '"', "'", '(', '[', '{', '}' ] },
-			{ prefix: '(', suffix: ')', allow: [ '"', "'", '(', '[', '{', ')' ] },
-			{ prefix: '[', suffix: ']', allow: [ '"', "'", '(', '[', '{', ']' ] },
-			{ prefix: '"', suffix: '"', allow: [ '"', '\\' ], inSubstitution: true },
-			{ prefix: '"', suffix: '"', allow: [ '"', '\\', '{{' ], inSubstitution: false },
-			{ prefix: "'", suffix: "'", allow: [ "'", '\\' ], inSubstitution: true },
-			{ prefix: "'", suffix: "'", allow: [ "'", '\\', '{{' ], inSubstitution: false },
-			{ prefix: '\\', escape: true }
-		],
-
-		script_bracket = { suffix: '</script', allow: [ '"', "'", '{{', '</script' ] },
-
-		stack = [ 
-			{ allow: [ '<!--', '<?', '<', '{{' ] }
-		],
-
-		last_pos = 0,
-		html_tag = '',
-		in_substitution = false,
-
-		parsed = input.replace( 
-			/(?:<(?:[?]\s*)?[/]?[a-z_]\w*|<!--|-->|[?]?>|[{][{]?|[}][}]?|["'\[\]()\\])/ig,
-			function( s, pos, src ) {
-
-				if( stack[0].escape ) {
-					stack.shift();
-					if( pos == lp+1 )	return s;
-				}
-
-				var pfx = dj._hasPrefix( s.toLowerCase(), stack[0].allow ),
-					lp = last_pos;
-
-				last_pos = pos + s.length;
-
-				if( pfx ) {
-
-					if( pfx == stack[0].suffix ) {
-
-						var	top = stack.shift();
-
-						if( top.substitution )	in_substitution = false;
-
-						if( top !== script_bracket ) {
-							if( !top.markup && s.charAt(s.length-1) == '>' && html_tag == 'script' ) {
-								stack.unshift( script_bracket );
-								return s;
-							}
-
-							return (top.substitution ? '':s) + (top.extra || '');
-						}
-					}
-
-					if( pfx = dj._hasPrefix( pfx, brackets, 
-							function(b){ 
-								if( 'inSubstitution' in b && b.inSubstitution != in_substitution )
-										return '\xffff';
-								else return b.prefix; 
-							} 
-					) ) {
-						if( pfx.escape )	return s;
-
-						if( s.charAt(0) == '<' )
-							html_tag = /^<(\/?[a-z_]*)/i.exec( s )[1].toLowerCase();
-
-						stack.unshift( pfx );
-						if( pfx.substitution )	in_substitution = true;
-
-						return (html_tag != '/script' && pfx.extra||'') + (pfx.substitution ? '':s);
-					}	
-				}
-
-				return s;
-			}
-		).split( /(?:\ufffc[\s\S]*?\ufffc|\ufffe|\s*\uffff\s*)/ );
-
-	if( stack.length > 1 )
-		throw Error( "Unbalanced delimiters -- expected " + dj.stringLiteral( stack[0].suffix ) );
-
-	return parsed;
-}
-
-dojox.jtlc._CHTElement = function( text ) {
-
-	this.text = text;
-
-	if( /^<[?]\s*[/]([a-z_]\w*(?:\s*[.]\s*[a-z_]\w*)*)[\s\S]*?[?]>$/i.exec( text ) ) {
-		this.closeTag = RegExp.$1.split( /\s*[.]\s*/ ).join( '.' );
-	} else	if( /^<[?]\s*([a-z_]\w*(?:\s*[.]\s*[a-z_]\w*)*)([\s\S]*?)\s*[?]>$/i.exec( text ) ) {
-
-		this.openTag = RegExp.$1.split( /\s*[.]\s*/ ).join( '.' );
-		this.kwarg = {}
-
-		var	body = RegExp.$2;
-
-		if( /^\s+(?![a-z]\w*=)(["']?)((?:\\.|[^\\])*?)\1(?=\s|$)/i.exec( body ) ) {
-			this.arg = RegExp.$2;
-			body = body.substr( RegExp.lastMatch.length );
-		}
-
-		while( body.length && /^\s+([a-z_]\w*)=/i.exec( body ) ) {
-			body = body.substr( RegExp.lastMatch.length );
-			var name = RegExp.$1;
-			if( !/^(["']?)((?:\\.|[^\\])*?)\1(?=\s|$)/.exec( body ) )
-				break;
-			body = body.substr( RegExp.lastMatch.length );
-			this.kwarg[name] = RegExp.$2;
-		}
-
-		if( body.length )
-			throw Error( "Invalid CHT tag: " + text );
-
-	} else throw Error( "Invalid CHT tag: " + text );
-}
-
-dojox.jtlc._CHTTemplateInstance = dojo.extend( 
-	function( split_text, refs ) {
-		this._split_text = split_text;
-		this._refs = refs;
-	}, {
-		toString: function() {
-			return this._split_text.join('');
-		},
-
-		toDom: function() {
-			return dojo._toDom( this.toString() );
-		},
-
-		toParsedDom: function( options ) {
-
-			var	master = dojo.create( 'div' );
-
-			dojo.place( this.toDom(), master, 'only' );
-
-			var	old_refs = dojo.global._refs;
-			dojo.global._refs = this._refs;
-
-			var l = dojo.parser.parse( master, options );
-
-			if( old_refs )	dojo.global._refs = old_refs;
-			else			dojo.global._refs = {}; // IE throws a hissy fit on delete 
-
-			if( options && options.instances )	
-				Array.prototype.push.apply( options.instances, l );
-
-			if( master.childNodes.length == 1 )
-				return master.removeChild( master.firstChild );
-
-			var dom = dojo.doc.createDocumentFragment();
-			while( master.firstChild )	
-				dom.appendChild( master.removeChild( master.firstChild ) );
-
-			return dom;
-		},
-
-		place: function( ref_node, pos, options ) {
-
-			ref_node = dojo.byId( ref_node );
-			switch( typeof pos ) {
-				case 'object':		options = pos;
-				case 'undefined':	pos = 'last';
-			}
-
-			var	opts = dojo.mixin(
-				options ? dojo.mixin( {}, options ) : {},
-				{ noStart: true, instances: [] }
-			);
-
-			var dom = this.toParsedDom( opts ),
-				ref_w = pos == 'only' && dijit.byNode( ref_node );
-
-			if( pos == 'only' || pos == 'replace' )
-				// It would be better to check for dojoType, but unfortunately dijit.byNode() does
-				// not handle stray nodes gracefully.
-				dojo.query( '[widgetId]', ref_node ).forEach( function( node ) {
-					var w = dijit.byNode( node );
-					if( w && w !== ref_w )	w.destroy();
-				} );
-
-			dojo.place( dom, ref_node, pos );
-
-			// The following code has been lifted from dojo.parser as there's no convenience API for it
-			if( !(options && options.noStart) )	
-				dojo.forEach( opts.instances, function(instance){
-					if(	instance && instance.startup &&	!instance._started && 
-						(!instance.getParent || !instance.getParent())
-					){
-						instance.startup();
-					}
-				});
-			
-			if( options && options.instances )
-				Array.prototype.push.apply( options.instances, opts.instances );
-
-			return dom;
-		}
-	}
-);
 
 (function() {
 
@@ -229,7 +12,23 @@ dojo.declare( 'dojox.jtlc._NullSink', dj._Sink, {
 	append: function() { this.closeLoops(); }
 } );
 
+dj._copyArgumentsReplaceFirst = function( args, first ) {
+	args = dj._copyArguments( args );
+	args[0] = first;
+	return args;
+};
+
+var replaceRegex = /[{](\d+)[}]/g;
+
+dj._replaceN = function( fmt ) {
+	return dojo.replace( fmt, dj._copyArguments( arguments, 1 ), replaceRegex );
+};
+
+dj._chtGlobalContext = { refID: 0, markerID: 0 };
+
 dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
+
+	domMarkerPrefix: '_CHT_DOM_Marker_',
 
 	constructor: function( settings ) {
 		this.qplus = new dj.qplus( dojo.mixin( {}, { tags: this.tags }, settings ) );
@@ -262,6 +61,10 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 			refs = {},
 			tos = { 'template':1, 'section':1 };
 
+		function markDom( elt ) {
+			if( elt.markerElement )	body.push( _this.tags.markDom( elt.markerElement ) );
+		}
+
 		dojo.forEach( tokens, function( t ) {
 			if( t.substr( 0, 2 ) == '<?' ) {
 				var	elt = new dj._CHTElement( t );
@@ -270,20 +73,29 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 				if( current && elt.openTag == 'template' )
 					throw Error( 'Missing end of previous template at: ' + t );
 
-				if( elt.closeTag == 'template' )
+				if( elt.closeTag == 'template' ) {
+					markDom( current );
 					current = body = null;
-				else if( elt.openTag in tos ) {
+				} else if( elt.openTag in tos ) {
 					if( elt.arg in tos || elt.arg in _this.elements ||
 						!/^[a-z]\w*$/i.test( elt.arg||'' ) && (elt.openTag != 'section' || elt.arg) )
 						throw Error( 'Bad or missing name for CHT ' + elt.openTag + ': ' + t );
 					if( elt.openTag == 'template' ) {
 						parsed[elt.arg] = current = elt;
+						if( elt.kwarg.marker )	{
+							elt.markerElement = elt.kwarg.marker;
+							elt.kwarg.async = true;
+						}
+
+						if( elt.kwarg.async )	elt.kwarg.compiled = true;
+
 					} else {
 						elt.arg = elt.arg || '';
 						current.body.push( elt );
 						(current.sections = current.sections || {})[elt.arg] = {};
 					}
 					body = elt.body = [];
+					markDom( elt );
 				} else if( elt.closeTag == 'section' ) {
 					if( body === current.body )
 						throw Error( 'Mismatched ' + t );
@@ -309,7 +121,6 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 						}
 					);
 
-				if( !t ) return;
 				if( !current )
 					throw Error( 'HTML content encountered outside template: ' + t );
 					
@@ -319,12 +130,12 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 					body.push( _this.tags.i18n( t, substitutions ) );
 				else if( substitutions.length )
 					body.push( _this.tags.replaceN( t, substitutions ) );
-				else if( body[body.length-1] instanceof dj.tags._quote )
+				else if( body.length && body[body.length-1] instanceof dj.tags._quote )
 					body[body.length-1].value += t;
 				else
 					body.push( dj.tags.quote( t ) );
 			}
-		} );
+		}, this );
 
 		if( this.loadTemplates )
 			return dojo.when(
@@ -454,9 +265,25 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 	},
 
 	compileBody: function( tpl ) {
-		this._chtRefs = this.addLocal();
+
 		this._chtSections = {};
-		this.code.push( this._chtRefs + '=[];' );
+		this._deferredIndex = 0;
+
+		var def_code_idx = this.code.length;
+		this._chtDeferred = this.addLocal();
+		this.code.push( this._chtDeferred + '=new ' + this.addGlobal( dj._CHTDeferredAccessor ) + '(this);' );
+
+		var refID = this.addLocal(),
+			gctx = this.addGlobal( dj._chtGlobalContext );
+
+		this.code.push( refID + '=' + gctx + '.refID++;' );
+
+		var	ref_code_idx = this.code.length,
+			refs = this.addLocal();
+
+		this._chtRefs = { refs: refs, index: refID };
+		this.code.push( refs + '=[];' );
+
 		this.accumulated( 
 			'=[];', new dj._ArraySink( this ), null, 
 			function() {
@@ -464,8 +291,49 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 				this.compile( tpl ); 
 			}
 		);
-		this.expressions.push( 'new ' + this.addGlobal( dojox.jtlc._CHTTemplateInstance ) + '('
-			+ this.popExpression() + ',' + this._chtRefs + ')' );
+
+		var cons = this.addGlobal( this._deferredIndex ?
+			dojox.jtlc._CHTIncrementalTemplateInstance :
+			dojox.jtlc._CHTTemplateInstance 
+		),
+			result = this.popExpression();
+
+		if( !this._hasRefs ) {
+			this.code.splice( ref_code_idx, 1 );
+			this.optimizers._refLocalOptimize = function( body ) {
+				return body.replace( this._chtRefs.refs + ',', '' );
+			}
+		}
+
+		this.code.push( 'if(!' + refID + ')' + gctx + '.refID=0;' );
+
+		function baseProps( has_refs ) {
+			return '_split_text:' + result + (has_refs ? ',_refs:' + refs + ',_refID:' + refID : '');
+		}
+
+		this.expressions.push( this._deferredIndex ?
+			'this instanceof ' + cons + '?' + this.addGlobal( dojo.mixin ) + '(this,{' +
+				baseProps( this._hasRefs ) +
+				( this._chtMarkerQuery ? ',_marker_query:' + this._chtMarkerQuery : '' ) +
+			'}):new ' + cons + '({' + baseProps( this._hasRefs ) +
+				( this._chtMarkerQuery ? ',_marker_query:' + this._chtMarkerQuery : '' ) +
+				',_self:$self,_args:$,_cht_deferred:' + this._chtDeferred + '.storage,_max_deferred:' + this._deferredIndex +
+			'})' :
+			'new ' + cons + '({' + baseProps( this._hasRefs ) + '})'
+		);
+
+		if( this._deferredIndex == 0 )	{
+			this.code.splice( def_code_idx, 1 );
+			this.optimizers._defLocalOptimize = function( body ) {
+				return body.replace( this._chtDeferred + ',', '' );
+			}
+		}
+	},
+
+	decorate: function( f ) { 
+		f.async = this._deferredIndex > 0;
+		f.name  = this._templateName;
+		return f; 
 	},
 
 	compileSequence: function( body ) {
@@ -487,11 +355,16 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 	_appendToOutput: dojo.extend(
 		function( body ) {
 			this.body = body;
+			dojo.forEach( this.body, function(v) {
+				if( v.simplify )	v.simplify();
+			} );
 		},{
 			compile: function( self ) {
 				dojo.forEach( self.body, function(v) {
 					this.compile( v );
-					this.code.push( this._chtHTML + '.push(' + this.popExpression() + ');' );
+					if( v instanceof this.tags._do )
+							this.code.push( this.popExpression() + ';' );
+					else	this.code.push( this._chtHTML + '.push(' + this.popExpression() + ');' );
 				}, this );
 			}
 		}
@@ -499,10 +372,13 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 	_userDefinedElement: dojo.extend( 
 		function( elt ) {
+
 			if( elt.kwarg && elt.kwarg.compiled ) {
 				if( elt.sections )	throw Error( "Compiled template " + elt.arg + " should not have sections" );
 				this.alwaysCompile = true;
 			}
+
+			if( elt.kwarg && elt.kwarg.async )	this.async = true;
 
 			if( elt.sections )	this.sections = elt.sections;
 			this.name = elt.arg;
@@ -530,7 +406,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 						if( self.sections )	
 							this._chtSections[ self.def.name ] = self.sections;
-
+						
 						this.compileSequence( self.def.body );
 						
 						if( self.sections )
@@ -558,32 +434,37 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 							// Create a forwarding thunk to resolve issues with template recursion
 							var forward_to = null;
 							this.compiledTemplates[self.name] = function(){ return forward_to.apply( this, arguments ); }
+							this.compiledTemplates[self.name].async = self.tag.def.async || false;
 
 							this.compiledTemplates[self.name] = forward_to =
 								dj.compile( self.tag, this.compileArguments.language, 
-											dojo.mixin( { compiledTemplates: this.compiledTemplates }, this.compileArguments.options )
+											dojo.mixin( 
+												{ compiledTemplates: this.compiledTemplates }, 
+												this.compileArguments.options,
+												{ _templateName: self.name }
+											)
 								);
 						}
 
-						var fn = this.addGlobal( this.compiledTemplates[self.name] );
+						var fn = this.addGlobal( this.compiledTemplates[self.name] ),
+							is_deferred = this.compiledTemplates[self.name].async;
+
+						var	v, w;
+
+						if( is_deferred )	w = this._beginWait();
 
 						if( self.arg )	this.compile( self.arg );
 						else			this.generator();
 
-						var v = this.popExpression(),
-							t = this.addLocal();
-
+						v = this.popExpression();
+		
 						if( v == '$[0]' ) {
-							this.code.push( t + '=' + fn + '.apply(null,$);' );
+							this.expressions.push( fn + '.apply(null,$)' );
 						} else {
-							var t = this.addLocal();
-							this.code.push( t + '=' + this.addGlobal( dj._copyArguments ) + '($);' );
-							this.code.push( t + '[0]=' + v + ';' );
-							this.code.push( t + '=' + fn + '.apply(null,' + t + ');' );
+							this.expressions.push( fn + '.apply(null,' + this.addGlobal( dj._copyArgumentsReplaceFirst ) + '($,' + v + '))' );
 						}
-						this.code.push( 'if(' + t + '._refs.length)' + this._chtRefs + '=' + this._chtRefs + '.concat(' + t + '._refs);' );
 
-						this.expressions.push( t + '.toString()' );
+						if( is_deferred )	this._endWait( w, true );
 					}
 				}
 			),
@@ -595,6 +476,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 			},
 
 			compile: function( self ) {
+				this._templateName = self.name;
 				this.compile( self.tag( this, {} ) );
 			}
 		}	 
@@ -611,6 +493,22 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 			}
 		}
 	),
+
+	_beginWait: function() {
+		this.code.push( 'if(!' + this._chtDeferred + '.has(' + this._deferredIndex + ')){' );
+		return this.addLocal();
+	},
+
+	_endWait: function( local, nobreak ) {
+		this.code.push( this._chtDeferred + '.set(' + this._deferredIndex + ',' + local + '=' + this.popExpression() + ');}else ' + 
+						local + '=' + this._chtDeferred + '.get(' + this._deferredIndex + ');' );
+		if( !nobreak )
+			this.code.push( 'if(' + local + ' instanceof ' + this.addGlobal( dojo.Deferred ) + ')break;' );
+
+		this._deferredIndex++;
+
+		this.expressions.push( local );
+	},
 
 	elements: {
 
@@ -669,7 +567,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 			tag: function( cht, elt ) {
 				if( !!elt.kwarg.key == !!elt.kwarg.count )
-					throw Error( 'Group element should have one of attributes: key=, count=' );
+					throw Error( '<?group?> should have one of attributes: key=, count=' );
 				return dj.tags.one( dj.tags.many(	// Ensure fresh loop context
 					dj.tags.group( 
 						elt.kwarg.key ?
@@ -680,6 +578,68 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 					)
 				) );
 			}
+		},
+
+		"when": {
+			sections: { "" : {allowArgument:true}, "else": {} },
+
+			_tag: dojo.extend( 
+				function( cht, elt ) {
+					this.arg = elt.arg ? cht.qplus.parse( elt.arg ) : dj.tags.current();
+					this.ifReady = elt.body;
+					if( elt.sections.length )	
+						this.ifNotReady = elt.sections[0].body;
+				}, {
+					compile: function( self ) {
+
+						var flag;
+
+						if( self.ifNotReady ) {
+							flag = this.addLocal();
+							this.code.push( flag + '=true;' );
+						}
+
+						this.code.push( 'do{' );
+
+						var old_current_input = this.hasOwnProperty( 'current_input' ) ? this.current_input : null;
+
+						this._openWait = this._beginWait();
+
+						if( self.arg )			this.compile( self.arg );
+						else					this.generator();
+
+						if( this._openWait ) {
+							this._endWait( this._openWait );
+							delete this._openWait;
+						}
+
+						var	result = this.popExpression(),
+							lock = this.addLocal();
+
+						if( lock != result )
+							this.code.push( lock + '=' + result + ';' );
+	
+						this.current_input = '(' + lock + ')';
+						this.compileSequence( self.ifReady );
+
+						if( old_current_input )	this.current_input = old_current_input;
+						else 					delete this.current_input; 			
+
+						this.locals.pop();
+						
+						this.code.push( '}while(' + ( self.ifNotReady ? flag + '=' : '' ) + 'false);' );
+						
+						if( self.ifNotReady ) {
+							this.code.push( 'if(' + flag + '){' );
+							this.compileSequence( self.ifNotReady );
+							this.code.push( '}' );
+							this.locals.pop();
+						}
+					}
+				}
+			),
+			
+			tag: function( cht, elt ) {	return new this._tag( cht, elt ); }
 		}
 	},
 
@@ -688,7 +648,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 	_declareTag: dj._declareTag,
 
-	tags: new (dojo.extend( function(){}, dj.qplus.prototype.tags ))()
+	tags: dojo.delegate( dj.qplus.prototype.tags, {} )
 });
 
 })();
@@ -747,19 +707,27 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 				this.optimizers._pushLiteralOptimizer = self.optimize;
 
 			if( self.args.length ) {
-				this._replaceFunction = this._replaceFunction || this.addGlobal( dojo.replace );
+				this._replaceFunction = this._replaceFunction || this.addGlobal( dj._replaceN );
 				self.compileArgs.call( this, self, true );
-				this.expressions.push( this._replaceFunction + '(' + self.formatString.call( this, self ) + ',[' + self.argumentList.call( this, self ) + '])' );
+				this.expressions.push( this._replaceFunction + '(' + self.formatString.call( this, self ) + ',' + self.argumentList.call( this, self ) + ')' );
 			} else {
 				this.expressions.push( self.formatString.call( this, self ) );
 			}
 		},
 
 		optimize: function( body ) {
-			return body.replace(
-				/(?:b\.push\("(?:\\.|[^\\"])*"\);){2,}/g,
-				function( seq ) {
-					return 'b.push("' + seq.replace( /b\.push\("((?:\\.|[^\\"])*)"\);/g, '$1' ) + '");';
+			var inner_regex = new RegExp(
+					this._chtHTML + '\\.push\\({1,2}"((?:[^"\\\\]|\\\\.)*)"\\){1,2};', "g"
+				),
+				acc = this._chtHTML;			
+
+			return body.replace( 
+				new RegExp(
+					'[;}{](?:' + acc + '\\.push\\({1,2}"(?:[^"\\\\]|\\\\.)*"\\){1,2};){2,}',
+					"g"
+				), function( seq ) {
+					return seq.substr( 0, 1 ) + acc + '.push("' +
+						   seq.substr( 1 ).replace( inner_regex, '$1' ) + '");';
 				}
 			);
 		}
@@ -807,8 +775,8 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 	function makeEscapeTag( cls ) { 
 		return function(arg) { 
-			return arg instanceof djcp.tags._raw ? arg.arg : 
-				   new cls( arg );
+			return arg instanceof djcp.tags._raw || arg instanceof djcp.tags._do ? 
+				arg : new cls( arg );
 		}
 	}
 
@@ -849,10 +817,52 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 		},
 		compile: function( self ) {
 			this.compile( self.arg );
-			this.code.push( this._chtRefs + '.push(' + this.popExpression() + ');' );
-			this.expressions.push( '"dojo.getObject(\\"_refs." + (' + this._chtRefs + '.length-1) + "\\")"' );
+			this.code.push( this._chtRefs.refs + '.push(' + this.popExpression() + ');' );
+			this._replaceFunction = this._replaceFunction || this.addGlobal( dj._replaceN );
+
+			this.expressions.push( 
+				this._replaceFunction + '("dojo.getObject(\\"_refs.{0}.{1}\\")",' + this._chtRefs.index + ',' + this._chtRefs.refs + '.length-1)' 
+			);
+			this._hasRefs = true;
 		}
 	} );
+
+	djcp._declareTag( 'wait', {
+		constructor: function( arg ) {
+			this.arg = arg;
+		},
+		compile: function( self ) {
+
+			var	w = this._openWait;
+			if( !w )	w = this._beginWait();
+			else		delete this._openWait;
+
+			this.compile( self.arg );
+
+			this._endWait( w );
+		}
+	} );
+
+	djcp._declareTag( 'markDom', dojo.declare( djcp.tags._raw, {
+		constructor: function( elt_tag ) {
+			this.markerElement = elt_tag;
+		},
+
+		compile: function( self ) {
+
+			if( !this._chtMarkerID ) {
+				this._chtMarkerID = this.addLocal();
+				this.code.push( this._chtMarkerID + '=' + this.addGlobal( dj._chtGlobalContext ) + '.markerID++;' );
+				this._chtMarkerQuery = '(' + dj.stringLiteral( self.markerElement + '.' + this.domMarkerPrefix ) + '+' + this._chtMarkerID + ')';
+			}
+
+			this.expressions.push( '(' + 
+				dj.stringLiteral( dj._replaceN( '<{0} style="display:none" class="{1}', self.markerElement, this.domMarkerPrefix ) ) + 
+				'+' + this._chtMarkerID + '+' +
+				dj.stringLiteral( dj._replaceN( '"></{0}>', self.markerElement ) ) +
+			')' );
+		}
+	} ) );
 
 })( dojox.jtlc.CHT.prototype );
 

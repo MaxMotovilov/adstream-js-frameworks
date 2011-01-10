@@ -54,9 +54,7 @@ dojox.jtlc.compile = function( tpl, lang, mixin )
 
 	var body = state.optimize( state.code.join('') );
 
-	if( state.globals.names.length )	
-			return state.makeClosure( body ).apply( null, state.globals.values );
-	else	return new Function( body );
+	return state.decorate( state.makeClosure( body ).apply( null, state.globals.values ) );
 }
 
 dojo.declare( 'dojox.jtlc.Language', null, {
@@ -126,9 +124,11 @@ dojo.declare( 'dojox.jtlc.Language', null, {
 		return expr;
 	},
 
+	decorate: function( f ) { return f; },
+
 	makeClosure: function( inner_body ) {
 		// Known to work on Mozilla, Chrome & IE7
-		return new Function( this.globals.names, "return function(){" + inner_body + "}" );
+		return new Function( this.globals.names, "function $self(){" + inner_body + "} return $self;" );
 	},
 
 	/* Internal settings that can be overridden by tags */
@@ -272,7 +272,6 @@ dojo.declare( 'dojox.jtlc._Sink', null, {
 
 	constructor: function( compiler ) {
 		this.compiler = compiler;
-		this.accumulator = compiler.addLocal();
 		this.loops_to_close = [];
 	},
 
@@ -284,6 +283,10 @@ dojo.declare( 'dojox.jtlc._Sink', null, {
 } );
 
 dojo.declare( 'dojox.jtlc._DictionarySink', dojox.jtlc._Sink, {
+
+	constructor: function() {
+		this.accumulator = this.compiler.addLocal();
+	},
 
 	append: function() {
 		if( this.compiler.elideNulls || this.compiler.failOnDuplicateKeys ) {
@@ -307,6 +310,10 @@ dojo.declare( 'dojox.jtlc._DictionarySink', dojox.jtlc._Sink, {
 } );
 
 dojo.declare( 'dojox.jtlc._ArraySink', dojox.jtlc._Sink, {
+
+	constructor: function() {
+		this.accumulator = this.compiler.addLocal();
+	},
 
 	append: function() {
 

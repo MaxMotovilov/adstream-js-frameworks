@@ -1,0 +1,66 @@
+<? template Test ?>
+	<div class='section'>
+		<? Select ?>
+	</div>
+	<div class='section'>
+		<? Table ?>
+	</div>
+<? /template ?>
+
+<? template Select ?>
+	<select>
+		<option selected></option>
+		<? Options ?>
+	</select>
+<? /template ?>
+
+<? template Options marker='option' ?>
+	<? when "$.get('options')|wait|expr:$.list" ?>
+		<? foreach ?>
+			<option>{{$}}</option>
+		<? /foreach ?>
+	<? else ?>
+		<option>Loading options...</option>
+	<? /when ?>
+<? /template ?>
+
+<? template Table ?>
+	<table>
+		<tr><th>Name</th><th>Data</th></tr>
+		<? when "$.get('table')" ?>
+			<? TableBody ?>
+		<? /when ?>
+	</table>
+<? /template ?>
+
+<? template TableBody ?>
+	<? foreach "from:$" ?>
+		<? TableRow ?>
+	<? /foreach ?>
+	<? if "$.view().offset + $.view().count < $.extra().totalCount" ?>
+		<? NextTableChunk ?>
+	<? /if ?>
+<? /template ?>
+
+<? template NextTableChunk marker='tr' ?>
+	<? when "do:{ 
+		var view = $.view(); 
+		$.view( { count: view.count, offset: view.offset + view.count } );	
+	}|expr:$.get()" ?>
+		<? TableBody ?>
+	<? /when ?>
+<? /template ?>
+
+<? template TableRow marker='tr' ?>
+	<tr onclick="dojo.toggleClass(event.target,'selected')"><td>{{name}}</td><td><? Data ?></td></tr>
+<? /template ?>
+
+<? template Data ?>
+	<? when "$.get('data')" ?>
+		<div>Age: {{age}}</div>
+		<div>Title: {{title}}</div>
+	<? else ?>
+		No data yet...
+	<? /when ?>
+<? /template ?>
+

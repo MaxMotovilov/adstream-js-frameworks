@@ -66,7 +66,7 @@
 
 <? /template ?>
 
-<? template AuthorSelect ?>
+<? template AuthorSelect  marker='div' ?>
 
 	<select dojoType='dijit.form.ComboBox' onchange='this.newBookPane.onAuthorChanged( this, this.indexInAuthorsList )'>
 		<script type="dojo/method">
@@ -74,9 +74,11 @@
 			this.indexInAuthorsList = {{$1.authors.length}};
 		</script>
 		<option selected></option>
-		<? foreach "from:$" ?>
-			<option>{{firstName}} {{lastName}}</option>
-		<? /foreach ?>
+		<? when ?>
+			<? foreach "from:$" ?>
+				<option>{{firstName}} {{lastName}}</option>
+			<? /foreach ?>
+		<? /when ?>
 	</select>
 
 <? /template ?>

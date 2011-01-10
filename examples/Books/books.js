@@ -294,7 +294,8 @@ dojo.declare( 'bsb.NewBookPane', dijit._Widget, {
 
 	onclickInit: function(e) {
 		this.disconnect( this.onclick_cookie );
-		dojo.when( bsb.root.get( 'authors' ), dojo.hitch( this, this.openEditor ) );
+//		dojo.when( bsb.root.get( 'authors' ), dojo.hitch( this, this.openEditor ) );
+		this.openEditor();
 		dojo.stopEvent(e);
 	},
 
@@ -326,9 +327,9 @@ dojo.declare( 'bsb.NewBookPane', dijit._Widget, {
 		dojo.stopEvent( e );
 	},
 
-	openEditor: function(authors) {
+	openEditor: function() {
 		this.authors = [];
-		getTemplate( 'NewBookPane' )( authors, this ).place( this.domNode, 'only' );
+		getTemplate( 'NewBookPane' )( bsb.root.get( 'authors' ), this ).render( this.domNode, 'only' );
 		this.onclick_cookie = dojo.query( 'button', this.domNode ).map( function(elt) {		
 			return this.connect( elt, 'onclick', this.onclickDone );
 		}, this );

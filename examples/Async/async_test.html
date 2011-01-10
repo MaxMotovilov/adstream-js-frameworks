@@ -1,0 +1,30 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+<head>
+
+<script src="http://ajax.googleapis.com/ajax/libs/dojo/1.5/dojo/dojo.xd.js" type="text/javascript" 
+		djConfig="isDebug: true, debugAtAllCosts: true, parseOnLoad: true, baseUrl: './', modulePaths: { 'dojox.jtlc': 'js/jtlc', 'adstream.data': 'js/data', 'test': '.' }"></script>
+
+<!-- The following scripts are normally loaded by Dojo but with 
+     static file access XHRs often don't work =============== -->
+
+<!--
+<script src="js/jtlc/CHT.js"></script>
+<script src="js/jtlc/CHT/instance.js"></script>
+-->
+
+<script type="text/javascript">
+dojo.provide( 'test' );
+dojo.require( 'test.async_test' );
+</script>
+
+</head>
+<body>
+	
+<div id='screen'>
+</div>
+
+</body>
+</html>
+

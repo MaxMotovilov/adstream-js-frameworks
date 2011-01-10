@@ -92,7 +92,7 @@ dojo.declare( 'dojox.jtlc.qplus', dojox.jtlc.JXL, {
 		var	result = null;
 		while( list.length ) {
 			var	item = list.shift();
-			if( /^\s*([a-z_]\w*(?:\s*[.]\s*[a-z_]\w*)*)\s*([:].*)?$/i.exec( item ) && (result||RegExp.$2) ) {
+			if( /^\s*([a-z_]\w*(?:\s*[.]\s*[a-z_]\w*)*)\s*([:](?:.|\n)*)?$/i.exec( item ) && (result||RegExp.$2) ) {
 				result = 
 					RegExp.$2 ? this._makeTag( RegExp.$1, RegExp.$2.substr(1), result ) :
 								this._makeTag( RegExp.$1, result );
@@ -176,6 +176,20 @@ dojo.declare( 'dojox.jtlc.qplus', dojox.jtlc.JXL, {
 					this.args.push( dojox.jtlc.tags.arg( i ) );
 		}
 
+	} ) );
+
+	djqp._declareTag( 'do', dojo.declare( djqp.tags._expr, {
+
+		constructor: function() {
+			if( /^[{](.*);?\s*[}]$/.exec( this.expr ) )
+				this.expr = RegExp.$1;
+			this.expr = '(function(){' + this.expr + ';return $;})()';
+		},
+
+		simplify: function() {
+			this.expr = this.expr.replace( /;return \$;\}\)\(\)$/, '})()' );
+		}
+	
 	} ) );
 
 	djqp._declareTag( 'query', dojo.declare( dj.tags._query, {

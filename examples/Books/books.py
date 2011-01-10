@@ -1,13 +1,13 @@
 #!/usr/bin/python
 
-import os, urllib, re, wsgiref, wsgiref.simple_server, sys, traceback, string
+import os, urllib, re, sys, traceback, string
 import simplejson as json
-
+	
 def namedParameters():
     result = {}
     for i in sys.argv:
-        m = re.match( r'--([a-zA-Z]+)=(.+)', i )
-        if m:   result[ m.group(1) ] = m.group(2)
+        m = re.match( r'--([a-zA-Z]+)(?:=(.+))?', i )
+        if m:   result[ m.group(1) ] = (lambda x: x if x != None else True)( m.group(2) )
     return result
 
 def decodeURLParamValue( value ):
@@ -324,7 +324,8 @@ def getStatic( path_name, headers={}, **kwargs ):
 	if m:
 		headers['Content-Type'] = {
 			'html': 'text/html', 'css': 'text/css', 'js': 'application/javascript',
-			'gif': 'image/gif', 'jpeg': 'image/jpeg', 'png': 'image/png'
+			'gif': 'image/gif', 'jpeg': 'image/jpeg', 'png': 'image/png',
+			'zip': 'application/zip'
 		}.get( m.group(1).lower(), 'text/plain' )
 	
 	path = os.path.abspath( os.path.join( localpath, path_name ) )
@@ -381,6 +382,29 @@ def wsgi_application( env, wsgi_cb ):
 
 if __name__=="__main__":
     
-    params = namedParameters()
-    httpd = wsgiref.simple_server.make_server( '', params.get('socket', 8080), wsgi_application )
-    httpd.serve_forever()
+	params = namedParameters()
+	port = params.get('socket', 8080)
+
+	if 'twisted' in params:
+		from twisted.web import server
+		from twisted.web.wsgi import WSGIResource
+		from twisted.python.threadpool import ThreadPool
+		from twisted.python import log
+		from twisted.internet import reactor
+		from twisted.application import service, strports
+
+		# Create and start a thread pool,
+		wsgiThreadPool = ThreadPool()
+		wsgiThreadPool.start()
+
+		# ensuring that it will be stopped when the reactor shuts down
+		reactor.addSystemEventTrigger('after', 'shutdown', wsgiThreadPool.stop)
+
+		reactor.listenTCP( port, server.Site( WSGIResource(reactor, wsgiThreadPool, wsgi_application) ) )
+		log.startLogging( log.FileLogObserver( sys.stderr ) )
+		reactor.run()
+
+	else:
+		import wsgiref, wsgiref.simple_server
+		httpd = wsgiref.simple_server.make_server( '', port, wsgi_application )
+		httpd.serve_forever()

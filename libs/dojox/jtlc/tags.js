@@ -4,7 +4,7 @@ dojo.require( "dojox.jtlc.compile" );
 
 dojox.jtlc.replaceWithinJavascript = function( s, context, repl ) 
 {
-	return s.replace( /(.*?)((["']).*?[^\\]?\2|$)/g, function( _1, code, trailing ) {
+	return s.replace( /((?:.|\n)*?)((["']).*?[^\\]?\2|$)/g, function( _1, code, trailing ) {
 		return code.replace( context, repl ) + trailing;
 	} )
 }
@@ -477,6 +477,11 @@ dojox.jtlc._declareTag( 'bind', dojo.declare( dojox.jtlc._MultiArgTag, {
 /* last( [tpl] ) -- returns last element of the generated sequence */
 
 dojo.declare( 'dojox.jtlc._LastSink', dojox.jtlc._Sink, {
+
+	constructor: function() {
+		this.accumulator = this.compiler.addLocal();
+	},
+
 	append: function() {
 		this.compiler.code.push( this.accumulator + '=' + this.compiler.popExpression() + ';' );
 		this.closeLoops();
