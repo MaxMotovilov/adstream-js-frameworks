@@ -255,8 +255,15 @@ dojo.declare( 'dojox.jtlc._CHTTemplateInstance', null, {
 dojo.declare( 'dojox.jtlc._CHTIncrementalTemplateInstance', [ dojox.jtlc._CHTTemplateInstance, dojo.Deferred ], {
 
 	constructor: function() {
-		this._cht_deferred.forEach( this._attach, this );
+		if( this.isDeferred() )
+			this._cht_deferred.forEach( this._attach, this );
 		this._dirty = false;
+
+		//	dojo.Deferred is not a well-behaved object!
+		var	_then = this.then;
+		this.then = function( onresolve ) {
+			return this.isDeferred() ? _then.apply( this, arguments ) : onresolve( this );
+		}
 	},
 
 	_attach: function( i, index, subindex ) {
@@ -403,10 +410,6 @@ dojo.declare( 'dojox.jtlc._CHTIncrementalTemplateInstance', [ dojox.jtlc._CHTTem
 		}
 
 		return dojo.when( this, replaceDom, null, replaceDom );
-	},
-	
-	then: function( onresolve ) {
-		return this.isDeferred() ? this.inherited( arguments ) : onresolve( this );
 	}
 });
 

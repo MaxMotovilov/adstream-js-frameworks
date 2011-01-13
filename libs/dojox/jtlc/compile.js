@@ -131,6 +131,12 @@ dojo.declare( 'dojox.jtlc.Language', null, {
 		return new Function( this.globals.names, "function $self(){" + inner_body + "} return $self;" );
 	},
 
+/*
+	makeClosure: new Function( // Should reside in global scope to minimize chances of namespace pollution
+		'inner_body',
+		'return eval( "(function(" + this.globals.names.join(",") + "){function $self(){" + inner_body + "} return $self;})\\r\\n//@ sourceURL=foo/bar.js\\r\\n" );'
+	),
+*/
 	/* Internal settings that can be overridden by tags */
 
 	current_input: '$[0]',

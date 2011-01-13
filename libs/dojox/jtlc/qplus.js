@@ -184,12 +184,15 @@ dojo.declare( 'dojox.jtlc.qplus', dojox.jtlc.JXL, {
 			if( /^[{](.*);?\s*[}]$/.exec( this.expr ) )
 				this.expr = RegExp.$1;
 			this.expr = '(function(){' + this.expr + ';return $;})()';
+
+			this.simplify = arguments.length <= 1 ? this._simplify : this._cant_simplify;			
 		},
 
-		simplify: function() {
+		_simplify: function() {
 			this.expr = this.expr.replace( /;return \$;\}\)\(\)$/, '})()' );
-		}
+		},
 	
+		_cant_simplify: function() {}
 	} ) );
 
 	djqp._declareTag( 'query', dojo.declare( dj.tags._query, {
