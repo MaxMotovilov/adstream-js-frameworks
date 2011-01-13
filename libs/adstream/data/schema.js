@@ -121,9 +121,15 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 			impl = dojo.delegate( ego, {
 				_: 			dojo.delegate( ego._, { url: url } ),
 				_service: 	svc
-			} );
+			} ),
+			obj = dojo.delegate( impl, {} );
 
-		return dojo.delegate( impl, {} );
+		if( !(this instanceof adstream.data.schema.Container) && this._subschema )
+			for( var i in this._subschema )
+				if( this._subschema[i] instanceof adstream.data.schema.Container )
+					obj[i] = this._subschema[i]._new( svc, obj._composeURL( i ) );
+
+		return obj;
 	},
 
 	_instantiateSchema: function() {
@@ -249,6 +255,8 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 	},
 
 	url: function() { return this._.url; },
+
+	id: function() { return /[^\/]+$/.exec( this._.url )[0]; },
 	
 	service: function() { return this._service; },
 
@@ -343,7 +351,7 @@ dojo.declare( 'adstream.data.schema.Object', [ adstream.data.schema.Node ], {
 	
 		var to = {}, item;
 
-		if( this._.version )	
+		if( 'version' in this._ )	
 			to._= { version: this._.version };
 
 		for( var i in this ) {

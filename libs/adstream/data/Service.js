@@ -370,8 +370,6 @@ dojo.declare( 'adstream.data.Service', null, {
 
 	_onRefresh: function( err ) {
 
-		console.log( 'Refreshing at ' + (new Date()).toTimeString() );
-
 		if( this._refresh_queue.length == 0 ) {
 			
 			var	queue = [ { d: this.root, w: this._on_sync } ],
@@ -387,7 +385,6 @@ dojo.declare( 'adstream.data.Service', null, {
 								var ripe = (q.w[i]._[j].last_updated||0) + q.w[i]._[j].refresh;
 								if( ripe <= ts ) {
 									this._pushRefreshQueue( q.d[i].url(), q.w[i]._[j].max_depth );
-									console.log( q.d[i].url() + ' was due at ' + (new Date(ripe)).toTimeString() );
 								}
 								else if( isNaN(next) || next > ripe )
 									next = ripe;
