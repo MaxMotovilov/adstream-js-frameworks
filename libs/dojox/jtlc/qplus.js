@@ -181,7 +181,7 @@ dojo.declare( 'dojox.jtlc.qplus', dojox.jtlc.JXL, {
 	djqp._declareTag( 'do', dojo.declare( djqp.tags._expr, {
 
 		constructor: function() {
-			if( /^[{](.*);?\s*[}]$/.exec( this.expr ) )
+			if( /^\{((?:.|\n)*?);?\s*\}$/.exec( this.expr ) )
 				this.expr = RegExp.$1;
 			this.expr = '(function(){' + this.expr + ';return $;})()';
 

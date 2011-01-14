@@ -35,12 +35,18 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 		dojo.mixin( this, settings );
 	},
 
-	parse: function( input, ns ) {
+	parse: function( input, ns, url ) {
 		var _this = this;
+		
+		if( typeof ns === 'string' ) {
+			url = ns;
+			ns = {};
+		}
+
 		return dojo.when( 
 			this._buildTemplates( dj._tokenizeCHT( input ) ),
 			function(v){ 
-				return _this._buildAST( v, ns || {} ); 
+				return _this._buildAST( v, ns || {}, url || '[CHT-Templates]' ); 
 			}
 		);
 	},
@@ -152,10 +158,10 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 		When this function executes, all external references should have been
 		satisfied -- and the unsatisfied ones are considered errors.
 	*/
-	_buildAST: function( rp, ns ) {
+	_buildAST: function( rp, ns, url ) {
 
 		for( var elt_name in rp.parsed )
-			ns[elt_name] = new this._userDefinedElement( rp.parsed[elt_name] );
+			ns[elt_name] = new this._userDefinedElement( rp.parsed[elt_name], url + '/' + elt_name );
 
 		var	refs = dojo.mixin( rp.refs, ns, this.elements ),
 			_this = this;
@@ -266,6 +272,8 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 	compileBody: function( tpl ) {
 
+		this.sourceUrl = tpl.sourceUrl || tpl.def.sourceUrl;
+
 		this._chtSections = {};
 		this._deferredIndex = 0;
 
@@ -371,7 +379,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 	),
 
 	_userDefinedElement: dojo.extend( 
-		function( elt ) {
+		function( elt, url ) {
 
 			if( elt.kwarg && elt.kwarg.compiled ) {
 				if( elt.sections )	throw Error( "Compiled template " + elt.arg + " should not have sections" );
@@ -382,6 +390,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 			if( elt.sections )	this.sections = elt.sections;
 			this.name = elt.arg;
+			this.sourceUrl = url;
 		},{
 			_tag: dojo.extend(
 				function( cht, elt, def ) {

@@ -1,5 +1,8 @@
 dojo.provide( "dojox.jtlc.compile" );
 
+if( dojo.config.isDebug || dojo.config.annotateTemplates )
+	dojo.require( "dojox.jtlc.prettyPrint" );
+
 dojox.jtlc._varNameLetters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";		
 
 dojox.jtlc._varName = function( n )
@@ -23,6 +26,10 @@ dojox.jtlc.arrayAppend = function( dst, src )
 	src.unshift( 0 );
 	src.unshift( dst.length );
 	dst.splice.apply( dst, src );
+}
+
+dojox.jtlc._eval = function( x ){
+	return eval( x );
 }
 
 dojox.jtlc.compile = function( tpl, lang, mixin ) 
@@ -52,7 +59,13 @@ dojox.jtlc.compile = function( tpl, lang, mixin )
 
 	state.code.push( 'return ' + state.popExpression() + ';' );
 
-	var body = state.optimize( state.code.join('') );
+	var body = state.code.join('');
+
+	if( !dojo.config.annotateTemplates )	
+		body = state.optimize( body );
+
+	if( (dojo.config.isDebug || dojo.config.annotateTemplates) && !dojo.isIE )	
+		body = dojox.jtlc.prettyPrint( body );
 
 	return state.decorate( state.makeClosure( body ).apply( null, state.globals.values ) );
 }
@@ -126,17 +139,24 @@ dojo.declare( 'dojox.jtlc.Language', null, {
 
 	decorate: function( f ) { return f; },
 
+/*
 	makeClosure: function( inner_body ) {
 		// Known to work on Mozilla, Chrome & IE7
 		return new Function( this.globals.names, "function $self(){" + inner_body + "} return $self;" );
 	},
-
-/*
-	makeClosure: new Function( // Should reside in global scope to minimize chances of namespace pollution
-		'inner_body',
-		'return eval( "(function(" + this.globals.names.join(",") + "){function $self(){" + inner_body + "} return $self;})\\r\\n//@ sourceURL=foo/bar.js\\r\\n" );'
-	),
 */
+
+	makeClosure: dojo.isIE ?
+		function( inner_body ) {
+			// Known to work on Mozilla, Chrome & IE7
+			return new Function( this.globals.names, "function $self(){" + inner_body + "} return $self;" );
+		} :
+		new Function( // Should reside in global scope to minimize chances of namespace pollution
+			'inner_body',
+			'return dojox.jtlc._eval( "(function(" + this.globals.names.join(",") + "){function $self(){" + inner_body + "} return $self;})" +\
+						  (this.sourceUrl ? "\\r\\n//@ sourceURL=" + this.sourceUrl : "") );'
+		),
+
 	/* Internal settings that can be overridden by tags */
 
 	current_input: '$[0]',
