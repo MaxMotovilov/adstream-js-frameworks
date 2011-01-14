@@ -214,7 +214,7 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 	},
 
 	_notYetCreated: function() {
-		return this._.url.indexOf( '@' ) >= 0;
+		return /(?:\/|^)@/.test( this._.url );
 	},
 
 	_URL_Params: function( depth ) { 
