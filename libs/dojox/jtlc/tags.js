@@ -656,9 +656,6 @@ dojox.jtlc._declareTag( 'group', {
 		if( !this.loop )
 			throw Error( "group() is never a singleton, wrap it in many() or []" );
 
-//		if( this.loop.started() )
-//			throw Error( "group() used in a wrong context" );
-
 		var first_in_group = this.addLocal();
 		this.code.push( first_in_group + '=0;' );
 

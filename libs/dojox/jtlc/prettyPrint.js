@@ -42,7 +42,7 @@ dojox.jtlc.prettyPrint = function( js ) {
 				if( '};'.indexOf( src.substr( offset-1, 1 ) ) < 0 )
 					before = '\n' + indent + '\t';
 
-				if( ');'.indexOf( src.substr( next, 1 ) ) >= 0 )
+				if( ');,'.indexOf( src.substr( next, 1 ) ) >= 0 )
 						after = '';
 				else	after = '\n' + indent;
 			}

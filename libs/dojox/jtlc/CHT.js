@@ -161,7 +161,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 	_buildAST: function( rp, ns, url ) {
 
 		for( var elt_name in rp.parsed )
-			ns[elt_name] = new this._userDefinedElement( rp.parsed[elt_name], url + '/' + elt_name );
+			ns[elt_name] = new this._userDefinedElement( rp.parsed[elt_name], url + '/<?' + elt_name + '?>' );
 
 		var	refs = dojo.mixin( rp.refs, ns, this.elements ),
 			_this = this;

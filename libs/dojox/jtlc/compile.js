@@ -139,13 +139,6 @@ dojo.declare( 'dojox.jtlc.Language', null, {
 
 	decorate: function( f ) { return f; },
 
-/*
-	makeClosure: function( inner_body ) {
-		// Known to work on Mozilla, Chrome & IE7
-		return new Function( this.globals.names, "function $self(){" + inner_body + "} return $self;" );
-	},
-*/
-
 	makeClosure: dojo.isIE ?
 		function( inner_body ) {
 			// Known to work on Mozilla, Chrome & IE7
@@ -199,7 +192,6 @@ dojo.declare( 'dojox.jtlc.Language', null, {
 			this.expressions.push( this.sink.accumulator );
 			if( old_sink )	this.sink = old_sink;
 			else			delete this.sink;
-//			this.locals.pop();
 		}
 	},
 
@@ -207,7 +199,6 @@ dojo.declare( 'dojox.jtlc.Language', null, {
 		var old_sink = this.sink,
 			old_loop = this.loop;
 
-//		if( this.sink )	delete this.sink;
 		if( this.loop )	delete this.loop;
 
 		var	old_current_input = this.hasOwnProperty( 'current_input' ) ? this.current_input : null;
@@ -404,11 +395,8 @@ dojo.declare( 'dojox.jtlc._Loop', null, {
 
 			if( this.lockedItem != item )
 				this.compiler.code.push( this.lockedItemVar + '=' + item + ';' );
-
-//			this.compiler.current_input = '(' + this.lockedItem + ')';
 		} else {
 			this.lockedItem = item;
-//			this.compiler.current_input = item;
 		}
 	},
 

@@ -131,6 +131,7 @@ dojo.declare( 'dojox.jtlc._CHTTemplateInstance', null, {
 
 	isDeferred: function() { return false; },
 	canUpdateDom: function() { return false; },
+	update: function() {},
 
 	place: function( ref_node, pos, options ) {
 
@@ -333,6 +334,11 @@ dojo.declare( 'dojox.jtlc._CHTIncrementalTemplateInstance', [ dojox.jtlc._CHTTem
 				} );
 	},
 
+	update: function() {
+		this._self.apply( this, this._args );
+		this._dirty = false;
+	},
+
 	updateDom: function( root, options ) {
 		
 		if( !this._dirty ) {
@@ -360,9 +366,7 @@ dojo.declare( 'dojox.jtlc._CHTIncrementalTemplateInstance', [ dojox.jtlc._CHTTem
 		if( !markers[0].nextSibling )	throw Error( "CHT markers do not have the same parent" );
 		markers[0].parentNode.removeChild( markers[1] );
 
-		this._self.apply( this, this._args );
-		this._dirty = false;
-
+		this.update();
 		this.place( markers[0], 'replace', options );
 
 		return this;
@@ -398,13 +402,11 @@ dojo.declare( 'dojox.jtlc._CHTIncrementalTemplateInstance', [ dojox.jtlc._CHTTem
 			ctx.expand();
 			dojox.jtlc._cleanupRange( first, last.nextSibling );
 
-			self._self.apply( self, self._args );
+			self.update();
 
 			if( ctx.first )	self.place( ctx.first, 'after', options );
 			else			self.place( ctx.parent, 'first', options );
 			ctx.contract();
-		
-			self._dirty = false;
 
 			return self;
 		}
