@@ -315,8 +315,15 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 		this.code.push( 'if(!' + refID + ')' + gctx + '.refID=0;' );
 
+		var transition = this._transition && (
+			this.compile( this.tags.expr( '(' + this._transition + ')' ) ),
+			this.popExpression()
+		);
+
 		function baseProps( has_refs ) {
-			return '_split_text:' + result + (has_refs ? ',_refs:' + refs + ',_refID:' + refID : '');
+			return '_split_text:' + result + 
+				   (has_refs ? ',_refs:' + refs + ',_refID:' + refID : '') +
+				   (transition ? ',_transition:' + transition : '');
 		}
 
 		this.expressions.push( this._deferredIndex ?
@@ -386,7 +393,11 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 				this.alwaysCompile = true;
 			}
 
-			if( elt.kwarg && elt.kwarg.async )	this.async = true;
+			if( elt.kwarg && elt.kwarg.async )			
+				this.async = true;
+
+			if( elt.kwarg && elt.kwarg.transition )	
+				this.transition = elt.kwarg.transition;
 
 			if( elt.sections )	this.sections = elt.sections;
 			this.name = elt.arg;
@@ -450,7 +461,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 											dojo.mixin( 
 												{ compiledTemplates: this.compiledTemplates }, 
 												this.compileArguments.options,
-												{ _templateName: self.name }
+												{ _templateName: self.name, _transition: self.tag.def.transition }
 											)
 								);
 						}
@@ -486,6 +497,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 			compile: function( self ) {
 				this._templateName = self.name;
+				if( self.transition )	this._transition = self.transition;
 				this.compile( self.tag( this, {} ) );
 			}
 		}	 

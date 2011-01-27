@@ -1,5 +1,6 @@
 dojo.provide( 'test.async_test' );
 
+dojo.require( 'dojo.fx' );
 dojo.require( 'dojox.jtlc.CHT' );
 dojo.require( 'adstream.data.Service' );
 
@@ -12,7 +13,7 @@ test.templates = new dojo.Deferred();
 function compileTemplates( input )
 {
 	test.cht = new dojox.jtlc.CHT(),
-	test.compiled_templates = test.cht.parse( input );
+	test.compiled_templates = test.cht.parse( input, 'async_test.cht' );
 	test.i18nDictionary = {};
 	test.downloaded_templates = true;
 
@@ -59,3 +60,28 @@ function renderPage()
 	getTemplate( 'Test' )( test.root ).render( 'screen', 'only' );
 }
 
+test.flash = function( ctx, dom ) {
+	ctx.place( dom );
+
+	var animation = dojo.animateProperty({
+		node: ctx.nodes()[0], // We know only 1 TR is returned...
+		properties: {
+			backgroundColor: {
+				begin: 'rgba(255,255,0,255)',
+				end:   'rgba(255,255,0,0)'
+			}
+		},
+		onEnd: function( node ) {
+			dojo.style( node, 'backgroundColor', '' );
+			result.resolve();
+		}
+	});
+
+	var result = new dojo.Deferred( 
+		function(){ 
+			animation.stop(); 
+		} 
+	);
+	animation.play();
+	return result;
+}

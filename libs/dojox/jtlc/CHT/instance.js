@@ -1,27 +1,80 @@
 dojo.provide( "dojox.jtlc.CHT.instance" );
 
 dojo.require( "dojo.parser" );
+dojo.require( "dojo.DeferredList" );
 dojo.require( "dijit._Widget" );
 
-dojox.jtlc._cleanupWidgets = function( ref_node, ref_w ) {
-	if( ref_node.nodeType != 1 )	return;
-	// It would be better to check for dojoType, but unfortunately dijit.byNode() does
-	// not handle stray nodes gracefully.
-	dojo.query( '[widgetId]', ref_node ).forEach( function( node ) {
-		var w = dijit.byNode( node );
-		if( w && ref_w !== w )	w.destroy();
-	} );
-};
-
-dojox.jtlc._cleanupRange = function( from, to ) {
-	while( from && from !== to ) {
-		var next = from.nextSibling;
-		dojox.jtlc._cleanupWidgets( from.parentNode.removeChild( from ) );
-		from = next;
-	}
-};
-
 (function() {
+
+	var	d = dojo, dj = dojox.jtlc;
+
+	function _cleanupWidgets( ref_node, ref_w ) {
+
+		// It would be better to check for dojoType, but unfortunately dijit.byNode() does
+		// not handle stray nodes gracefully.
+
+		var nodes = 
+			ref_node.query ?
+				ref_node.filter( function(node){ return node.nodeType==1; } ).query( '[widgetId]' ) :
+			ref_node.nodeType == 1 ?
+				dojo.query( '[widgetId]', ref_node ) :
+			null;
+
+		if( nodes ) nodes.forEach( 
+			function( node ) {
+				var w = dijit.byNode( node );
+				if( w && ref_w !== w )	w.destroy();
+			} 
+		);
+	}
+
+	// The following code has been lifted from dojo.parser as there's no convenience API for it
+	function _startupWidgets( instances ) {
+		dojo.forEach( instances, function(instance){
+			if(	instance && instance.startup &&	!instance._started && 
+				(!instance.getParent || !instance.getParent())
+			){
+				instance.startup();
+			}
+		});
+	}
+
+	function _getNodes( first, last ) {
+		var v = new d.NodeList();
+		while( first && first !== last ) {
+			v.push( first );
+			first = first.nextSibling;
+		}
+		return v;
+	}
+
+	function _context( first, last, parent ) {
+		if( !parent && first.parentNode !== last.parentNode )
+			throw Error( "Context nodes do not have the same parent" );
+		this.first = first;
+		this.last = last;
+		this.parent = parent || first.parentNode;
+	}
+
+	var _innerContext = d.extend(
+		_context, {
+			isEmpty: function() {
+				return !this.first || !this.last;
+			},
+
+			outer: function() {
+				if( !this.first || !this.last )
+					throw Error( "Cannot expand an empty context" );
+				return new _outerContext( 
+					this.first.previousSibling, this.last.nextSibling, this.parent 
+				);
+			},
+
+			nodes: function() { 
+				return this.first ? _getNodes( this.first, this.last.nextSibling ) : new d.NodeList();
+			}
+		}
+	);
 
 	var pos_map = { // 1: up, 2: previous, 4: replace
 		before: 3,
@@ -32,8 +85,16 @@ dojox.jtlc._cleanupRange = function( from, to ) {
 		last: 	0
 	};
 
-	dojox.jtlc._placementContext = dojo.extend( 
+	var _outerContext = d.extend( 
 		function( ref_node, pos ) {
+
+			//	Direct (copy) construction
+
+			if( typeof pos === "object" ) {
+				_context.apply( this, arguments );
+				return;
+			}
+
 			if( typeof pos === "number" ) {
 				var cn = ref_node.childNodes;
 				if( !cn.length || cn.length <= pos )	
@@ -58,144 +119,185 @@ dojox.jtlc._cleanupRange = function( from, to ) {
 					: 
 				(pos^2)&6 ? null : ref_node.firstChild;
 		}, {
-			contract: function() {
-				if( this.first && this.first.nextSibling === this.last ||
-					this.last  && this.last.previousSibling === this.first ) {
-					this.first = this.last = null;
-				} else {
-					this.first = this.first ? this.first.nextSibling    : this.parent.firstChild;
-					this.last  = this.last  ? this.last.previousSibling : this.parent.lastChild;
-				}
+			isEmpty: function() {
+				return this.last == ( this.first ? this.first.nextSibling : this.parent.firstChild );
 			},
 
-			expand: function() {
-				this.parent = this.first.parentNode;
-				this.first = this.first.previousSibling;
-				this.last  = this.last.nextSibling;
+			nodes: function() {
+				return _getNodes( 
+					this.first ? this.first.nextSibling : this.parent.firstChild,
+					this.last
+				);
+			},
+
+			inner: function() {
+				if( this.first && this.first.nextSibling === this.last ||
+					this.last  && this.last.previousSibling === this.first )
+						return new _innerContext( null, null, this.parent );
+				else 	return new _innerContext(
+							this.first ? this.first.nextSibling    : this.parent.firstChild,
+							this.last  ? this.last.previousSibling : this.parent.lastChild,
+							this.parent
+				);
+			},
+
+			place: function( what, pos ) {
+				var old;
+				if( !pos || pos === 'replace' ) {
+					old = this.nodes();
+					old.orphan();
+					pos = 'before';
+				}
+
+				if( pos === 'before' )
+						d.place( what, this.first || this.parent, this.first ? 'after' : 'first' );
+				else	d.place( what, this.last || this.parent, this.last ? 'before' : 'last' );
+
+				return old;
 			}
 		}
 	);
-})();
 
-dojo.declare( 'dojox.jtlc._CHTTemplateInstance', null, {
+	var valid_pos_types = { string: 1, number: 1 };
 
-	constructor: function( bag ) {
-		dojo.mixin( this, bag );
-	},
+	d.declare( 'dojox.jtlc._CHTTemplateInstance', null, {
 
-	toString: function() {
-		return this._split_text.join('');
-	},
+		constructor: function( bag ) {
+			d.mixin( this, bag );
+		},
 
-	toDom: function() {
-		return dojo._toDom( this.toString() );
-	},
+		toString: function() {
+			return this._split_text.join('');
+		},
 
-	refs: function( outer ) {
-		outer = outer || {};
-		if( this._refs ) {
-			outer[this._refID] = this._refs;
-			dojo.forEach( this._split_text, function(t) {
-				if( t instanceof dojox.jtlc._CHTTemplateInstance )	t.refs( outer );
-			} );
-		}
-		return outer;
-	},
+		toDom: function() {
+			return d._toDom( this.toString() );
+		},
 
-	toParsedDom: function( options ) {
+		refs: function( outer ) {
+			outer = outer || {};
+			if( this._refs ) {
+				outer[this._refID] = this._refs;
+				d.forEach( this._split_text, function(t) {
+					if( t instanceof dj._CHTTemplateInstance )	t.refs( outer );
+				} );
+			}
+			return outer;
+		},
 
-		var	master = dojo.create( 'div' );
+		toParsedDom: function( options ) {
 
-		dojo.place( this.toDom(), master, 'only' );
+			var	master = d.create( 'div' ),
+				g = d.global;
 
-		var	old_refs = dojo.global._refs;
-		dojo.global._refs = this.refs();
+			d.place( this.toDom(), master, 'only' );
 
-		var l = dojo.parser.parse( master, options );
+			var	old_refs = g._refs;
+			g._refs = this.refs();
 
-		if( old_refs )	dojo.global._refs = old_refs;
-		else			dojo.global._refs = {}; // IE throws a hissy fit on delete 
+			var l = d.parser.parse( master, options );
 
-		if( options && options.instances )	
-			Array.prototype.push.apply( options.instances, l );
+			if( old_refs )	g._refs = old_refs;
+			else			g._refs = {}; // IE throws a hissy fit on delete 
 
-		if( master.childNodes.length == 1 )
-			return master.removeChild( master.firstChild );
+			if( options && options.instances )	
+				Array.prototype.push.apply( options.instances, l );
 
-		var dom = dojo.doc.createDocumentFragment();
-		while( master.firstChild )	
-			dom.appendChild( master.removeChild( master.firstChild ) );
+			if( master.childNodes.length == 1 )
+				return master.removeChild( master.firstChild );
 
-		return dom;
-	},
+			var dom = d.doc.createDocumentFragment();
+			while( master.firstChild )	
+				dom.appendChild( master.removeChild( master.firstChild ) );
 
-	isDeferred: function() { return false; },
-	canUpdateDom: function() { return false; },
-	update: function() {},
+			return dom;
+		},
 
-	place: function( ref_node, pos, options ) {
+		isDeferred: function() { return false; },
+		canUpdateDom: function() { return false; },
+		update: function() {},
 
-		ref_node = dojo.byId( ref_node );
+		place: function( /* { ref_node [, pos] | outer_ctx } [, options ] */ ) {
 
-		switch( typeof pos ) {
-			case 'object':		options = pos;
-			case 'undefined':	pos = 'last';
-		}
+			var	ref_node, pos, outer_ctx, transition, options,
+				argn = 0;
 
-		var	opts = dojo.mixin(
-			options ? dojo.mixin( {}, options ) : {},
-			{ noStart: true, instances: [] }
-		);
+			if( arguments[argn] instanceof _outerContext )
+				outer_ctx = arguments[argn++];
+			else {
+				ref_node = d.byId( arguments[argn++] );
+				if( valid_pos_types[ typeof arguments[argn] ] )
+						pos = arguments[argn++];
+				else	pos = 'last';
+			}
 
-		var dom = this.toParsedDom( opts ),
-			ref_w = pos == 'only' && dijit.byNode( ref_node ),
-			ctx = opts.returnContext && new dojox.jtlc._placementContext( ref_node, pos );
+			if( typeof arguments[argn] === 'object' )
+				options = arguments[argn];
 
-		if( pos == 'only' || pos == 'replace' )
-			dojox.jtlc._cleanupWidgets( ref_node, ref_w );
+			var	opts = d.mixin(
+				options ? d.mixin( {}, options ) : {},
+				{ noStart: true, instances: [] }
+			);
 
-		dojo.place( dom, ref_node, pos );
+// Step 1: build and parse new DOM
+			var dom = this.toParsedDom( opts );
 
-		// The following code has been lifted from dojo.parser as there's no convenience API for it
-		if( !(options && options.noStart) )	
-			dojo.forEach( opts.instances, function(instance){
-				if(	instance && instance.startup &&	!instance._started && 
-					(!instance.getParent || !instance.getParent())
-				){
-					instance.startup();
-				}
-			});
-		
-		if( options && options.instances )
-			Array.prototype.push.apply( options.instances, opts.instances );
+			if( options && options.instances )
+				Array.prototype.push.apply( options.instances, opts.instances );
 
-		if( ctx ) {
-			ctx.contract();
-			return ctx;
-		}
-	},
+// Step 2: destroy widgets associated with the part of DOM being replaced
+			if( ref_node ) {
+				if( pos === 'only' || pos === 'replace' )
+					_cleanupWidgets( ref_node, pos === 'only' && dijit.byNode( ref_node ) );
+			} else	_cleanupWidgets( outer_ctx.nodes() );
 
-	render: function( ref_node, pos, options ) {
-		this.place( ref_node, pos, options );
-		return this;
-	}
-});
+// Sync vs async completion: if transition requested, start it. 
+			if( this._transition )
+				return this._beginTransition( 
+					outer_ctx || new _outerContext( ref_node, pos ), dom, opts.instances
+				);
 
-(function(){
+// Step 3: replace the DOM fragment
+
+			if( ref_node )	d.place( dom, ref_node, pos ); // Should work faster
+			else			outer_ctx.place( dom );
+
+// Step 4: start up widgets
+
+			if( !(options && options.noStart) )	
+				_startupWidgets( opts.instances );
+
+			return outer_ctx || opts.returnContext && new _outerContext( ref_node, pos );
+		},
+
+		_beginTransition: function( outer_ctx, dom, instances ) {
+			var tr = this._transition( outer_ctx, dom, this );
+			return d.when( tr, d.hitch( this, '_endTransition', instances ) );
+		},
+
+		_endTransition: function( instances, result ) {
+			_startupWidgets( instances );
+			return result;
+		} 
+	});
+
+	//	Alias place() as render() for synchronous templates
+	dj._CHTTemplateInstance.prototype.render = dj._CHTTemplateInstance.prototype.place;
+
 	function deferred() { this._data = []; }
 
 	function enum_deferred( stop_if, default_result ) {
 
 		return function( cb, self ) {
 
-			if( self )	cb = dojo.hitch( self, cb );
+			if( self )	cb = d.hitch( self, cb );
 
-			var	d = this._data;
+			var	dd = this._data;
 
-			for( var i=0; i<d.length; ++i )
-				if( d[i] ) 
-					for( var j=0; j<d[i].length; ++j ) {
-						var v = cb( d[i][j], i, j );
+			for( var i=0; i<dd.length; ++i )
+				if( dd[i] ) 
+					for( var j=0; j<dd[i].length; ++j ) {
+						var v = cb( dd[i][j], i, j );
 						if( stop_if( v ) )	return v;
 					}
 
@@ -203,7 +305,7 @@ dojo.declare( 'dojox.jtlc._CHTTemplateInstance', null, {
 		}				
 	}
 
-	dojox.jtlc._CHTDeferredAccessor = dojo.extend( 
+	dj._CHTDeferredAccessor = d.extend( 
 		function( instance ){
 
 			this.indices = [];
@@ -213,7 +315,7 @@ dojo.declare( 'dojox.jtlc._CHTTemplateInstance', null, {
 				this.storage  = instance._cht_deferred;
 				for( var i=0; i<this.storage._data.length; ++i )
 					this.indices.push( 0 );
-			} else	this.storage = new dojox.jtlc._CHTDeferred();
+			} else	this.storage = new dj._CHTDeferred();
 		}, {
 			has: function( index ) {
 				return index in this.indices && 
@@ -234,7 +336,7 @@ dojo.declare( 'dojox.jtlc._CHTTemplateInstance', null, {
 		} 
 	);
 
-	dojox.jtlc._CHTDeferred = dojo.extend( deferred, {
+	dj._CHTDeferred = d.extend( deferred, {
 		set: function( index, subindex, value ) { 
 			var d = this._data;
 			if( !(index in d) )	d[index] = [];
@@ -245,7 +347,6 @@ dojo.declare( 'dojox.jtlc._CHTTemplateInstance', null, {
 		some: 		enum_deferred( function(x){ return x; }, false ),
 		every: 		enum_deferred( function(x){ return !x; }, true )
 	} );
-})();
 
 /*
 	_CHTIncrementalTemplateInstance serves as a context object for the evaluator function.
@@ -253,166 +354,194 @@ dojo.declare( 'dojox.jtlc._CHTTemplateInstance', null, {
 	_cht_deferred in order to generate intermediate as well as final results.
 */
 
-dojo.declare( 'dojox.jtlc._CHTIncrementalTemplateInstance', [ dojox.jtlc._CHTTemplateInstance, dojo.Deferred ], {
+	d.declare( 'dojox.jtlc._CHTIncrementalTemplateInstance', [ dj._CHTTemplateInstance, d.Deferred ], {
 
-	constructor: function() {
-		if( this.isDeferred() )
-			this._cht_deferred.forEach( this._attach, this );
-		this._dirty = false;
+		constructor: function() {
+			if( this.isDeferred() )
+				this._cht_deferred.forEach( this._attach, this );
+			this._dirty = false;
 
-		//	dojo.Deferred is not a well-behaved object!
-		var	_then = this.then;
-		this.then = function( onresolve ) {
-			return this.isDeferred() ? _then.apply( this, arguments ) : onresolve( this );
-		}
-	},
+			//	dojo.Deferred is not a well-behaved object!
+			var	_then = this.then;
+			this.then = function( onresolve ) {
+				return this.isDeferred() ? _then.apply( this, arguments ) : onresolve( this );
+			}
+		},
 
-	_attach: function( i, index, subindex ) {
+		_attach: function( i, index, subindex ) {
 
-		if( i instanceof dojox.jtlc._CHTIncrementalTemplateInstance )
-			i.then(
-				dojo.hitch( this, '_onNestedReady' ),
-				dojo.hitch( this, '_onNestedFailed' ),
-				dojo.hitch( this, '_onNestedReady' )
-			);
-		else if( i instanceof dojo.Deferred )	
-			i.then( 
-				dojo.hitch( this, '_onWaitReady', index, subindex ),
-				dojo.hitch( this, '_onWaitFailed' )
-			);
-	},
+			if( i instanceof dj._CHTIncrementalTemplateInstance )
+				i.then(
+					d.hitch( this, '_onNestedReady' ),
+					d.hitch( this, '_onNestedFailed' ),
+					d.hitch( this, '_onNestedReady' )
+				);
+			else if( i instanceof d.Deferred )	
+				i.then( 
+					d.hitch( this, '_onWaitReady', index, subindex ),
+					d.hitch( this, '_onWaitFailed' )
+				);
+		},
 
-	isDeferred: function() {
-		return this._dirty && this._cht_deferred._data.length < this._max_deferred || this._cht_deferred.some( function(i){ 
-			return i instanceof dojox.jtlc._CHTIncrementalTemplateInstance ? i.isDeferred() : i instanceof dojo.Deferred;
-		} );
-	},
-
-	toString: function() {
-
-		if( this._marker_query && !this.isDeferred() ) {
-			this._split_text.shift();
-			this._split_text.pop();
-			delete this._marker_query;
-		}
-
-		return this._split_text.join('');
-	},
-
-	_propagateReady: function() {
-		var def = this.isDeferred();
-
-		if( def )	this.progress( this );
-		else		this.resolve( this );
-	},
-
-	_onNestedReady: function( who ) {
-		if( !who.canUpdateDom() )	this._dirty = true;
-		this._propagateReady();
-	},
-
-	_onNestedFailed: function() {
-		this.reject( this );
-	},
-
-	_onWaitReady: function( index, subindex, value ) {
-		this._cht_deferred.set( index, subindex, value );
-		this._dirty = true;
-		this._propagateReady();
-	},
-
-	_onWaitFailed: function() {
-		this.reject( this );
-	},
-
-	canUpdateDom: function( always ) {
-
-		return '_marker_query' in this ||
-				!this._dirty && 
-				this._cht_deferred.every( function(i){ 
-					return i instanceof dojox.jtlc._CHTIncrementalTemplateInstance ? i.canUpdateDom() : !( always && i instanceof dojo.Deferred );
-				} );
-	},
-
-	update: function() {
-		this._self.apply( this, this._args );
-		this._dirty = false;
-	},
-
-	updateDom: function( root, options ) {
-		
-		if( !this._dirty ) {
-			this._cht_deferred.forEach( function(i) {
-				if( i instanceof dojox.jtlc._CHTIncrementalTemplateInstance )
-					i.updateDom( root, options ); // Should be able to, since canUpdateDom() checks it recursively
+		isDeferred: function() {
+			return this._dirty && this._cht_deferred._data.length < this._max_deferred || this._cht_deferred.some( function(i){ 
+				return i instanceof dj._CHTIncrementalTemplateInstance ? i.isDeferred() : i instanceof d.Deferred;
 			} );
+		},
 
-			if( !this.isDeferred() && this._marker_query ) {
-				dojo.query( this._marker_query, root ).forEach( function(m) {
-					m.parentNode.removeChild( m );
-				} );
+		toString: function() {
+			if( this._marker_query && !this.isDeferred() ) {
+				this._split_text.shift();
+				this._split_text.pop();
 				delete this._marker_query;
 			}
 
-			return this;
-		}
+			return this._split_text.join('');
+		},
 
-		var markers = dojo.query( this._marker_query, root );
-		if( markers.length != 2 )	
-			throw Error( "DOM cannot be updated: CHT markers disappeared" );
+		_propagateReady: function() {
+			var def = this.isDeferred();
 
-		dojox.jtlc._cleanupRange( markers[0].nextSibling, markers[1] );
+			if( def )	this.progress( this );
+			else		this.resolve( this );
+		},
 
-		if( !markers[0].nextSibling )	throw Error( "CHT markers do not have the same parent" );
-		markers[0].parentNode.removeChild( markers[1] );
+		_onNestedReady: function( who ) {
+			if( !who.canUpdateDom() )	this._dirty = true;
+			this._propagateReady();
+		},
 
-		this.update();
-		this.place( markers[0], 'replace', options );
+		_onNestedFailed: function() {
+			this.reject( this );
+		},
 
-		return this;
-	},
+		_onWaitReady: function( index, subindex, value ) {
+			this._cht_deferred.set( index, subindex, value );
+			this._dirty = true;
+			this._propagateReady();
+		},
 
-	render: function( ref_node, pos, options ) {
+		_onWaitFailed: function() {
+			this.reject( this );
+		},
 
-		var opts = dojo.mixin( {}, options );
-		opts.returnContext = true;
+		canUpdateDom: function( always ) {
+			return '_marker_query' in this ||
+					!this._dirty && 
+					this._cht_deferred.every( function(i){ 
+						return i instanceof dj._CHTIncrementalTemplateInstance ? i.canUpdateDom() : !( always && i instanceof d.Deferred );
+					} );
+		},
 
-		var	ctx = this.place( ref_node, pos, opts );
+		update: function() {
+			this._self.apply( this, this._args );
+			this._dirty = false;
+		},
 
-		if( !this.isDeferred() )	
-			return this;
+		_beginTransition: function( outer_ctx ) {
+			if( this._innerCtx )	
+				this._innerCtx = outer_ctx.inner();
 
-		if( this.canUpdateDom( true ) )
-			return dojo.when(
-				this,
-				dojo.hitch( this, 'updateDom', ctx.parent, options ),
-				null,
-				dojo.hitch( this, 'updateDom', ctx.parent, options )
+			return this._activeTransition = this.inherited( arguments );
+		},
+
+		_endTransition: function( _, result ) {
+			if( this._innerCtx ) {
+				if( result instanceof _innerContext )
+					this._innerCtx = result;
+				else if( result instanceof _outerContext )
+					this._innerCtx = result.inner();
+			}
+			delete this._activeTransition;
+
+			return this.inherited( arguments );
+		},
+
+		_stopTransition: function() {
+			if( this._activeTransition ) {
+				this._activeTransition.cancel();
+				delete this._activeTransition;
+			}
+		},
+
+		updateDom: function( root, options ) {
+
+			var	ctx = this._innerCtx;
+			if( ctx )	root = ctx.parent;
+
+			if( !this._dirty && (!ctx || options && options.canUpdateDom || this.canUpdateDom()) ) {
+
+				var	wait_for = [], any = false;
+
+				this._cht_deferred.forEach( function(i) {
+					if( i instanceof dj._CHTIncrementalTemplateInstance ) {
+						var wf = i.updateDom( root, options ); // Should be able to, since canUpdateDom() checks it recursively
+						if( wf )	any = true;
+						if( wf instanceof d.Deferred )	wait_for.push( wf );
+					}
+				} );
+
+				if( any )	this._stopTransition();
+
+				if( !this.isDeferred() && this._marker_query ) {
+					d.query( this._marker_query, root ).forEach( function(m) {
+						m.parentNode.removeChild( m );
+					} );
+					delete this._marker_query;
+				}
+
+				return wait_for.length == 1 ? wait_for[0] :
+					   wait_for.length > 1  ? new d.DeferredList( wait_for ) :
+											  any;
+			}
+
+			this._stopTransition();
+
+			if( !ctx ) {
+				if( !this._marker_query )
+					throw Error( "DOM cannot be updated: context is not available" );
+
+				var markers = d.query( this._marker_query, root );
+				if( markers.length != 2 )	
+					throw Error( "DOM cannot be updated: CHT markers disappeared" );
+
+				ctx = (new _innerContext( markers[0], markers[1] ));
+			}
+
+			this.update();
+			var result = this.place( ctx = ctx.outer(), options );
+			
+			if( !this._activeTransition && this._innerCtx )
+				this._innerCtx = ctx.inner();
+
+			return result || true;
+		},
+
+		render: function( /* { ref_node [, pos] | outer_ctx } [, options] */ ) {
+
+			var	args = [ arguments[0] ];
+			if( !(args[0] instanceof _outerContext) ) {
+				if( valid_pos_types[typeof arguments[1]] )
+					args.push( arguments[1] ); 
+			}
+
+			var options = arguments.length > args.length && arguments[ args.length ] || null;
+			args.push( d.mixin( {}, options, { returnContext: true } ) );
+
+			var	ctx = this.place.apply( this, args );
+			if( !this.isDeferred() )	return ctx;
+
+			if( !this.canUpdateDom( true ) )
+				this._innerCtx = ctx.inner();
+
+			var	upd = d.hitch( 
+				this, 'updateDom', 
+				!this._innerCtx && ctx.parent,
+				!this._innerCtx ? d.mixin( {}, options, { canUpdateDom: true } ) : options
 			);
 
-		if( !ctx.first )
-			throw Error( "No DOM nodes produced by first execution of the template -- cannot render it incrementally" );
-
-		function replaceDom( self ) {
-
-			if( self.canUpdateDom() )
-				return self.updateDom( ctx.parent, options );
-
-			var	first = ctx.first, last = ctx.last;
-			ctx.expand();
-			dojox.jtlc._cleanupRange( first, last.nextSibling );
-
-			self.update();
-
-			if( ctx.first )	self.place( ctx.first, 'after', options );
-			else			self.place( ctx.parent, 'first', options );
-			ctx.contract();
-
-			return self;
+			return d.when( this, upd, null, upd );
 		}
-
-		return dojo.when( this, replaceDom, null, replaceDom );
-	}
-});
-
+	});
+})();
 

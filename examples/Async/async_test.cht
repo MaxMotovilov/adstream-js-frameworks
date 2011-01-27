@@ -51,8 +51,8 @@
 	<? /when ?>
 <? /template ?>
 
-<? template TableRow marker='tr' ?>
-	<tr onclick="dojo.toggleClass(event.target,'selected')"><td>{{name}}</td><td><? Data ?></td></tr>
+<? template TableRow marker='tr' transition='test.flash' ?>
+	<tr><td><a onclick="dojo.toggleClass(event.target.parentNode.parentNode,'selected')">{{name}}</a></td><td><? Data ?></td></tr>
 <? /template ?>
 
 <? template Data ?>
