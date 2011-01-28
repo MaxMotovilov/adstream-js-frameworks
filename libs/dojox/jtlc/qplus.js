@@ -207,7 +207,11 @@ dojo.declare( 'dojox.jtlc.qplus', dojox.jtlc.JXL, {
 			if( !self.dynamicArgs )	
 				return dj.tags._query.prototype.callQuery.call( this, self );
 
-			this.compile( self.args[0] );
+			if( this.loop )
+				this.nonAccumulated( function() {
+					this.compile( self.args[0] );
+				} );
+			else	this.compile( self.args[0] );
 
 			var	v =	this.popExpression(),
 				t = this.addLocal();
