@@ -511,7 +511,7 @@ dojox.jtlc._declareTag( 'defined', {
 	},
 
 	compile: function( self ) {
-		if( !this.loop || this.loop.started )
+		if( !this.loop || this.loop.started() )
 			throw Error( "defined() is never a singleton, wrap it in many() or []" );
 		this.compile( self.arg );
 		var	value = this.popExpression(),
