@@ -48,7 +48,7 @@ adstream.data._descend = function( rel_url, obj, step ) {
 	var	last = null;	
 	
 	return {
-		rel_url: rel_url.replace( /([^/]*)(?:\/|$)/g, function(ctx,path_item) {
+		rel_url: rel_url.replace( /([^\/]*)(?:\/|$)/g, function(ctx,path_item) {
 			if( ctx && obj ) {
 				last = obj;
 				obj = step( obj, path_item );
