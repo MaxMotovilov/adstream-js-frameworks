@@ -40,7 +40,7 @@ dojox.jtlc._tokenizeCHT = function( input )
 		in_substitution = false,
 
 		parsed = input.replace( 
-			/(?:<(?:[?]\s*)?[/]?[a-z_]\w*|<!--|-->|[?]?>|[{][{]?|[}][}]?|["'\[\]()\\])/ig,
+			/(?:<(?:[?]\s*)?\/?[a-z_]\w*|<!--|-->|[?]?>|[{][{]?|[}][}]?|["'\[\]()\\])/ig,
 			function( s, pos, src ) {
 
 				if( stack[0].escape ) {
@@ -104,7 +104,7 @@ dojox.jtlc._CHTElement = function( text ) {
 
 	this.text = text;
 
-	if( /^<[?]\s*[/]([a-z_]\w*(?:\s*[.]\s*[a-z_]\w*)*)[\s\S]*?[?]>$/i.exec( text ) ) {
+	if( /^<[?]\s*\/([a-z_]\w*(?:\s*[.]\s*[a-z_]\w*)*)[\s\S]*?[?]>$/i.exec( text ) ) {
 		this.closeTag = RegExp.$1.split( /\s*[.]\s*/ ).join( '.' );
 	} else	if( /^<[?]\s*([a-z_]\w*(?:\s*[.]\s*[a-z_]\w*)*)([\s\S]*?)\s*[?]>$/i.exec( text ) ) {
 

@@ -28,7 +28,7 @@ dojo.declare( 'dojox.jtlc.JXL', dojox.jtlc.Language, {
 	},
 
 	/* Boolean: assumed to be quoted */
-	boolean: function( value ) {
+	'boolean': function( value ) {
 		this.compile( dojox.jtlc.tags.quote( value ) );
 	},
 
