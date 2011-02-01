@@ -74,7 +74,7 @@ dojox.jtlc._tokenizeCHT = function( input )
 					if( pfx = dj._hasPrefix( pfx, brackets, 
 							function(b){ 
 								if( 'inSubstitution' in b && b.inSubstitution != in_substitution )
-										return '\xffff';
+										return '\uffff';
 								else return b.prefix; 
 							} 
 					) ) {
