@@ -622,8 +622,6 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 						this.code.push( 'do{' );
 
-						var old_current_input = this.hasOwnProperty( 'current_input' ) ? this.current_input : null;
-
 						this._openWait = this._beginWait();
 
 						if( self.arg )			this.compile( self.arg );
@@ -640,11 +638,9 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 						if( lock != result )
 							this.code.push( lock + '=' + result + ';' );
 	
-						this.current_input = '(' + lock + ')';
-						this.compileSequence( self.ifReady );
-
-						if( old_current_input )	this.current_input = old_current_input;
-						else 					delete this.current_input; 			
+						this.nonAccumulated( function() {
+							this.compileSequence( self.ifReady );
+						}, '(' + lock + ')' );
 
 						this.locals.pop();
 						
