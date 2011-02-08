@@ -123,7 +123,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 									_this.tags.escapeAttribute( s ) : 
 								_this.tags.escapeText( s ) 
 							);
-							return '{' + (substitutions.length-1).toString() + '}';
+							return s instanceof _this.tags._do ? '' : '{' + (substitutions.length-1).toString() + '}';
 						}
 					);
 
