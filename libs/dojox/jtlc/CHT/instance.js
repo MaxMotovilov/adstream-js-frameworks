@@ -15,17 +15,22 @@ dojo.require( "dijit._Widget" );
 
 		var nodes = 
 			ref_node.query ?
-				ref_node.filter( function(node){ return node.nodeType==1; } ).query( '[widgetId]' ) :
+				ref_node.filter( function(node){ return node.nodeType==1; } ).query( '[widgetid]' ) :
 			ref_node.nodeType == 1 ?
 				dojo.query( '[widgetId]', ref_node ) :
 			null;
 
-		if( nodes ) nodes.forEach( 
-			function( node ) {
-				var w = dijit.byNode( node );
-				if( w && ref_w !== w )	w.destroy();
-			} 
-		);
+		if( nodes ) nodes.concat( 
+				ref_node.filter ? 	
+					ref_node.filter( function(node){ return dojo.attr( node, 'widgetid' ); } ) :
+				dojo.attr( ref_node, 'widgetid' ) ?
+					ref_node : []
+			).forEach( 
+				function( node ) {
+					var w = dijit.byNode( node );
+					if( w && ref_w !== w )	w.destroy();
+				} 
+			);
 	}
 
 	// The following code has been lifted from dojo.parser as there's no convenience API for it
