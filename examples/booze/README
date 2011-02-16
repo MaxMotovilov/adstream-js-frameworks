@@ -1,0 +1,14 @@
+This is the example from the February presentation, with a bit of cleanup.
+
+Prerequisites:
+
+- Python 2.6+ (not 3.x!); Windows: http://www.activestate.com/activepython/downloads
+- simplejson: https://github.com/simplejson/simplejson or http://pypi.python.org/pypi/simplejson
+- Twisted 10.x: http://twistedmatrix.com/trac/wiki/Downloads
+
+Running the example:
+
+- Rename either booze.ru.db.json or booze.en.db.json to booze.db.json
+- Run 'python booze.py'; you can optionally specify '--socket NNNN' instead of the default 8080
+- Hit http://localhost:8080/static/booze.html or http://localhost:8080/static/booze.html?lang=ru
+

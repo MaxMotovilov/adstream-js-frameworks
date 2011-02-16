@@ -1,0 +1,41 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+<head>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
+
+<script src="http://ajax.googleapis.com/ajax/libs/dojo/1.5/dojo/dojo.xd.js" 
+		type="text/javascript" 
+		djConfig="isDebug: true, debugAtAllCosts: true, parseOnLoad: true, baseUrl: './', modulePaths: { 'dojox.jtlc': 'js/jtlc', 'adstream.data': 'js/data', 'app': 'js' }"></script>
+<link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/dojo/1.5/dijit/themes/claro/claro.css">
+
+<link rel="stylesheet" type="text/css" href="booze.css">
+
+<script type="text/javascript">
+
+// lang=ru in URL parameters switches UI to Russian
+if( /[?&]lang=(..)(?:&|$)/.exec( window.location.search ) )
+	dojo.locale = RegExp.$1;
+
+dojo.provide( 'app' );
+dojo.require( 'app.booze' );
+</script>
+
+</head>
+<body class="claro">
+	
+<div id='screen'>
+	<div id='top'><div id='topLeft'></div><div id='topRight'></div></div>
+	<div id='message'></div>
+	<div id='finder'></div>
+	<div id='main'></div>
+	<div id='right'></div>
+	<div id='bottom'>
+		<hr>
+		<div id='orderButton'></div>
+	</div>	
+</div>
+
+</body>
+</html>
+

@@ -1,0 +1,88 @@
+{
+  "customers": {}, 
+  "products": {
+    "1": {
+      "picture": "/static/images/products/volteo-tempranillo.jpg", 
+      "name": "Volteo Tempranillo", 
+      "country": "Spain", 
+      "section": "Wine", 
+      "vintage": 2008, 
+      "price": 9.9900000000000002, 
+      "_": {
+        "version": 1
+      }, 
+      "description": "Red violet color with purple hues. Subtle aromas on the nose of ripe blackcurrants and raspberries. On the palate, it is fresh, structured and fruit forward."
+    }, 
+    "3": {
+      "picture": "/static/images/products/lassegue-st-emilion.jpg", 
+      "name": "Chateau Lassegue Saint-Emilion Grand Cru", 
+      "country": "France", 
+      "section": "Wine", 
+      "vintage": 2006, 
+      "price": 72.989999999999995, 
+      "_": {
+        "version": 1
+      }, 
+      "description": "<b>winemaker's notes:</b> Beautiful ruby color. On the nose there are aromas of berry jam, a hint of roasted coffee and dark fruits, affirming a wine that tastes young. The savory tannins are round and ripe. In the mouth, this wine is very harmonious with an elegant finish, light and fresh, despite the wine's power. You can start enjoying this wine for its fruit if you are impatient, or wait at least 5-6 years to enjoy its full beauty.<p><b>critical acclaim:</b>Jess Jackson\u2019s new St.-Emilion estate, which includes some impressively old vines, is still a work in progress, but he is achieving higher and higher quality in each vintage. The 2006 reveals slightly too much new oak, but it is a medium to full-bodied effort with powerful tannin, impressive concentration, and a backward style. Pierre Seillan, the Bordelais winemaker responsible for such brilliant wines as Verite, is also overseeing the production of Lassegue. The winemaking team is clearly aiming for a St.-Emilion that will last 2-3 decades. The 2006 should be at its finest between 2014-2025<p><em>91 Points<br>The Wine Advocate</em><p>The top wine produced by Jess Jackson in St-Emilion, Lassegue is soft, ripe, open, packed with dark plums, very opulent.<br><em>90 Points<br>Wine Enthusiast</em><p>Good deep red-ruby. Black cherry, dark berries, minerals, cola and sexy oak on the nose; became more perfumed with aeration. Sweet and fine-grained, but with solid underlying spine to its dark fruit, spice and cola flavors. Thanks to its impression of lushness without weight, this is the most refined wine yet from this property.<p><em>90 Points<br>International Wine Cellar</em>"
+    }, 
+    "2": {
+      "picture": "/static/images/products/duboeuf-beaujolais.jpg", 
+      "name": "Duboeuf Beaujolais Villages", 
+      "country": "France", 
+      "section": "Wine", 
+      "vintage": 2009, 
+      "price": 10.289999999999999, 
+      "_": {
+        "version": 1
+      }, 
+      "description": "This Beaujolais-Villages displays a deep, luminous cherry color, red with bluish tints. The bouquet offers ripe red fruit character, suggesting strawberry and black currant, with a touch of cinnamon. Velvet-like in the mouth, with soft tannins, it is well-balanced and complete. A wine which lends itself to all occasions, from the ap\u00e9ritif to the cheese board."
+    }, 
+    "5": {
+      "picture": "/static/images/products/martell-cognac-xo.jpg", 
+      "name": "Martell Cognac X.O.", 
+      "country": "France", 
+      "section": "Liquor", 
+      "price": 118.8, 
+      "_": {
+        "version": 1
+      }, 
+      "description": "Deep gold amber, Full and powerful, hints of almond and vanilla with a long aftertaste, carefully aged in Martell private family cellars. Every drop is made from rare eaux-de-vie, aged in our private Paradis and Purgatoire cellars for 15 long years. But believe me, it's more than worth the wait."
+    }, 
+    "4": {
+      "picture": "/static/images/products/brancott-sauvignon-blanc.jpg", 
+      "name": "Brancott Estate B Sauvignon Blanc", 
+      "country": "New Zealand", 
+      "section": "Wine", 
+      "vintage": 2008, 
+      "price": 24.989999999999998, 
+      "_": {
+        "version": 1
+      }, 
+      "description": "<b>winemaker's notes:</b>Aromas of blackcurrant and gooseberry with underlying black olive notes dominate the nose. The palate shows a rich concentration of pure Marlborough Sauvignon Blanc characters. The fresh capsicum notes are complemented by an oily texture, tantalising minerality and gooseberry flavors, held together by a crisp acidity.<p><b>critical acclaim:</b> Dramatic, aromatic and elegantly proportioned, with vivid grapefruit, green apple, passion fruit and vaguely piney aromas and flavors competing for attention on a sleek frame that lets the finish reverberate nicely.<p><em>92 Points<br>Wine Spectator</em>"
+    }, 
+    "7": {
+      "picture": "/static/images/products/glenfiddich-whiskey.jpg", 
+      "name": "Glenfiddich 15 Year Old Single Malt Whisky", 
+      "country": "Scotland", 
+      "section": "Liquor", 
+      "price": 49.990000000000002, 
+      "_": {
+        "version": 1
+      }, 
+      "description": "Not much has changed at the Glenfiddich Distillery since the first spirit ran from the stills on Christmas Day, 1887. It is still independent; owned and run by the fifth generation of the same family. Our founder, William Grant, aspired to create \"the best dram in the valley\". He achieved it, and we maintain it - through a single-minded dedication to craftsmanship and quality throughout every stage of production. First to widely export whisky, Glenfiddich put Scotch whisky on the map. By 1914 we had 60 agencies abroad; now we are sold in 180 countries on every continent in the world.<p>Glenfiddich is the only Scotch whisky distillery to use a single source of natural spring water. We bought 1200 acres of the Conval Hills that surround our distillery to protect the purity of our supply. From the source of the Robbie Dhu springs, the water is piped directly to our distillery, so nothing can get to the water - not even cattle or sheep are allowed there. As we bottle at source, the soft and clear Robbie Dhu spring water is used both for mashing and bottling. We are the only Scotch whisky distiller in the Highlands to do this. We use the finest malted barley and perform the same process our ancestors used more than 100 years ago. Even our copper stills are the same, every original bump and dent faithfully reproduced lest the flavour should be affected.<p>Thanks to the foresight of William Grant, the company's founder, The Glenfiddich Distillery has inherited an unparalleled collection of Vintage and Rare Whiskies dating back as far as the 1930s. Having quietly matured for many years in oak casks in the traditional dunnage warehouses at The Glenfiddich Distillery in the Highlands of Scotland, a strictly limited number of rare old casks of Glenfiddich Single Malt Scotch Whisky are specially selected by the Malt Master for Private Vintages. The Malt Master selects 4-6 sample casks and from these the Private Vintage customer chooses which cask they would like bottled. A Private Vintage is usually chosen from casks aged between 21 and 29 years, though occasionally older stocks are made available, and each cask typically yields around 250 bottles. All are hand bottled, labels are personalised and each bottle is individually numbered and presented in a cherry wood box.<p>The Glenfiddich Rare Whiskies range is a \"stand up and be counted\" collection. No other distillery can lay claim to having a land mark collection like this, a collection which includes the oldest Scotch whisky ever bottled, the most expensive Scotch whisky ever sold and, of course \"the\" whisky voted the World's Best Single Malt Scotch Whisky.<p>The Glenfiddich range won more Gold Medals at the International Wine & Spirit competition in 2006 than any other single malt Scotch Whisky. The world's favourite single malt scotch whisky offers a full range of variants to suit all tastes."
+    }, 
+    "6": {
+      "picture": "/static/images/products/patron-tequila.gif", 
+      "name": "Patr\u00f3n Anejo Tequila 80 Proof", 
+      "country": "Mexico", 
+      "section": "Liquor", 
+      "price": 39.990000000000002, 
+      "_": {
+        "version": 1
+      }, 
+      "description": "Patr\u00f3n is produced and blended by a small family owned and operated distillery high in the mountains of Jalisco. This particular growing region of Mexico is considered the most ideal for production of the Weber Tequilana Blue Agave. The climate is warm and the soil is clayey with high ferrous oxide content. Patr\u00f3n tequilas are made from premium selected Weber Tequilana Blue Agave plants. The trimmed heart of the agave plant resembles a large \"pineapple\". The trimmed agave \"pineapples\" weigh between 50 to 80 lbs. It takes 8 to 9 years for a premium Blue Agave to mature properly. Blue Agave grown in this region produce higher \"honey\" or sugar content, which when distilled produces a very individual character and flavor. There are certain \"bitter\" sprouts which must be carefully removed from the \"pineapple\" before steam baking. Few distilleries take the care and time to remove these sprouts. Patr\u00f3n tequila does!"
+    }
+  }, 
+  "orders": {}, 
+  "last_id": 10
+}

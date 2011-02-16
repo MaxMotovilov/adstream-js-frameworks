@@ -1,0 +1,118 @@
+
+<? template SearchPane ?>
+	<div dojoType="app.booze.SearchPane">
+		<div id='searchPaneTitle'>Product Finder</div>
+		<div id='searchPaneInner'>
+		<input type="text" name="search"><div id='searchButton'></div>
+		<? when "$.get('lists')" ?>
+			<? Dropdown "expr:[$.sections,'section']" ?>Section:<? /Dropdown ?>
+			<? Dropdown "[$.countries,'country']" ?>Country:<? /Dropdown ?>
+			<? Dropdown "[$.vintages,'vintage']" ?>Vintage:<? /Dropdown ?>
+		<? /when ?>
+	</div>
+<? /template ?>
+
+<? template Dropdown ?>
+	<? if "$[0].length" ?>
+		<label for="{{$[1]}}">
+			<? section ?>
+			<? /section ?>
+		</label>
+		<select name="{{$[1]}}">
+			<option value="" selected></option>
+			<? foreach "$[0]" ?>
+				<option value="{{$}}">{{$}}</option>
+			<? /foreach ?>
+		</select>
+	<? /if ?>
+<? /template ?>
+
+<? template Cart ?>
+	<div dojoType="app.booze.Cart">
+		<div id='cartContent'>
+			<? if "(app.booze.currentOrder)" ?>
+				<? CartContent "(app.booze.currentOrder)" ?>
+			<? else ?>
+				<div class='cartTitle'>Cart</div>
+			<? /if ?>
+		</div>
+	</div>
+<? /template ?>
+
+<? template CartContent ?>
+	{{do: { app.booze.orderTotal=0; } }}
+	<? foreach "from:items" ?>
+		<div>
+			{{quantity}} x
+			<div itemID='{{$.id()}}' class='deleteButton'></div>
+			<? when "$.product()|wait|expr:[$,$0.items[$.id()]]" ?>
+				<? Price "$[0]" ?>
+				{{$[0].name}}
+				{{do: { app.booze.orderTotal += $[0].price*$[1].quantity; } }}
+			<? /when ?>
+		</div>
+	<? /foreach ?>
+	<div class='cartTitle'>Cart
+		<div class='price'>{{(app.booze.orderTotal)|app.booze.formatMoney}}</div>
+	</div>
+<? /template ?>
+
+<? template Price ?>
+	<div class='price'>{{price|app.booze.formatMoney}}</div>
+<? /template ?>
+
+<? template ProductList ?>
+	<div class='listTitle'>
+		<? if "$.filter().search" ?>
+			Search results: {{$.filter().search}}
+		<? /if ?>
+		<? if "$.view().count" ?>
+			<div class='listTitleCounts'>showing {{$.view().count}} of {{$.extra().totalCount}} products</div>
+		<? /if ?>
+	</div>
+	<div>
+		<? group ".*[?price][/section,/price]" key="$.section" ?>
+			<div style="font-size:20px;color:red;margin: 5px">Section: {{$[0].section}}</div>
+			<? foreach ?>
+				<div class='title' dojoType="app.booze.Product" data="{{ref:$}}">
+					<div class='half'><div class='expandButton'></div>
+						<div class='alignRight'>
+							<span class='label'>Section</span>{{section}}
+						</div>
+						{{name}}
+						<? if "vintage" ?>
+							<span class='label'>{{vintage}}</span>
+						<? /if ?>
+					</div><div class='half'>
+						<? if "country" ?>
+							<span class='label'>Country</span>{{country}}
+						<? /if ?>
+						<div class='buyButton'>Buy</div>
+						<? Price ?>
+					</div>
+				</div><div class='description'></div>
+			<? /foreach ?>
+		<? /group ?>			
+
+		<? if "$.view().offset" ?>
+			<button onclick="app.booze.prevPage()">Prev</button>
+		<? /if ?>
+
+		<? if "$.view().offset + $.view().count < $.extra().totalCount" ?>
+			<button onclick="app.booze.nextPage()">Next</button>
+		<? /if ?>
+	</div>
+<? /template ?>
+
+<? template ProductDescription ?>
+	<? if $1 ?>
+		<div class='picture'><img src="{{picture}}"></div>
+		{{description|raw}}
+	<? /if ?>
+<? /template ?>
+
+<? template NotImplemented ?>
+
+<div>The ordering functionality is not implemented. You're welcome to supply it yourself as an exercise.</div>
+
+<? /template ?>
