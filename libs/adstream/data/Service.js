@@ -257,7 +257,7 @@ dojo.declare( 'adstream.data.Service', null, {
 				else if( qi.obj._.depth )	delete qi.obj._.depth;
 			}
 
-			var	modified = qi.obj._unmarshal( qi.data, props, !has_depth && !qi.obj._.outOfSync ),
+			var	modified = qi.obj._unmarshal( qi.data, props, !has_depth && !qi.obj._.outOfSync ) || qi.obj._.outOfSync,
 				ts = (new Date()).valueOf();
 			
 			if( qi.obj._.outOfSync )	delete qi.obj._.outOfSync;
