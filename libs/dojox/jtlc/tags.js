@@ -342,65 +342,22 @@ dojox.jtlc._declareTag( 'expr', dojo.declare( dojox.jtlc._MultiArgTag, {
 	}
 } ) );
 
-/* from( [tpl] ) -- turns an array or dictionary expression into a generator of values */
+/* Common code for tags returning an array value or serving as a generator depending on context */
 
-dojox.jtlc._getValues = function( d ) {
-	if( d instanceof Array )	return d;
-	var res = [];
-	for( var i in d )
-		if( d.hasOwnProperty(i) )
-			res.push( d[i] );
-	return res;
-}
+dojo.declare( 'dojox.jtlc._ArrayOrGenerator', null, {
 
-dojox.jtlc._declareTag( 'from', {
 	constructor: function( tpl ) {
 		this.template = tpl || dojox.jtlc.tags.current();
 	},
 
-	compile: function( self ) {
-
-		this._valueGenerator = this._valueGenerator || this.addGlobal( dojox.jtlc._getValues );
-
-		if( !this.loop )
-			throw Error( "from() is never a singleton, wrap it in many() or []" );
-
-		if( this.loop.started() )
-			throw Error( "from() used in a wrong context" );
-
-		this.nonAccumulated( function() {
-			this.compile( self.template );
-		} );
-
-		this.generator( this._valueGenerator + '(' + this.popExpression() + ')' );
-	}
-} );
-
-/* keys( [tpl] ) -- turns an array or dictionary expression into a generator of keys */
-
-dojox.jtlc._getDictionaryKeys = function( d ) {
-	var res = [];
-	for( var i in d )
-		if( d.hasOwnProperty(i) )
-			res.push(i);
-	return res;
-}
-
-dojox.jtlc._declareTag( 'keys', {
-	constructor: function( tpl ) {
-		this.template = tpl || dojox.jtlc.tags.current();
-	},
-
-	compile: function( self ) {
-
-		this._keyGenerator = this._keyGenerator || this.addGlobal( dojox.jtlc._getDictionaryKeys );
+	compileImpl: function( self, gen_func_name ) {
 		var	gen_mode = false;
 
 		if( this.loop && !this.loop.started() ) {
-			var	_this = this, _loop = this.loop;
+			var	_loop = this.loop;
 			this.loop = dojo.delegate( this.loop, {
 				begin: function( init ) {
-					_loop.begin( _this._keyGenerator + '(' + init + ')' );
+					_loop.begin( gen_func_name + '(' + init + ')' );
 				}
 			} );
 			gen_mode = true;
@@ -413,9 +370,42 @@ dojox.jtlc._declareTag( 'keys', {
 		if( gen_mode ) 
 			this.generator( this.popExpression() );
 		else
-			this.expressions.push( this._keyGenerator + '(' + this.popExpression() + ')' );
+			this.expressions.push( gen_func_name + '(' + this.popExpression() + ')' );
 	}
 } );
+
+/* from( [tpl] ) -- turns an array or dictionary expression into a generator of values */
+
+dojox.jtlc._getValues = function( d ) {
+	if( d instanceof Array )	return d;
+	var res = [];
+	for( var i in d )
+		if( d.hasOwnProperty(i) )
+			res.push( d[i] );
+	return res;
+}
+
+dojox.jtlc._declareTag( 'from', dojo.declare( dojox.jtlc._ArrayOrGenerator, {
+	compile: function( self ) {
+		self.compileImpl.call( this, self, this._valueGenerator = this._valueGenerator || this.addGlobal( dojox.jtlc._getValues ) );
+	}
+} ) );
+
+/* keys( [tpl] ) -- turns an array or dictionary expression into a generator of keys */
+
+dojox.jtlc._getDictionaryKeys = function( d ) {
+	var res = [];
+	for( var i in d )
+		if( d.hasOwnProperty(i) )
+			res.push(i);
+	return res;
+}
+
+dojox.jtlc._declareTag( 'keys', dojo.declare( dojox.jtlc._ArrayOrGenerator, {
+	compile: function( self ) {
+		self.compileImpl.call( this, self, this._keyGenerator = this._keyGenerator || this.addGlobal( dojox.jtlc._getDictionaryKeys ) );
+	}
+} ) );
 
 /* setkey( [template [, source ]] ) -- sets the dictionary key to
    a value returned by template. Template is typically a combination
