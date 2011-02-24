@@ -197,10 +197,13 @@ dojox.jtlc.CHT.loader = (function() {
 				render: function( /* render args */ ) {
 					var render_args = dj._copyArguments( arguments ),
 						evaluator_args = this.args;
-					return d.when( cached, function() {
-						var inst = getTemplate( sn ).apply( null, evaluator_args );
-						return inst.render.apply( inst, render_args );
-					} );
+					return d.when( 
+						d.when( cached, function() {
+							var inst = getTemplate( sn ).apply( null, evaluator_args );
+							return inst.render.apply( inst, render_args );
+						} ), 
+						function(v){ return v; }
+					);
 				}
 			}
 		);
