@@ -1,39 +1,12 @@
 dojo.provide( 'app.booze' );
 
-dojo.require( 'dojo.i18n' );
-dojo.requireLocalization( 'app', 'booze' );
-
 dojo.require( 'dojo.fx' );
-dojo.require( 'dojox.jtlc.CHT' );
+dojo.require( 'dojox.jtlc.CHT.loader' );
 dojo.require( 'adstream.data.Service' );
 
 dojo.require( 'dijit.Dialog' );
 
-app.downloaded_templates = dojo.xhrGet( { url: 'booze.cht' } ).then( 
-	function(v){ return app.downloaded_templates = v; } 
-);
-
-app.templates = new dojo.Deferred();
-
-function compileTemplates( input )
-{
-	app.cht = new dojox.jtlc.CHT(),
-	app.compiled_templates = app.cht.parse( input, 'booze.cht' );
-	app.i18nDictionary = dojo.i18n.getLocalization( 'app', 'booze' );
-	app.downloaded_templates = true;
-
-	var promise = app.templates;
-	promise.resolve( app.templates = {} );
-
-	return true;
-}
-
-function getTemplate( name )
-{
-	return app.templates[name]||(
-		app.templates[name] = dojox.jtlc.compile( app.compiled_templates[name], app.cht, { i18nDictionary: app.i18nDictionary } )
-	);
-}
+var loader = dojox.jtlc.CHT.loader;
 
 dojo.ready( function() {
 
@@ -77,23 +50,20 @@ dojo.ready( function() {
 		} )
 	);
 
-	dojo.when( 
-		dojo.when( app.downloaded_templates, compileTemplates ),
-		renderPage
-	);
+	dojo.when( loader.require( 'booze' ), renderPage );
 } );
 
 function renderPage()
 {
-	getTemplate( 'SearchPane' )/* evaluator:function */( app.root )/* instance: HTML content */.render( 'finder', 'only' );
-	getTemplate( 'Cart' )().render( 'right', 'only' );
+	loader.get( 'booze.SearchPane' )/* evaluator:function */( app.root )/* instance: HTML content */.render( 'finder', 'only' );
+	loader.get( 'booze.Cart' )().render( 'right', 'only' );
 	
 	app.root.watch( app.booze.refreshProductList, 'products', {depth: 0 } );
 	app.root.get( 'products' );
 
 	dojo.connect( dojo.byId( 'orderButton' ), 'onclick', function() {
 		(new dijit.Dialog({ 
-			content: getTemplate( 'NotImplemented' )().toString(),
+			content: loader.get( 'booze.NotImplemented' )().toString(),
 			style: "width: 400px"
 		})).show();
 	} );
@@ -175,7 +145,7 @@ dojo.declare( 'app.booze.Cart', dijit._Widget, {
 	},
 
 	refresh: function() {
-		getTemplate( 'CartContent' )( app.booze.currentOrder ).render( 'cartContent', 'only' );
+		loader.get( 'booze.CartContent' )( app.booze.currentOrder ).render( 'cartContent', 'only' );
 	}
 	
 } );
@@ -192,7 +162,7 @@ dojo.declare( 'app.booze.Product', dijit._Widget, {
 
 	toggle: function() {
 		dojo.toggleClass( this.domNode, 'expanded' );
-		getTemplate( 'ProductDescription' )( this.data, dojo.hasClass( this.domNode, 'expanded' ) ).render( this.domNode.nextSibling, 'only' );
+		loader.get( 'booze.ProductDescription' )( this.data, dojo.hasClass( this.domNode, 'expanded' ) ).render( this.domNode.nextSibling, 'only' );
 	},
 
 	addToCart: function(e) {
@@ -202,7 +172,7 @@ dojo.declare( 'app.booze.Product', dijit._Widget, {
 } );
 
 app.booze.refreshProductList = function( products ) {
-	getTemplate( 'ProductList' )( products ).render( 'main', 'only' );
+	loader.get( 'booze.ProductList' )( products ).render( 'main', 'only' );
 }
 
 app.booze.nextPage = function( products ) {
