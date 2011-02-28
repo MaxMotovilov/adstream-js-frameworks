@@ -11,7 +11,7 @@ dojox.jtlc.CHT.loader = (function() {
 
 	var	d = dojo, dj = dojox.jtlc;
 
-	var SplitName = dojo.extend( 
+	var SplitName = d.extend( 
 		function( mdl, file, tpl ) {
 			this.moduleName = mdl;
 			this.fileName = file;
@@ -44,6 +44,26 @@ dojox.jtlc.CHT.loader = (function() {
 		}
 	);
 
+	function apply( this_object, method, args )	{
+		return this_object[method].apply( this_object, args );
+	}
+
+	var WaitingList = d.extend(
+		function() { this.list = []; },
+		{
+			push: function( v ) {
+				if( v.then )	this.list.push( v );
+				return v;
+			},
+
+			then: function() {
+				if( this.list.length == 0 )	return arguments[0]([]);
+				if( this.list.length == 1 )	return apply( this.list[0], 'then', arguments );
+				return apply( new d.DeferredList( this.list ), 'then', arguments );
+			}
+		}
+	);
+
 	function splitModuleName( mdl_name ) {
 		var spl = mdl_name.split( '.' );
 		return new SplitName( spl.length > 1 ? spl.slice( 0, spl.length-1 ).join( '.' ) : "", spl[spl.length-1] );
@@ -58,31 +78,6 @@ dojox.jtlc.CHT.loader = (function() {
 		);
 	}
 
-	function waitingList( list ) {
-		if( list.length == 0 )	return list;
-		if( list.length == 1 )	return list[0];
-		return new d.DeferredList( list );
-	}
-
-	function setAt( obj, slot ) {
-		return function( val ){ obj[slot] = val; };
-	}
-
-	function whenAll( /* deferred? ..., handler */ ) {
-
-		var	args = dj._copyArguments( arguments ),
-			deferred = [],
-			handler = args.pop();
-
-		for( var i=0; i<args.length; ++i )
-			if( typeof args[i] === 'object' && args[i].then )
-				deferred.push( d.when( args[i], setAt( args, i ) ) );
-
-		return d.when( waitingList( deferred ), function() {
-			return handler.apply( null, args );
-		} );
-	}
-
 	function deferredFunction( fn, deferred ) {
 		fn.then = function( /* callbacks */ ) {
 			return deferred.then.apply( deferred, arguments );
@@ -92,57 +87,92 @@ dojox.jtlc.CHT.loader = (function() {
 
 	function mergeNlsBundles( to, from ) {
 		for( var i in from )
-			if( from[i] && !to[i] )	to[i] = from[i];
+			if( from[i] )	to[i] = from[i];
 	}
 
-	var cache = {},	queue = {}, cht_instance = null;
+	var cache = {},	cht_instance = null;
 
 	function chtInstance() {
 		if( !cht_instance )	cht_instance = new dj.CHT( { loadTemplates: loadTemplates } );
 		return cht_instance;
 	}
 
-	function enqueue( mdl, cached ) {
+	function loadModule( sn ) {
 
-		if( !cached ? mdl in cache : mdl in cached.overrides ) 
-			return cache[mdl];
+		if( !(sn instanceof SplitName) ) sn = splitModuleName( sn );
 
-		if( mdl in cache )	cache[mdl].compiled = {}; // Discard anything that might have compiled
+		var	text = sn.sourceText(),
+			nls  = sn.nlsBundle();
 
-		if( mdl in queue ) // Assume that overrides are used only once
-			return d.when( queue[mdl], function(){ return cache[mdl]; } );
+		return d.when(
+			text,
+			function( txt ) {
+				return {
+					url: sn.url(),
+					src: txt,
+					nls: nls
+				};
+			}
+		);
+	}
 
-		var	sn = splitModuleName( mdl ),
-			parsed = whenAll(
-				cached, sn.sourceText(),
-				function(cached_ready,src) {
-					cached = cached_ready;
-					return chtInstance().parse( src, cached && cached.parsed, sn.url() );
+	function parseModule( loaded, cached ) {
+		if( !cached.nls )	cached.nls = loaded.nls;
+		else	mergeNlsBundles( cached.nls, loaded.nls );
+		return chtInstance().parse( loaded.src, cached.parsed, loaded.url );
+	}
+
+	function loadAndParseModule( mdl_or_sn ) {
+		var mdl = mdl_or_sn instanceof SplitName ? mdl_or_sn.namespace() : mdl_or_sn;
+		if( cache[mdl] )	return cached[mdl];
+		else return cache[mdl] = d.when( 
+			loadModule( mdl_or_sn ), 
+			function( loaded ) {
+				var cached = { parsed: {}, compiled: {} };
+				return d.when( 
+					parseModule( loaded, cached ),
+					function() { return cache[mdl] = cached; }
+				)
+			}
+		);
+	}
+
+	function loadAndParseModuleList( mdl_list ) {
+		// Note that loadModule() loads NLS resources synchronously so this sequence is suboptimal
+		var root = mdl_list[0],
+			all = d.map( mdl_list.reverse(), loadModule ),
+			cached = { parsed: {}, compiled: {} };
+
+		function parseNext( loaded ) {
+			return d.when(
+				parseModule( loaded, cached ),
+				function() {
+					return all.length ?
+						d.when( all.shift(), parseNext ) :
+						cached;
 				}
 			);
-		if( parsed.then )	queue[mdl] = parsed;
-		var nls = sn.nlsBundle();	// Synchronous, so do it after all async processes have started
+		}
 
-		return d.when( parsed, function( parsed ) {
-			if( !cached )	
-				cache[mdl] = { 
-					parsed: parsed,
-					compiled: {},
-					nls: nls,
-					overrides: {}
-				};
-			else {
-				mergeNlsBundles( cached.nls, nls );
-				cached.overrides[mdl] = true;
-			}
-			if( queue[mdl] )	delete queue[mdl];
-			return cached || cache[mdl];	
-		} );
+		return cache[root] = d.when(
+			d.when( all.shift(), parseNext ),
+			function( cached ) { return cache[root] = cached; }
+		);
+	}
+
+	function resolveTemplatesLater( refs, mdl, tpls ) {
+		return function( cached ) {
+			d.forEach( tpls, function( tpl ) {
+				if( !(tpl in cached.parsed) )
+					throw Error( '<?' + tpl + '?> is not defined in ' + mdl );
+				refs[mdl + '.' + tpl] = cached.parsed[tpl];
+			} );
+		}
 	}
 
 	function loadTemplates( refs ) {
 
-		var namespaces = {}, deferred = [];
+		var namespaces = {}, deferred = new WaitingList();
 
 		for( var tpl in refs ) {
 			var sn = splitTemplateName( tpl );
@@ -151,24 +181,13 @@ dojox.jtlc.CHT.loader = (function() {
 			namespaces[sn.namespace()].push( sn.templateName );
 		}
 		
-		for( var ns in namespaces ) {
-			var def = d.when(
-				cache[ns] || enqueue( ns ),
-				function( cached ) {
-					d.forEach( namespaces[ns], function( tpl ) {
-						if( !(tpl in cached.parsed) )
-							throw Error( '<?' + tpl + '?> is not defined in ' + ns );
-						refs[ns + '.' + tpl] = cached.parsed[tpl];
-					} );
-				}
-			);
-					
-			if( def && def.then )	deferred.push( def );
-		}
+		for( var ns in namespaces )
+			deferred.push( d.when(
+				cache[ns] || loadAndParseModule( ns ),
+				resolveTemplatesLater( refs, ns, namespaces[ns] )
+			) );
 
-		return d.when( waitingList( deferred ), function() {
-			return refs;
-		} );
+		return d.when( deferred, function() { return refs; } );
 	}
 
 	function getTemplate( sn ) {
@@ -190,20 +209,17 @@ dojox.jtlc.CHT.loader = (function() {
 
 	function deferGetTemplate( cached, sn ) {
 
-		var deferredTemplateInstance = dojo.extend( 
+		var deferredTemplateInstance = d.extend( 
 			function( args ) {
 				this.args = dj._copyArguments( args );
 			}, {
 				render: function( /* render args */ ) {
 					var render_args = dj._copyArguments( arguments ),
 						evaluator_args = this.args;
-					return d.when( 
-						d.when( cached, function() {
-							var inst = getTemplate( sn ).apply( null, evaluator_args );
-							return inst.render.apply( inst, render_args );
-						} ), 
-						function(v){ return v; }
-					);
+					return d.when( cached, function() {
+						var inst = getTemplate( sn ).apply( null, evaluator_args );
+						return inst.render.apply( inst, render_args );
+					} );
 				}
 			}
 		);
@@ -221,21 +237,22 @@ dojox.jtlc.CHT.loader = (function() {
 		},
 
 		require: function( /* tpl_module_with_overrides... */ ) {
-			var result = [];
+			var result = new WaitingList();
+
 			for( var i=0; i<arguments.length; ++i ) {
-				var	cached;
-				d.forEach( arguments[i].split('+'), function( mdl ) {
-					cached = enqueue( mdl, cached );
-				} );
-				if( cached.then )	result.push( cached );					
+				var	mdl_list = arguments[i].split('+');
+				result.push(
+					cache[ mdl_list[0] ] || 
+					( cache[mdl_list[0]] = loadAndParseModuleList( mdl_list ) )
+				);
 			}
-			return waitingList( result );
+
+			return result;
 		},
 
 		get: function( tpl ) {
 			var sn = splitTemplateName( tpl ),
-				cached = enqueue( sn.namespace() );
-
+				cached = cache[ sn.namespace() ] || loadAndParseModule( sn );
 			return cached.then ? deferGetTemplate( cached, sn ) : getTemplate( sn );
 		}
 	};
