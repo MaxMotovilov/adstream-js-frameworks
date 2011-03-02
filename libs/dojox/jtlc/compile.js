@@ -28,8 +28,45 @@ dojox.jtlc.arrayAppend = function( dst, src )
 	dst.splice.apply( dst, src );
 }
 
+dojox.jtlc._replaceWithinJavascriptAll = function( s, context, repl ) 
+{
+	return s.replace( /((?:.|\n)*?)((["']).*?[^\\]?\2|$)/g, function( _1, code, trailing ) {
+		return code.replace( context, repl ) + trailing;
+	} )
+}
+
+dojox.jtlc._replaceWithinJavascriptOnce = function( s, context, repl ) 
+{
+	var once = false;
+	return s.replace( /((?:.|\n)*?)((["']).*?[^\\]?\2|$)/g, function( _1, code, trailing ) {
+		if( once ) return code + trailing;
+		var v = code.replace( context, repl );
+		if( v != code )	once = true;
+		return v + trailing;
+	} )
+}
+
+dojox.jtlc.replaceWithinJavascript = function( s, context, repl ) 
+{
+	return context instanceof RegExp && context.global ? 
+		dojox.jtlc._replaceWithinJavascriptAll( s, context, repl ) :
+		dojox.jtlc._replaceWithinJavascriptOnce( s, context, repl );
+}
+
 dojox.jtlc._eval = function( x ){
 	return eval( x );
+}
+
+dojox.jtlc._optimizeExtraBrackets = function( body ) {
+	var new_body;
+	while( (
+		new_body = dojox.jtlc.replaceWithinJavascript( 
+			body, /([^a-z0-9_]|^)\(((?:_|[a-z])[a-z0-9]*)\)/ig, '$1$2' 
+		)
+	) != body )
+		body = new_body;
+
+	return body;
 }
 
 dojox.jtlc.compile = function( tpl, lang, mixin ) 
@@ -40,7 +77,7 @@ dojox.jtlc.compile = function( tpl, lang, mixin )
 		max_local: 0,
 		code: ["var $=arguments"],
 		expressions: [],
-		optimizers: {}
+		optimizers: dojo.config.isDebug ? { '_optimizeExtraBrackets': dojox.jtlc._optimizeExtraBrackets } : {}
 	};
 
 	if( mixin )	state = dojo.mixin( {}, mixin, state );
@@ -61,10 +98,9 @@ dojox.jtlc.compile = function( tpl, lang, mixin )
 
 	var body = state.code.join('');
 
-	if( !dojo.config.annotateTemplates )	
-		body = state.optimize( body );
+	body = state.optimize( body );
 
-	if( (dojo.config.isDebug || dojo.config.annotateTemplates) && !dojo.isIE )	
+	if( dojo.config.isDebug && !dojo.isIE )	
 		body = dojox.jtlc.prettyPrint( body );
 
 	return state.decorate( state.makeClosure( body ).apply( null, state.globals.values ) );
@@ -178,7 +214,7 @@ dojo.declare( 'dojox.jtlc.Language', null, {
 
 		inner.call( this );
 
-		if( old_current_input != ( this.hasOwnProperty( 'current_input' ) ? this.current_input : null ) ) {
+		if( old_current_input !== ( this.hasOwnProperty( 'current_input' ) ? this.current_input : null ) ) {
 			if( old_current_input )	this.current_input = old_current_input;
 			else 					delete this.current_input; 			
 		}
@@ -209,7 +245,7 @@ dojo.declare( 'dojox.jtlc.Language', null, {
 
 		inner.call( this );
 
-		if( old_current_input != ( this.hasOwnProperty( 'current_input' ) ? this.current_input : null ) ) {
+		if( old_current_input !== ( this.hasOwnProperty( 'current_input' ) ? this.current_input : null ) ) {
 			if( old_current_input )	this.current_input = old_current_input;
 			else					delete this.current_input; 			
 		}
@@ -353,7 +389,8 @@ dojo.declare( 'dojox.jtlc._ArraySink', dojox.jtlc._Sink, {
 
 	optimize: function( body ) { // Visitor on the compiler object!
 		var _this = this;
-		return body.replace(
+		return dojox.jtlc.replaceWithinJavascript( 
+			body,
 			/for\(([a-zA-Z][a-zA-Z0-9]*)=0;\1<([a-zA-Z][a-zA-Z0-9]*).length;\+\+\1\){([a-zA-Z][a-zA-Z0-9]*)\.push\(\2\[\1\]\);}/g, 
 			function( _0, _1, src, dst ) {
 				var g = _this.addGlobal( dojox.jtlc.arrayAppend );
@@ -382,7 +419,7 @@ dojo.declare( 'dojox.jtlc._Loop', null, {
 
 	item: function() {
 		if( !this._items )	throw Error( "Internal error: loop not initialized" );
-		return this.lockedItem || this._items + '[' + this._i + ']';
+		return this.lockedItem ? '(' + this.lockedItem + ')' : this._items + '[' + this._i + ']';
 	},
 
 	lockItem: function( item ) {

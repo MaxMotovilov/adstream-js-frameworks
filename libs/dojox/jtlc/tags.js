@@ -2,13 +2,6 @@ dojo.provide( "dojox.jtlc.tags" );
 
 dojo.require( "dojox.jtlc.compile" );
 
-dojox.jtlc.replaceWithinJavascript = function( s, context, repl ) 
-{
-	return s.replace( /((?:.|\n)*?)((["']).*?[^\\]?\2|$)/g, function( _1, code, trailing ) {
-		return code.replace( context, repl ) + trailing;
-	} )
-}
-
 dojox.jtlc._copyArguments = function( args, all_but )
 {
 	return Array.prototype.slice.call( args, all_but || 0 );
@@ -91,7 +84,8 @@ dojox.jtlc._declareTag( 'quote', {
 	compile: function( self ) {
 		switch( typeof self.value ) {
 			case 'boolean': case 'number':
-				this.expressions.push( self.value.toString() );
+				// no explicit toString() -- knowledge of type may be used for optimization!
+				this.expressions.push( self.value );
 				break;
 			case 'string':
 				this.expressions.push( dojox.jtlc.stringLiteral(self.value.toString()) );
@@ -122,6 +116,30 @@ dojox.jtlc._declareTag( 'arg', {
 
 	compile: function( self ) {
 		this.expressions.push( '$[' + self.index.toString() + ']' );
+	}
+} );
+
+/* with( arg, body ) -- evaluates body with current input set to arg */
+
+dojox.jtlc._declareTag( 'with', {
+
+	constructor: function( arg, body ) {
+		if( arguments.length != 2 )
+			throw Error( "with() requires exactly two arguments" );
+		this.arg = arg;
+		this.body = body;
+	},
+
+	compile: function( self ) {
+		var old_current_input = this.hasOwnProperty( 'current_input' ) ? this.current_input : null;
+
+		this.compile( self.arg );
+		this.current_input = this.popExpression();
+
+		this.compile( this.body );
+		
+		if( old_current_input )	this.current_input = old_current_input;
+		else 					delete this.current_input; 			
 	}
 } );
 
@@ -168,7 +186,7 @@ dojox.jtlc._declareTag( 'replace', {
 	}
 } );
 
-/* each( tpl0 [, tpl1 ... tplN ) -- creates nested loops by 
+/* each( tpl0 [, tpl1 ... tplN] ) -- creates nested loops by 
    evaluating each template as a generator within the context
    of the previous one, right to left. If there is only tpl0
    then it is evaluated in the context of current input (treated
@@ -660,12 +678,127 @@ dojox.jtlc._declareTag( 'group', {
 	},
 
 	optimize: function( body ) {
-		return body.replace(
+		return dojox.jtlc.replaceWithinJavascript(
+			body,
 			/\(([a-z][a-z0-9]*)\.slice\(([a-z][a-z0-9]*),([a-z][a-z0-9]*)\+1\)\)(\.length|\[0\])/ig,
 			function( _0, a, from, to, op ) {
 				return op == '.length' ? '(' + to + '-' + from + '+1)' : a + '[' + from + ']';
 			}
 		);
+	}
+} );
+
+/* iota( [start, [step,]] stop ) -- generator of numeric sequences:
+   start, start+step, .... last < stop if step>0
+   start, start+step, .... last > stop if step<0 */
+
+dojo.declare( 'dojox.jtlc._IotaLoop', dojox.jtlc._Loop, {
+
+	"-chains-": { end: "after" },
+
+	constructor: function( _, params ) {
+		this._localVarCount = 0;
+		this._setParameter( params.start, '_i', true );
+		this._setParameter( params.step, '_step' );
+		this._setParameter( params.stop, '_stop' );
+	},
+
+	_setParameter: function( to, name, force_var ) {
+		// Expressions of 4 characters and less are considered safe to re-evaluate
+		if( force_var || typeof to === 'string' && to.length > 4 ) {
+			this[name] = this.compiler.addLocal();
+			this._localVarCount++;
+			if( this[name] !== to )
+				this.compiler.code.push( this[name] + '=' + to + ';' );
+		} else this[name] = to;
+	},
+
+	_stopCondition: function() {
+		return typeof this._step === 'string' ?
+					'(' + this._step + '<0?' + this._i + '>' + this._stop + ':' + this._i + '<' + this._stop + ')' :
+			   this._step < 0 ? 
+					this._i + '>' + this._stop :
+					this._i + '<' + this._stop;
+	},
+
+	begin: function() {
+		if( this._items )	throw Error( "Internal error: loop initialized twice" );
+		this._items = true;
+		this._count = this.compiler.addLocal();
+		this.compiler.code.push( 
+			'for(' + this._count + '=0;' + this._stopCondition() + ';++' + this._count + ',' + this._i + '+=' + this._step + '){'
+		);
+		if( this.compiler.sink )	this.compiler.sink.loops_to_close.push( this );
+	},
+
+	item: function() {
+		if( !this._items )	throw Error( "Internal error: loop not initialized" );
+		return '(' + (this.lockedItem || this._i) + ')';
+	},
+
+	count: function() {
+		if( !this._items )	throw Error( "Internal error: loop not initialized" );
+		return '(' + this._count + ')';
+	},
+
+	end: function() { // Runs after _loop.end()
+		// Deallocate _step and _stop
+		while( --this._localVarCount ) 
+			this.compiler.locals.pop();
+	}
+} );
+
+dojox.jtlc._declareTag( 'iota', {
+
+	constructor: function() {
+		if( arguments.length == 0 || arguments.length > 3 )
+			throw Error( "iota() expects at least one and at most three arguments" );
+		this.stop = arguments[arguments.length-1];
+		if( arguments.length > 1 )	this.start = arguments[0];
+		if( arguments.length > 2 )	this.step = arguments[1];
+	},
+
+	defaultParams: { start: 0, step: 1 },
+
+	iotaParams: function( self ) {
+		var	params = dojo.delegate( self.defaultParams ),
+			compiler = this;
+
+		function makeParam( what ) {
+			switch( typeof self[what] ) {
+				case 'number': 		params[what] = self[what];
+				case 'undefined' : 	return false;
+			}
+
+			compiler.compile( self[what] );
+			return true;
+		}
+
+		this.nonAccumulated( function() {
+			var	compiled_start = makeParam( 'start' ),
+				compiled_step = makeParam( 'step' ),
+				compiled_stop = makeParam( 'stop' );
+
+			if( compiled_stop )		params.stop = this.popExpression();
+			if( compiled_step )		params.step = this.popExpression();
+			if( compiled_start )	params.start = this.popExpression();
+		} );
+		
+		return params;
+	},
+
+	compile: function( self ) {
+		if( !this.loop ) {
+			this.compile( [ self ] );
+			return;
+		}
+
+		if( this.loop.started() )
+			throw Error( "iota() used in a wrong context" );
+		
+		/* Replace with _IotaLoop; caller will clean up */
+		this.loop = new dojox.jtlc._IotaLoop( this, self.iotaParams.call( this, self ) );
+		this.generator();
 	}
 } );
 

@@ -38,9 +38,17 @@ dojo.require( "dojox.jtlc.JXL" );
 
 (function() {
 
-var	dj = dojox.jtlc;
+var	dj = dojox.jtlc, d = dojo;
 
-dojo.declare( 'dojox.jtlc.qplus', dojox.jtlc.JXL, {
+function parseConstant( str ) {
+	if( /^\s*-?\d+(\.\d*)?([eE]-?\d+)?\s*$/.exec( str ) )
+		return RegExp.$2 || RegExp.$3 ? parseFloat( str ) : parseInt( str );
+	if(	/^\s*(true|false)\s*$/.exec( str ) )
+		return RegExp.$1 === 'true';
+	return str;
+}
+
+d.declare( 'dojox.jtlc.qplus', dj.JXL, {
 
 	string: function( value ) {
 		this.compile(
@@ -50,19 +58,25 @@ dojo.declare( 'dojox.jtlc.qplus', dojox.jtlc.JXL, {
 		);
 	},
 
+	_exprBrackets: {
+		'[': { close: ']', allow: '[]({"\'' },
+		'(': { close: ')', allow: '[(){"\'' },
+		'{': { close: '}', allow: '[({}"\'' },
+		'"': { close: '"', allow: '"' },
+		"'": { close: "'", allow: "'" }
+	},
+
+	_singleScanRegex: /(?:[\[\](){}"'|]|\\.)/g,
+	_multipleScanRegex: /(?:[\[\](){}"'|,]|\\.)/g,
+	_initScanStack: { close: '', allow: '[](){}"\'|,' },
+
 	parse: function( query, multiple ) {
 
 		var	delims = { ',': '\uffff', '|': '\ufffe' },
-			brackets = {
-				'[': { close: ']', allow: '[]({"\'' },
-				'(': { close: ')', allow: '[(){"\'' },
-				'{': { close: '}', allow: '[({}"\'' },
-				'"': { close: '"', allow: '"' },
-				"'": { close: "'", allow: "'" }
-			},
-			stack = [ { close: '', allow: '[](){}"\'|,' } ],
-
-			prep = query.replace( multiple ? /(?:[\[\](){}"'|,]|\\.)/g : /(?:[\[\](){}"'|]|\\.)/g,
+			stack = [ this._initScanStack ],
+			brackets = this._exprBrackets,
+			prep = query.replace( 
+				multiple ? this._multipleScanRegex : this._singleScanRegex,
 				function( c ) {
 					if( c[0] == '\\' ) return c[1];
 					if( stack[0].allow.indexOf( c ) >= 0 ) {
@@ -80,7 +94,7 @@ dojo.declare( 'dojox.jtlc.qplus', dojox.jtlc.JXL, {
 		if( stack.length > 1 )	
 			throw Error( 'Unbalanced delimiters -- expected ' + dj.stringLiteral( stack[0].close ) );
 
-		if( multiple )	return dojo.map( 
+		if( multiple )	return d.map( 
 			prep.split( delims[','] ),
 			function( p ) { return this._parseList( p.split( delims['|'] ) ); },
 			this
@@ -89,12 +103,12 @@ dojo.declare( 'dojox.jtlc.qplus', dojox.jtlc.JXL, {
 	},
 
 	_parseList: function( list ) {
-		var	result = null;
+		var	result;
 		while( list.length ) {
 			var	item = list.shift();
 			if( /^\s*([a-z_]\w*(?:\s*[.]\s*[a-z_]\w*)*)\s*([:](?:.|\n)*)?$/i.exec( item ) && (result||RegExp.$2) ) {
 				result = 
-					RegExp.$2 ? this._makeTag( RegExp.$1, RegExp.$2.substr(1), result ) :
+					RegExp.$2 ? this._makeTag( RegExp.$1, this._parseOwnArg( RegExp.$2.substr(1) ), result ) :
 								this._makeTag( RegExp.$1, result );
 			} else if( result ) {
 				throw Error( "Tag is not specified in '" + item + "'" );
@@ -106,12 +120,54 @@ dojo.declare( 'dojox.jtlc.qplus', dojox.jtlc.JXL, {
 		return result;
 	},
 
+	_parseOwnArg: function( str ) {
+		if( /^\[\s*(.*?)\s*\]$/.exec( str ) ) try {
+			var	delims = { ',': '\uffff' },
+				stack = [ this._initScanStack ],
+				brackets = this._exprBrackets,
+				prep = RegExp.$1.replace( 
+					this._multipleScanRegex,
+					function( c ) {
+						if( c[0] == '\\' ) return c[1];
+						if( stack[0].allow.indexOf( c ) >= 0 ) {
+							if( c == stack[0].close )
+								stack.shift();
+							else if( c in brackets )
+								stack.unshift( brackets[c] );
+							else if( c in delims )	
+								return delims[c];
+							else if( stack.length == 1 && c == ']' )
+								throw true; // As long as it is not an Error							
+						} 
+						return c;
+					}
+				),
+				args = prep.split( /\s*\uffff\s*/ );
+
+			if( stack.length == 1 )	return d.map( args, parseConstant );		
+			
+		} catch( e ) {
+			if( e instanceof Error )	throw e;
+		} else return parseConstant( str );
+
+		return str;
+	},
+
 	_makeTag: function( tag, arg1, arg2 ) {
 
-		var	args = [];
+		var	args = [], reverse_if_tag = true;
 		if( arg1 ) {
 			if( arg2 )	args.push( arg2 );
 			args.push( arg1 );
+		}
+		
+		if( args[args.length-1] instanceof Array ) {
+			reverse_if_tag = false;
+			if( args.length == 1 )	args = args[0];
+			else {
+				args[1] = this._makeTag( tag, args[1] );
+				tag = 'with';
+			}
 		}
 
 		tag = tag.split( /\s*[.]\s*/ );
@@ -121,7 +177,7 @@ dojo.declare( 'dojox.jtlc.qplus', dojox.jtlc.JXL, {
 			var	t;
 
 			if( (t = this.tags[tag[0]]) || (t = dj.tags[tag[0]]) ) {
-				args.reverse();
+				if( reverse_if_tag ) args.reverse();
 				return t.apply( null, args );
 			} else if( t = this.filters[tag[0]] ) {
 				args.unshift( t );
@@ -171,9 +227,8 @@ dojo.declare( 'dojox.jtlc.qplus', dojox.jtlc.JXL, {
 	djqp._declareTag( 'expr', dojo.declare( dj.tags._expr, {
 	
 		constructor: function() {
-			if( arguments.length <= 2 )
-				for( var i=1; i<10; ++i )
-					this.args.push( dojox.jtlc.tags.arg( i ) );
+			for( var i=Math.max(1,arguments.length-1); i<10; ++i )
+				this.args.push( dojox.jtlc.tags.arg( i ) );
 		}
 
 	} ) );

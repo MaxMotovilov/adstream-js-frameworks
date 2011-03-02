@@ -95,6 +95,8 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 						if( elt.kwarg.async )	elt.kwarg.compiled = true;
 
+						if( elt.kwarg.macro && elt.kwarg.compiled )
+							throw Error( 'Compiled template cannot use macro argument substitution: ' + elt.arg );
 					} else {
 						elt.arg = elt.arg || '';
 						current.body.push( elt );
@@ -311,7 +313,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 		if( !this._hasRefs ) {
 			this.code.splice( ref_code_idx, 1 );
 			this.optimizers._refLocalOptimize = function( body ) {
-				return body.replace( this._chtRefs.refs + ',', '' );
+				return dojox.jtlc.replaceWithinJavascript( body, this._chtRefs.refs + ',', '' );
 			}
 		}
 
@@ -342,7 +344,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 		if( this._deferredIndex == 0 )	{
 			this.code.splice( def_code_idx, 1 );
 			this.optimizers._defLocalOptimize = function( body ) {
-				return body.replace( this._chtDeferred + ',', '' );
+				return dojox.jtlc.replaceWithinJavascript( body, this._chtDeferred + ',', '' );
 			}
 		}
 	},
@@ -362,6 +364,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 				}, this );
 			}
 		);
+		this.expressions.pop();
 	},
 
 	replaceLanguage:	dojo.replace,
@@ -387,18 +390,13 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 	_userDefinedElement: dojo.extend( 
 		function( elt, url ) {
 
-			if( elt.kwarg && elt.kwarg.compiled ) {
-				if( elt.sections )	throw Error( "Compiled template " + elt.arg + " should not have sections" );
-				this.alwaysCompile = true;
-			}
+			this.kwarg = elt.kwarg || {};
 
-			if( elt.kwarg && elt.kwarg.async )			
-				this.async = true;
-
-			if( elt.kwarg && elt.kwarg.transition )	
-				this.transition = elt.kwarg.transition;
+			if( this.kwarg.compiled && elt.sections )	
+				throw Error( "Compiled template " + elt.arg + " should not have sections" );
 
 			if( elt.sections )	this.sections = elt.sections;
+
 			this.name = elt.arg;
 			this.sourceUrl = url;
 		},{
@@ -414,13 +412,44 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 						if( elt.body )	this.sections[""] = elt.body;
 					}
 				}, {
+
+					_notAnExpression: { 
+						toString: function(){ 
+							throw Error( "BUG: access to current_input bypasses generator()" ); 
+						} 
+					},
+
+					_argByName: function( compiler, generator, cur_input, expr ) {
+
+						if( compiler.current_input === this._notAnExpression && !expr && !compiler.loop.lockedItem ) {
+							if( cur_input )	compiler.current_input = cur_input;
+							else 			delete compiler.current_input;
+							compiler.compile( this.arg );
+							compiler.current_input = this._notAnExpression;
+						} else
+							generator.call( compiler, expr );
+					},
+
 					compile: function( self ) {
-						var old_current_input;
+						var old_current_input, old_generator;
 						
 						if( self.arg ) {
 							old_current_input = this.hasOwnProperty( 'current_input' ) ? this.current_input : null;
-							this.compile( self.arg );
-							this.current_input = this.popExpression();
+
+							if( self.def.kwarg.macro ) {
+								var	gen = this.generator;
+								old_generator = this.hasOwnProperty( 'generator' ) ? gen : null;
+								this.generator = function( expr ) { 
+									self._argByName( this, gen, old_current_input, expr );
+								}
+								this.current_input = self._notAnExpression;
+							} else {
+								this.compile( self.arg );
+								this.current_input = this.popExpression();
+							}
+						} else if( this.current_input === self._notAnExpression && !self.def.kwarg.macro ) {
+							old_current_input = self._notAnExpression;
+							this.current_input = this.generator();
 						}
 
 						if( self.sections )	
@@ -431,9 +460,14 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 						if( self.sections )
 							delete this._chtSections[ self.def.name ];
 
-						if( self.arg ) {					
+						if( self.arg || old_current_input === self._notAnExpression && !self.def.kwarg.macro ) {		
+							if( self.def.kwarg.macro ) {
+								if( old_generator )	this.generator = old_generator;
+								else 				delete this.generator;
+							}
+							
 							if( old_current_input )	this.current_input = old_current_input;
-							else 					delete this.current_input; 			
+							else 					delete this.current_input;
 						}
 					}
 				}
@@ -453,14 +487,14 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 							// Create a forwarding thunk to resolve issues with template recursion
 							var forward_to = null;
 							this.compiledTemplates[self.name] = function(){ return forward_to.apply( this, arguments ); }
-							this.compiledTemplates[self.name].async = self.tag.def.async || false;
+							this.compiledTemplates[self.name].async = self.tag.def.kwarg.async || false;
 
 							this.compiledTemplates[self.name] = forward_to =
 								dj.compile( self.tag, this.compileArguments.language, 
 											dojo.mixin( 
 												{ compiledTemplates: this.compiledTemplates }, 
 												this.compileArguments.options,
-												{ _templateName: self.name, _transition: self.tag.def.transition }
+												{ _templateName: self.name, _transition: self.tag.def.kwarg.transition }
 											)
 								);
 						}
@@ -489,14 +523,14 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 			),
 
 			tag: function( cht, elt ) {
-				if( this.alwaysCompile && elt.openTag )
+				if( this.kwarg.compiled && elt.openTag )
 						return new cht._appendToOutput( [ new this._compiledTag( cht, elt, new this._tag( cht, {}, this ) ) ] );
 				else	return new this._tag( cht, elt, this ); 
 			},
 
 			compile: function( self ) {
 				this._templateName = self.name;
-				if( self.transition )	this._transition = self.transition;
+				if( self.kwarg.transition )	this._transition = self.kwarg.transition;
 				this.compile( self.tag( this, {} ) );
 			}
 		}	 
@@ -737,7 +771,8 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 				),
 				acc = this._chtHTML;			
 
-			return body.replace( 
+			return dojox.jtlc.replaceWithinJavascript(
+				body,
 				new RegExp(
 					'[;}{](?:' + acc + '\\.push\\({1,2}"(?:[^"\\\\]|\\\\.)*"\\){1,2};){2,}',
 					"g"
@@ -777,7 +812,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 			if( !( '_escape' + self.cachePrefix + 'Optimizer' in this.optimizers ) ) {
 				var regex = new RegExp( '\\(("(?:\\\\.|[^\\\\"])*")\\)\\.toString\\(\\)\\.replace\\(' + replace_params + '\\)', 'g' );
 				this.optimizers['_escape' + self.cachePrefix + 'Optimizer'] = function( body ) {
-					return body.replace( regex, '$1' );
+					return dojox.jtlc.replaceWithinJavascript( body, regex, '$1' );
 				}
 			}
 
