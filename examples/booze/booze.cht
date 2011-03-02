@@ -5,7 +5,7 @@
 		<div id='searchPaneInner'>
 		<input type="text" name="search"><div id='searchButton'></div>
 		<? when "$.get('lists')" ?>
-			<? Dropdown "expr:[$.sections,'section']" ?>Section:<? /Dropdown ?>
+			<? Dropdown "expr:([$.sections,'section'])" ?>Section:<? /Dropdown ?>
 			<? Dropdown "[$.countries,'country']" ?>Country:<? /Dropdown ?>
 			<? Dropdown "[$.vintages,'vintage']" ?>Vintage:<? /Dropdown ?>
 		<? /when ?>
@@ -45,7 +45,7 @@
 		<div>
 			{{quantity}} x
 			<div itemID='{{$.id()}}' class='deleteButton'></div>
-			<? when "$.product()|wait|expr:[$,$0.items[$.id()]]" ?>
+			<? when "$.product()|wait|expr:([$,$0.items[$.id()]])" ?>
 				<? Price "$[0]" ?>
 				{{$[0].name}}
 				{{do: { app.booze.orderTotal += $[0].price*$[1].quantity; } }}
