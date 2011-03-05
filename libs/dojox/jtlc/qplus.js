@@ -162,12 +162,10 @@ d.declare( 'dojox.jtlc.qplus', dj.JXL, {
 		}
 		
 		if( args[args.length-1] instanceof Array ) {
+			if( args.length > 1 )
+				throw Error( tag + ":[" + args[1] + "] can only be used as the leftmost element" );
 			reverse_if_tag = false;
-			if( args.length == 1 )	args = args[0];
-			else {
-				args[1] = this._makeTag( tag, args[1] );
-				tag = 'with';
-			}
+			args = args[0];
 		}
 
 		tag = tag.split( /\s*[.]\s*/ );

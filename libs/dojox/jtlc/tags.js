@@ -119,30 +119,6 @@ dojox.jtlc._declareTag( 'arg', {
 	}
 } );
 
-/* with( arg, body ) -- evaluates body with current input set to arg */
-
-dojox.jtlc._declareTag( 'with', {
-
-	constructor: function( arg, body ) {
-		if( arguments.length != 2 )
-			throw Error( "with() requires exactly two arguments" );
-		this.arg = arg;
-		this.body = body;
-	},
-
-	compile: function( self ) {
-		var old_current_input = this.hasOwnProperty( 'current_input' ) ? this.current_input : null;
-
-		this.compile( self.arg );
-		this.current_input = this.popExpression();
-
-		this.compile( this.body );
-		
-		if( old_current_input )	this.current_input = old_current_input;
-		else 					delete this.current_input; 			
-	}
-} );
-
 /* acc( tpl ) -- stores the argument in a variable so expressions referencing
    it may use side effects */
 
