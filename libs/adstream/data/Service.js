@@ -62,7 +62,16 @@ adstream.data._collectOnSyncItems = function( url, obj, bind_to ) {
 	return s;
 }
 
+adstream.data._contentTypeInList = function( ct, cts ) {
+	ct = ct.split( /\s*;\s*/, 1 )[0].toLowerCase();
+	return dojo.some( cts, function( ctl ) {
+		return ctl.split( /\s*;\s*/, 1 )[0].toLowerCase() == ct;
+	} );
+}
+
 dojo.declare( 'adstream.data.Service', null, {
+
+	acceptMediaTypes: [ 'application/json', 'application/x-javascript', 'text/javascript', 'text/x-javascript', 'text/x-json' ],
 
 	constructor: function( ep_url ) {
 		this._ep_url = ep_url;
@@ -114,7 +123,9 @@ dojo.declare( 'adstream.data.Service', null, {
 
 		seed.url = this._ep_url + rel_url;
 		seed.handle = dojo.hitch( this, '_ioComplete', result, rel_url );
-		seed.handleAs = 'json';
+
+		if( this.acceptMediaTypes && this.acceptMediaTypes.length )
+			dojo.mixin( seed.headers || (seed.headers={}), { 'Accept': this.acceptMediaTypes.join( ', ' ) } );
 
 		if( params && (method in { PUT:1,POST:1 }) )
 				seed.url += '?' + dojo.objectToQuery( params );
@@ -153,39 +164,52 @@ dojo.declare( 'adstream.data.Service', null, {
 
 	_ioComplete: function( promise, arg_url, response, ioargs ) {
 
-		var	err = null, result = null;
+		var	err = null, result = null, 
+			headers = {};
+
+		dojo.forEach( ( ioargs.xhr.getAllResponseHeaders() || "" )
+			.split( /\s*\n/ ), function( hdr ) {
+				var kv = hdr.split( /:\s*/ );
+				headers[ kv[0].toLowerCase().replace( /(?:^|-)./g, function( s ){ return s.toUpperCase(); } ) ] = kv[1];
+			} );
 
 		if( response instanceof Error ) {
+			//	Error detected by dojo.xhr() -- timeout, HTTP code etc.
 			err = response;
-			try {
-				response = response.responseText && dojo.fromJson( response.responseText ) || null;
-			} catch( e ) {
-				response = null;
+			response = response.responseText || ioargs.xhr.responseText;
+		}
+
+		var	content_type = headers[ 'Content-Type' ];
+
+		if( this.rejectMediaTypes ? 
+			!content_type || adstream.data._contentTypeInList( content_type, this.rejectMediaTypes ) :
+			!adstream.data._contentTypeInList( content_type, this.acceptMediaTypes ) ) {
+			err = new Error( "Unexpected media type returned: " + content_type );
+		} else {
+			var json;
+			try { json = dojo.fromJson( response ); } catch( e ) {
+				err = new Error( "Malformed response from the server: bad JSON syntax" );
 			}
+			if( json )	try { result = this._sync( json, arg_url ); } catch( e ) { err = e; }
 		}
 
-		if( response && response._error ) {
-			err = new Error( response._error.message || err && err.message || 'Request failed' );
-			if( response._error.message )	delete response._error.message;
-			dojo.mixin( err, response._error );
-			delete response._error;
-		}
-
-		try {
-			result = this._sync( response, arg_url );
-		} catch( e ) {
-			err = e;
-		}
-
-		if( err )								promise.reject( err );
-		else if( typeof result === 'object' )	promise.resolve( result );	//	Method call with return value
-		else {
+		if( err ) {
+			err.ioargs = ioargs;
+			err.responseHeaders = headers;
+			err.status = ioargs.xhr.status;
+			err.responseText = response;
+			promise.reject( err );
+		} else if( typeof result === 'object' )	{
+			promise.resolve( result );	//	Method call with return value
+		} else {
 			var d = adstream.data._descend( arg_url, this.root );
 			if( !d.rel_url || 												//	Resolved to the object
 				(d.obj[d.rel_url] instanceof adstream.data.schema.Method) 	//	Method call w/o return value: return the object itself
 			)		promise.resolve( d.obj );
 			else	promise.reject( new Error( "Protocol violation: no relevant data returned for " + arg_url ) );
 		}
+
+		return null;
 	},
 
 	_sync: function( response, arg_url ) {
@@ -406,8 +430,14 @@ dojo.declare( 'adstream.data.Service', null, {
 	}
 } );
 
-adstream.data.connect = function( ep_url, schema ) {
-	var svc = new adstream.data.Service( ep_url );
+adstream.data.connect = function( ep_url, options, schema ) {
+
+	if( !schema ) {
+		schema = options;
+		delete options;
+	}
+
+	var svc = new adstream.data.Service( ep_url, options || {} );
 	svc.root = schema._new( svc, '' );
 	return svc.root; 
 }
