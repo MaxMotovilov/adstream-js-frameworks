@@ -71,7 +71,7 @@ adstream.data._contentTypeInList = function( ct, cts ) {
 
 dojo.declare( 'adstream.data.Service', null, {
 
-	acceptMediaTypes: [ 'application/json', 'application/x-javascript', 'text/javascript', 'text/x-javascript', 'text/x-json' ],
+	acceptContentTypes: [ 'application/json', 'application/x-javascript', 'text/javascript', 'text/x-javascript', 'text/x-json' ],
 
 	constructor: function( ep_url ) {
 		this._ep_url = ep_url;
@@ -124,8 +124,8 @@ dojo.declare( 'adstream.data.Service', null, {
 		seed.url = this._ep_url + rel_url;
 		seed.handle = dojo.hitch( this, '_ioComplete', result, rel_url );
 
-		if( this.acceptMediaTypes && this.acceptMediaTypes.length )
-			dojo.mixin( seed.headers || (seed.headers={}), { 'Accept': this.acceptMediaTypes.join( ', ' ) } );
+		if( this.acceptContentTypes && this.acceptContentTypes.length )
+			dojo.mixin( seed.headers || (seed.headers={}), { 'Accept': this.acceptContentTypes.join( ', ' ) } );
 
 		if( params && (method in { PUT:1,POST:1 }) )
 				seed.url += '?' + dojo.objectToQuery( params );
@@ -169,8 +169,14 @@ dojo.declare( 'adstream.data.Service', null, {
 
 		dojo.forEach( ( ioargs.xhr.getAllResponseHeaders() || "" )
 			.split( /\s*\n/ ), function( hdr ) {
-				var kv = hdr.split( /:\s*/ );
-				headers[ kv[0].toLowerCase().replace( /(?:^|-)./g, function( s ){ return s.toUpperCase(); } ) ] = kv[1];
+				var kv = hdr.split( /:\s*/ ),
+					key = kv[0].toLowerCase().replace( /(?:^|-)./g, function( s ){ return s.toUpperCase(); } );
+				if( kv[0] ) {
+					if( key in headers ) {
+	 					if( !(headers[key] instanceof Array) )	headers[key] = [ headers[key], kv[1]||"" ];
+						else	headers[key].push( kv[1]||"" );
+					} else		headers[key] = kv[1]||"";
+				}
 			} );
 
 		if( response instanceof Error ) {
@@ -182,8 +188,8 @@ dojo.declare( 'adstream.data.Service', null, {
 		var	content_type = headers[ 'Content-Type' ];
 
 		if( this.rejectMediaTypes ? 
-			!content_type || adstream.data._contentTypeInList( content_type, this.rejectMediaTypes ) :
-			!adstream.data._contentTypeInList( content_type, this.acceptMediaTypes ) ) {
+			!content_type || adstream.data._contentTypeInList( content_type, this.rejectContentTypes ) :
+			!adstream.data._contentTypeInList( content_type, this.acceptContentTypes ) ) {
 			err = new Error( "Unexpected media type returned: " + content_type );
 		} else {
 			var json;
