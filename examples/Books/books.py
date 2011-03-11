@@ -159,7 +159,7 @@ def saveDb():
 @no_input 
 @as_json
 def getBooks( search=None, author=None, count=None, offset=None, **kwargs ):
-	books = { '_': { 'depth': 1 } }
+	books = { '_': {} }
 
 	for i in db['books'].iteritems():
 		book_id, book = i
@@ -178,7 +178,7 @@ def getBooks( search=None, author=None, count=None, offset=None, **kwargs ):
 def addBooks( data, **kwargs ):
 
 	data = normalizePostData( data, 'books' )
-	books = {}
+	books = { '_': { 'partial': 1 } }
 	new_authors = []
 
 	for i in data.iteritems():
@@ -270,7 +270,7 @@ def deleteBook( book_id, **kwargs ):
 @no_input 
 @as_json
 def getAuthors( search=None, count=None, offset=None, **kwargs ):
-	authors = { '_': { 'depth': 1 } }
+	authors = { '_': {} }
 
 	for i in db['authors'].iteritems():
 		author_id, author = i

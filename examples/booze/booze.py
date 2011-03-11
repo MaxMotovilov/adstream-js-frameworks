@@ -39,10 +39,13 @@ def no_input(f):
 		return f( *args, **kwargs )
 	return wrapper
 
-class HTTPError (Exception):
+class Error(Exception):
+	pass
+
+class HTTPError (Error):
 
 	httpStatusCodes = {
-		200: 'OK', 400: 'BAD REQUEST', 401: 'UNAUTHORIZED', 404: 'NOT FOUND', 
+		200: 'OK', 302: 'FOUND', 400: 'BAD REQUEST', 401: 'UNAUTHORIZED', 404: 'NOT FOUND', 
 		405: 'METHOD NOT ALLOWED', 409: 'CONFLICT', 410: 'GONE', 500: 'INTERNAL ERROR'
 	}
 
@@ -53,6 +56,22 @@ class HTTPError (Exception):
 
 	def result(self):
 		return json.dumps( self.response )
+
+	def headers(self):
+		return [ ('Content-Type','application/json') ]
+
+class SimError (Error):
+
+	def __init__( self, code, headers={}, response = '' ):
+		self.response = response
+		self.status = str(code) + ' ' + HTTPError.httpStatusCodes.get( code, 'ERROR' )
+		self.hdr = headers
+
+	def result(self):
+		return self.response
+
+	def headers(self):
+		return self.hdr.items()
 
 ##########################################################
 
@@ -197,8 +216,6 @@ def getProducts( orderby=None, count=None, offset=None, **kwargs ):
 	trimView( result['products'], orderby or 'price', offset, count )
 	copyFilter( result['products'], [ 'search', 'price', 'country', 'vintage', 'section' ], kwargs )
 
-	result['products']['_']['depth'] = 1
-
 	return result
 
 @no_input
@@ -243,8 +260,6 @@ def getCustomers( orderby=None, count=None, offset=None, **kwargs ):
 	trimView( result['customers'], orderby or 'name', offset, count )
 	copyFilter( result['customers'], [ 'search' ], kwargs )
 
-	result['customers']['_']['depth'] = 1
-
 	return result
 
 @no_input
@@ -279,6 +294,8 @@ def addCustomers( data, **kwargs ):
 
 	saveDb()
 
+	customers.setdefault('_',{})['partial'] = 1
+
 	return { 'customers': customers }
 
 @no_input
@@ -289,9 +306,6 @@ def getOrder( order_id, **kwargs ):
 
 	result = wrapObject( 'orders', order_id )
 	order = result['orders'][order_id]
-
-	order['_']['depth'] = 2
-	if len(order['items']):	order['items'].setdefault( '_', {} )['depth'] = 1
 
 	return result
 
@@ -338,10 +352,11 @@ def addOrders( data, **kwargs ):
 		order['items'] = items
 
 		order['_']['replaces'] = '@'+temp
-		order['_']['depth'] = 2
 		orders[order_id] = order
 
 	saveDb()
+
+	orders.setdefault('_',{})['partial'] = 1
 
 	return { 'orders': orders }
 
@@ -408,6 +423,8 @@ def addOrderItems( data, order_id, **kwargs ):
 	
 	saveDb()
 
+	items.setdefault('_',{})['partial'] = 1
+
 	return dict( ( ( 'orders/' + str(order_id) + '/items', items ), ) )
 
 @json_input
@@ -467,6 +484,17 @@ def getStatic( path_name, headers={}, **kwargs ):
 
 	return open( path, 'r' )
 
+@no_input
+def signalError( code, **kwargs ):
+	raise SimError( int(code), {
+		'Content-Type': 'text/html; charset=utf-8',
+		'Location': 	'/static/loader.html'
+	}, '''
+<html><head><title>Object moved</title></head><body>
+<h2>Object moved to <a href="/static/loader.html">here</a>.</h2>
+</body></html>
+	''' )
+
 ##########################################################
 
 urlMap = [
@@ -477,7 +505,8 @@ urlMap = [
 	( re.compile( '^[/]products[/]?$' ), { 'GET': getProducts } ),
 	( re.compile( '^[/]products[/](\\d+)$' ), { 'GET': getProduct } ),
 	( re.compile( '^[/]lists$' ), { 'GET': getLists } ),
-	( re.compile( '^[/]static[/]+(.*)$' ), { 'GET': getStatic } )
+	( re.compile( '^[/]static[/]+(.*)$' ), { 'GET': getStatic } ),
+	( re.compile( '^[/]error[/](\d+)$' ), { 'GET': signalError } )
 ]
 
 def dispatch( path, method, env, headers, kwargs ):
@@ -508,8 +537,8 @@ def wsgi_application( env, wsgi_cb ):
 		wsgi_cb( '200 OK', headers.items() )
 		return result
 
-	except HTTPError as err:
-		wsgi_cb( err.status, [ ('Content-Type','application/json') ] )
+	except Error as err:
+		wsgi_cb( err.status, err.headers() )
 		return err.result()
 	except:
 		traceback.print_exc()
