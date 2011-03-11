@@ -232,8 +232,7 @@ dojo.declare( 'dojox.jtlc.Language', null, {
 	},
 
 	nonAccumulated: function( inner, current ) {
-		var old_sink = this.sink,
-			old_loop = this.loop;
+		var old_loop = this.loop;
 
 		if( this.loop )	delete this.loop;
 
@@ -251,7 +250,6 @@ dojo.declare( 'dojox.jtlc.Language', null, {
 		}
 
 		if( old_loop )	this.loop = old_loop;
-//		if( old_sink )	this.sink = old_sink;
 	},
 
 	generator: function( expr ) {

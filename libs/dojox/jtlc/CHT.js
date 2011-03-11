@@ -433,39 +433,38 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 					compile: function( self ) {
 						var old_current_input, old_generator;
 						
-						if( self.arg ) {
+						if( self.def.kwarg.macro && self.arg ) {
 							old_current_input = this.hasOwnProperty( 'current_input' ) ? this.current_input : null;
-
-							if( self.def.kwarg.macro ) {
-								var	gen = this.generator;
-								old_generator = this.hasOwnProperty( 'generator' ) ? gen : null;
-								this.generator = function( expr ) { 
-									self._argByName( this, gen, old_current_input, expr );
-								}
-								this.current_input = self._notAnExpression;
-							} else {
-								this.compile( self.arg );
-								this.current_input = this.popExpression();
+							var	gen = this.generator;
+							old_generator = this.hasOwnProperty( 'generator' ) ? gen : null;
+							this.generator = function( expr ) { 
+								self._argByName( this, gen, old_current_input, expr );
 							}
-						} else if( this.current_input === self._notAnExpression && !self.def.kwarg.macro ) {
-							old_current_input = self._notAnExpression;
-							this.current_input = this.generator();
+							this.current_input = self._notAnExpression;
 						}
 
 						if( self.sections )	
 							this._chtSections[ self.def.name ] = self.sections;
 						
-						this.compileSequence( self.def.body );
-						
+						if( !self.def.kwarg.macro && ( self.arg || this.current_input === self._notAnExpression ) ) {
+							var	new_input;
+							if( self.arg ) {
+								this.compile( self.arg );
+								new_input = this.popExpression();
+							} else
+								new_input = this.generator();
+
+							this.nonAccumulated( function() {
+								this.compileSequence( self.def.body );
+							}, new_input );
+						} else	this.compileSequence( self.def.body );
+
 						if( self.sections )
 							delete this._chtSections[ self.def.name ];
 
-						if( self.arg || old_current_input === self._notAnExpression && !self.def.kwarg.macro ) {		
-							if( self.def.kwarg.macro ) {
-								if( old_generator )	this.generator = old_generator;
-								else 				delete this.generator;
-							}
-							
+						if( self.def.kwarg.macro && self.arg ) {		
+							if( old_generator )	this.generator = old_generator;
+							else 				delete this.generator;
 							if( old_current_input )	this.current_input = old_current_input;
 							else 					delete this.current_input;
 						}
