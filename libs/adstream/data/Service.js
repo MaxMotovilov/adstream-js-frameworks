@@ -225,14 +225,18 @@ dojo.declare( 'adstream.data.Service', null, {
 		var result, q = [];
 
 		for( var i in response ) 
-			if( !response[i] || response[i]._ && response[i]._.replaces ) {
+			if( i.charAt(0) != '_' && !response[i] || response[i]._ && response[i]._.replaces ) {
 				// These items ought to be processed by their respective containers
-				var	split_url = adstream.data._splitURL( i );
-				(response[split_url[1]] = response[split_url[1]] || {})[split_url[2]] = response[i];
+				var	split_url = adstream.data._splitURL( i ),
+					parent = response[split_url[1]] = response[split_url[1]] || {};
+				parent[split_url[2]] = response[i];
+				if( !parent._ )	parent._ = { partial: true };
 				delete response[i];
 			}
 
 		for( var i in response ) {
+
+			if( i.charAt(0) == '_' )	continue;
 
 			var d = adstream.data._descend( i, this.root, adstream.data.schema._byAutoInstantiatedSchema ),
 				s = adstream.data._collectOnSyncItems( i, this._on_sync, this.root ),
@@ -278,20 +282,11 @@ dojo.declare( 'adstream.data.Service', null, {
 				}
 			}
 
-			var sync_list = [],
-				has_depth = false;
+			var sync_list = [];
 
-			if( qi.data._ ) {
-				has_depth = 'depth' in qi.data._;
-				if( qi.data._.depth )		qi.obj._.depth = qi.data._.depth;
-				else if( qi.obj._.depth )	delete qi.obj._.depth;
-			}
-
-			var	modified = qi.obj._unmarshal( qi.data, props, !has_depth && !qi.obj._.outOfSync ) || qi.obj._.outOfSync,
+			var	modified = qi.obj._unmarshal( qi.data, props ),
 				ts = (new Date()).valueOf();
 			
-			if( qi.obj._.outOfSync )	delete qi.obj._.outOfSync;
-		
 			dojo.forEach( qi.sync_list, function( item ) {
 
 				if( item.min_depth <= 0 ) {

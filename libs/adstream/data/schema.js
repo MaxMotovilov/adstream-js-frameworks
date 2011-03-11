@@ -21,11 +21,11 @@ adstream.data.schema._identical = function( a, b, ignore_schema_objects ) {
 		return false;
 
 	for( var i in a )
-		if( a.hasOwnProperty(i) && !adstream.data.schema._identical( a[i], b[i] ) )
+		if( a.hasOwnProperty(i) && i != '_' && !adstream.data.schema._identical( a[i], b[i] ) )
 			return false;
 
 	for( var i in b )
-		if( b.hasOwnProperty(i) && 
+		if( i != '_' && b.hasOwnProperty(i) && 
 			!(ignore_schema_objects && b[i] instanceof adstream.data.schema.Node) && 
 			!(i in a) )	
 				return false;
@@ -126,8 +126,10 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 
 		if( !(this instanceof adstream.data.schema.Container) && this._subschema )
 			for( var i in this._subschema )
-				if( this._subschema[i] instanceof adstream.data.schema.Container )
+				if( this._subschema[i] instanceof adstream.data.schema.Container ) {
 					obj[i] = this._subschema[i]._new( svc, obj._composeURL( i ) );
+					obj[i]._.partial = true;
+				}
 
 		return obj;
 	},
@@ -176,19 +178,17 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 	_unmarshal: function( data ) { return false; },
 
 	_safePropSet: function( prop, value ) {
-		var any = false;
-		for( var f in value ) {
-			if( this._.prop && this._.prop[f] === value[f] )
-				continue;
-			any = true;
-			if( !this._.hasOwnProperty( prop ) )
-				this._[prop] = this._[prop] ? dojo.delegate( this._[prop], {} ) : {};
-			if( value[f]===null ) {
-				if( this._[prop].hasOwnProperty(f) )
-					delete this._[prop][f];
-			} else	this._[prop][f] = value[f];
+
+		if( !adstream.data.schema._identical( this._[prop], value ) ) {
+			if( value === null && this._.hasOwnProperty( prop ) )
+				delete this._[prop];
+			else if( value )
+				this._[prop] = value;
+			else return false;
+			return true;
 		}
-		return any;
+
+		return false;
 	},
 
 	_copyPropsIfChanged: function( src, props ) {
@@ -200,7 +200,7 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 
 			if( typeof src._[prop] === 'object' )
 				any = this._safePropSet( prop, src._[prop] ) || any;
-			else if( src._[prop] !== this._[prop] ) {
+			else if( src._[prop] != this._[prop] ) {
 				this._[prop] = src._[prop];
 				any = true;
 			}
@@ -254,6 +254,19 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 		}
 	},
 
+	_anyChild: function( method, depth ) {	//	Iterates over subschema which is likely faster
+		if( depth > 0 )
+			for( var i in this._subschema )
+				if( this.hasOwnProperty( i ) && this[i] instanceof adstream.data.schema.Node && 
+					method.call( this[i], depth-1 ) )
+					return true;
+		return false;
+	},
+
+	_isPartial: function( depth ) {
+		return this._.partial || this._anyChild( this._isPartial, depth );
+	},
+
 	url: function() { return this._.url; },
 
 	id: function() { return /[^\/]+$/.exec( this._.url )[0]; },
@@ -263,8 +276,7 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 	get: function( rel_url, depth, force ) {
 		var	d = adstream.data._descend( rel_url||'', this );
 
-		if( !force && !d.rel_url && !d.obj._.outOfSync && 
-			(depth||d.obj._defaultGetDepth||0) <= (d.obj._.depth||0) ) 
+		if( !force && !d.rel_url && !this._isPartial( depth||d.obj._defaultGetDepth||0 ) ) 
 			return d.obj;
 
 		var	schema_obj = adstream.data.schema._descendSchema( d.rel_url, d.obj ),
@@ -327,8 +339,8 @@ dojo.declare( 'adstream.data.schema.Object', [ adstream.data.schema.Node ], {
 
 	_unmarshal: function( data ) {
 
-		if( data._ && !this._copyPropsIfChanged( data, [ 'version' ] ) || 
-			this._readOnly && adstream.data.schema._identical( data, this, true )
+		if( !this._copyPropsIfChanged( data, [ 'version', 'partial' ] ) &&
+			adstream.data.schema._identical( data, this, true )
 		)
 			return false;
 
@@ -338,9 +350,6 @@ dojo.declare( 'adstream.data.schema.Object', [ adstream.data.schema.Node ], {
 
 		for( var i in data )
 			if( i != '_' )	this[i] = data[i];
-
-		if( this._readOnly && !this._.hasOwnProperty( 'depth' ) )
-			this._.depth = 1;
 
 		return true;
 	},
@@ -400,9 +409,9 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 		return path_item == '_' ? null : this._subschema.item;
 	},
 
-	_unmarshal: function( data, props, incremental ) {
+	_unmarshal: function( data, props ) {
 
-		if( data._ )	this._copyPropsIfChanged( data, [ 'filter', 'view', 'extra', 'version' ] );
+		this._copyPropsIfChanged( data, [ 'filter', 'view', 'extra', 'version' ] );
 
 		var	result = false;
 
@@ -420,12 +429,14 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 			} else if( !(i in this) )
 				result = true;
 
-		if( !incremental )
+		if( !(data._ && data._.partial) ) {
 			for( var i in this )
 				if( this.hasOwnProperty( i ) && !(i in props) && this[i] instanceof adstream.data.schema.Node ) {
 					delete this[i];
 					result = true;
 				}
+			if( this._.partial )	delete this._.partial;
+		}
 
 		return result;
 	},
@@ -464,6 +475,15 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 		return result;
 	},
 
+	_anyChild: function( method, depth ) { // Iterates over object's properties rather than subschema
+		if( depth > 0 )
+			for( var i in this )
+				if( this.hasOwnProperty[i] && this[i] instanceof adstream.data.schema.Node &&
+					method.call( this[i], depth-1 ) )
+					return true;
+		return false;
+	},
+				
 	create: function() {
 
 		if( this._readOnly )	throw Error( "Cannot create items in a read only container " + this._.url );
@@ -512,7 +532,7 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 			if( new_filter )			this._safePropSet( 'filter', new_filter );
 			else if( this._.hasOwnProperty( 'filter' ) )	
 				delete this._.filter;
-			this._.outOfSync = true;
+			this._.partial = true;
 		}
 
 		return this._.filter || null;
@@ -523,7 +543,7 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 			if( new_view )			this._safePropSet( 'view', new_view );
 			else if( this._.hasOwnProperty( 'view' ) )	
 				delete this._.view;
-			this._.outOfSync = true;
+			this._.partial = true;
 		}
 
 		return this._.view || null;
@@ -532,8 +552,7 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 	extra: function() { return this._.extra || {}; },
 
 	refresh: function( depth ) {
-		this._.outOfSync = true;
-		return this.get( '', depth );
+		return this.get( '', depth, true );
 	}
 } );
 
