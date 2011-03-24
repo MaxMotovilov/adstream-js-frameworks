@@ -1,0 +1,80 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+<head>
+
+<script src="http://ajax.googleapis.com/ajax/libs/dojo/1.5/dojo/dojo.xd.js" type="text/javascript" 
+		djConfig="isDebug: true, debugAtAllCosts: true, parseOnLoad: true, baseUrl: './', modulePaths: { 'dojox.jtlc': 'js/jtlc', 'adstream.data': 'js/data', 'multi': '.', 'CHT': '.' }"></script>
+
+<style type='text/css'>
+
+div#table {
+	height: 480px;
+	width: 480px;
+	margin: 20px 0px 0px 20px;
+}
+
+div#table > div {
+	height: 20px;
+	padding: 10px 0px 10px 0px;
+	margin: 0px;
+	width: 100%;
+	background-color: blue;
+	color: yellow;
+}
+
+div#table > div#rows {
+	background-color: lightgray;
+	height: 400px;
+	padding: 0px;
+}
+
+div#rows > div {
+	height: 40px;
+	width: 100%;
+}
+
+div#rows > div > div {
+	display: inline-block;
+	width: 400px;
+	color: black;
+}
+
+div#rows > div > div > div {
+	display: inline-block;
+	width: 40px;
+	padding: 10px 0px 10px 0px;
+	height: 20px;
+}
+
+div#rows > div > div.arrow {
+	width: 40px;
+	background-color: blue;
+	color: yellow;
+	padding: 10px 0px 10px 0px;
+	height: 20px;
+}
+
+div.arrow {
+	cursor: pointer;
+}
+
+</style>
+
+<script type="text/javascript">
+dojo.provide( 'multi' );
+dojo.require( 'multi.multi' );
+</script>
+
+</head>
+<body>
+	
+<div id='table'>
+	<div id='upArrow' class='arrow'><center>&#x25b2;</center></div>
+	<div id='rows'></div>
+	<div id='downArrow' class='arrow'><center>&#x25bc;</center></div>
+</div>
+
+</body>
+</html>
+

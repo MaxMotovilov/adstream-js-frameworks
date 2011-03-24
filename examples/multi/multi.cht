@@ -1,0 +1,15 @@
+<? template Rows ?>
+	<? foreach ".*[?cols][/numId()]" ?>
+		<? Row ?>
+	<? /foreach ?>
+<? /template ?>
+
+<? template Row ?>
+	<div dojoType='multi.Row' data='{{ref:$}}'><div class='arrow' dir='left'><center>&#x25c0;</center></div><div class='cols'></div><div class='arrow' dir='right'><center>&#x25b6;</center></div></div>
+<? /template ?>
+
+<? template Cols ?>
+	<? foreach ".*[?value][/numId()]" ?>
+		<div><center>{{value}}</center></div>
+	<? /foreach ?>
+<? /template ?>
