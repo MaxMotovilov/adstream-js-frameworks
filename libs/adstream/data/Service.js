@@ -95,6 +95,8 @@ dojo.declare( 'adstream.data.Service', null, {
 
 		if( !this._refresh_timer && options && options.refreshRate )	
 			this._startRefreshTimer( 0 );
+
+		return rel_url;
 	},
 
 	ignore: function( rel_url ) {
@@ -108,6 +110,8 @@ dojo.declare( 'adstream.data.Service', null, {
 			delete parent[last_path_item];
 
 		this._purgeRefreshQueue( rel_url );
+
+		return rel_url;
 	},
 
 	catchAll: function( cb ) {

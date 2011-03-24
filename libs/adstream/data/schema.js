@@ -320,11 +320,11 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 				(options||(options={})).maxDepth = ref_obj._defaultGetDepth;
 		}
 
-		this._service.watch( cb, this._composeURL( rel_url ), options );
+		return this._service.watch( cb, this._composeURL( rel_url ), options );
 	},
 
 	ignore: function( rel_url ) {
-		this._service.ignore( this._composeURL( rel_url ) );
+		return this._service.ignore( this._composeURL( rel_url ) );
 	},
 
 	save: function( depth ) {
