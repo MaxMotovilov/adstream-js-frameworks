@@ -244,17 +244,17 @@ dojo.require( "dijit._Widget" );
 				{ noStart: true, instances: [] }
 			);
 
-// Step 1: build and parse new DOM
-			var dom = this.toParsedDom( opts );
-
-			if( options && options.instances )
-				Array.prototype.push.apply( options.instances, opts.instances );
-
-// Step 2: destroy widgets associated with the part of DOM being replaced
+// Step 1: destroy widgets associated with the part of DOM being replaced
 			if( ref_node ) {
 				if( pos === 'only' || pos === 'replace' )
 					_cleanupWidgets( ref_node, pos === 'only' && dijit.byNode( ref_node ) );
 			} else	_cleanupWidgets( outer_ctx.nodes() );
+
+// Step 2: build and parse new DOM
+			var dom = this.toParsedDom( opts );
+
+			if( options && options.instances )
+				Array.prototype.push.apply( options.instances, opts.instances );
 
 // Sync vs async completion: if transition requested, start it. 
 			if( this._transition )
