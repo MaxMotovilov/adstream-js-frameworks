@@ -447,16 +447,24 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 							this._chtSections[ self.def.name ] = self.sections;
 						
 						if( !self.def.kwarg.macro && ( self.arg || this.current_input === self._notAnExpression ) ) {
-							var	new_input;
+							var	new_input, local;
 							if( self.arg ) {
 								this.compile( self.arg );
 								new_input = this.popExpression();
+								if( new_input.length > 4 ) {
+									local = this.addLocal();
+									this.code.push( local + '=' + new_input + ';' );
+									new_input = '(' + local + ')';
+								}
 							} else
 								new_input = this.generator();
 
 							this.nonAccumulated( function() {
 								this.compileSequence( self.def.body );
 							}, new_input );
+
+							if( local )	this.locals.pop();
+
 						} else	this.compileSequence( self.def.body );
 
 						if( self.sections )

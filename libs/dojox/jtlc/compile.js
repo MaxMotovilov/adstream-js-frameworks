@@ -1,6 +1,6 @@
 dojo.provide( "dojox.jtlc.compile" );
 
-if( dojo.config.isDebug || dojo.config.annotateTemplates )
+if( dojo.config.isDebug )
 	dojo.require( "dojox.jtlc.prettyPrint" );
 
 dojox.jtlc._varNameLetters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";		
@@ -417,19 +417,23 @@ dojo.declare( 'dojox.jtlc._Loop', null, {
 
 	item: function() {
 		if( !this._items )	throw Error( "Internal error: loop not initialized" );
-		return this.lockedItem ? '(' + this.lockedItem + ')' : this._items + '[' + this._i + ']';
+		return this.lockedItem || this._items + '[' + this._i + ']';
 	},
 
 	lockItem: function( item ) {
 		if( !this._items )	
 			throw Error( "_Loop.lockItem() called out of sequence" );
 
-		if( item != this.item() ) {
+		var	cur_item = this.item();
 
-			this.lockedItem = this.lockedItemVar = this.lockedItemVar || this.compiler.addLocal();
+		if( item != cur_item && '(' + item + ')' != cur_item ) {
 
-			if( this.lockedItem != item )
+			this.lockedItemVar = this.lockedItemVar || this.compiler.addLocal();
+
+			if( this.lockedItemVar != item )
 				this.compiler.code.push( this.lockedItemVar + '=' + item + ';' );
+
+			this.lockedItem = '(' + this.lockedItemVar + ')';
 		} else {
 			this.lockedItem = item;
 		}

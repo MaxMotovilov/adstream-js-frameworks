@@ -268,21 +268,8 @@ dojox.jtlc._declareTag( 'expr', dojo.declare( dojox.jtlc._MultiArgTag, {
 	},
 
 	saveExpression: function( self, refs, i ) {
-
-		var	expr = this.expressions[ this.expressions.length-1 ];
-
-		if( refs[i] > 1 &&
-			expr.length > 4
-			/* Assume that anything shorter than 4 characters is safe to re-evaluate */
-//			&& expr != this.current_input 
-			/* and do not thwart the optimizer when working with current expressions! */
-		) {
-			var t = this.addLocal();
-			this.code.push( t + '=' + expr + ';' );
-			expr = this.expressions[ this.expressions.length-1 ] = t;
-		} else if( expr.length > 4 )	expr = '('+expr+')';
-		
-		refs[i] = expr;
+		var expr = this.expressions[ this.expressions.length-1 ];
+		refs[i] = expr.length > 4 ? '(' + expr + ')' : expr;
 	},	
 
 	compile: function( self ) {
