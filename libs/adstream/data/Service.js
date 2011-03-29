@@ -80,6 +80,7 @@ dojo.declare( 'adstream.data.Service', null, {
 		this._on_sync = {};
 		this._refresh_queue = [];
 		this._on_sync_id = 0;
+		this._pending_gets = {};
 	},
 
 	watch: function( cb, rel_url, options ) {
@@ -126,7 +127,7 @@ dojo.declare( 'adstream.data.Service', null, {
 		if( this._error_cb )	result.then( null, dojo.hitch( this, this._error_cb ) );
 
 		seed.url = this._ep_url + rel_url;
-		seed.handle = dojo.hitch( this, '_ioComplete', result, rel_url );
+		seed.handle = dojo.hitch( this, '_ioComplete', result, method, rel_url );
 
 		if( this.acceptContentTypes && this.acceptContentTypes.length )
 			dojo.mixin( seed.headers || (seed.headers={}), { 'Accept': this.acceptContentTypes.join( ', ' ) } );
@@ -135,14 +136,25 @@ dojo.declare( 'adstream.data.Service', null, {
 				seed.url += '?' + dojo.objectToQuery( params );
 		else 	seed.content = params || {};			
 
-		dojo.xhr( method, seed );
+		result.xhrPromise = dojo.xhr( method, seed );
 
 		return result;
 	},
 
-	GET: function( rel_url, params ) { 
+	GET: function( rel_url, params ) {
+
 		this._purgeRefreshQueue( rel_url, params.depth || 0 );
-		return this._xhr( "GET", {}, rel_url, params ); 
+
+		if( rel_url in this._pending_gets ) {
+			if( this._pending_gets[rel_url].params == dojo.objectToQuery( params ) )
+				return this._pending_gets[rel_url].result;
+			this._pending_gets[rel_url].result.xhrPromise.cancel(); // adstream.data promises are not cancelable
+		}
+
+		return (this._pending_gets[ rel_url ] = {
+			params: dojo.objectToQuery( params ),
+			result: this._xhr( "GET", {}, rel_url, params )
+		}).result;
 	},
 
 	DELETE: function( rel_url, params ) { 
@@ -166,12 +178,12 @@ dojo.declare( 'adstream.data.Service', null, {
 		}
 	},
 
-	_ioComplete: function( promise, arg_url, response, ioargs ) {
+	_ioComplete: function( promise, method, arg_url, response, ioargs ) {
 
 		var	err = null, result = null, 
 			headers = {};
 
-		dojo.forEach( ( ioargs.xhr.getAllResponseHeaders() || "" )
+		if( ioargs ) dojo.forEach( ( ioargs.xhr.getAllResponseHeaders() || "" )
 			.split( /\s*\n/ ), function( hdr ) {
 				var kv = hdr.split( /:\s*/ ),
 					key = kv[0].toLowerCase().replace( /(?:^|-)./g, function( s ){ return s.toUpperCase(); } );
@@ -186,21 +198,26 @@ dojo.declare( 'adstream.data.Service', null, {
 		if( response instanceof Error ) {
 			//	Error detected by dojo.xhr() -- timeout, HTTP code etc.
 			err = response;
-			response = response.responseText || ioargs.xhr.responseText;
+			response = response.responseText || ioargs && ioargs.xhr.responseText || '';
 		}
 
-		var	content_type = headers[ 'Content-Type' ];
+		if( method == 'GET' && (!err || err.dojoType != 'cancel') && arg_url in this._pending_gets )
+			delete this._pending_gets[ arg_url ];
 
-		if( this.rejectMediaTypes ? 
-			!content_type || adstream.data._contentTypeInList( content_type, this.rejectContentTypes ) :
-			!adstream.data._contentTypeInList( content_type, this.acceptContentTypes ) ) {
-			err = new Error( "Unexpected media type returned: " + content_type );
-		} else {
-			var json;
-			try { json = dojo.fromJson( response ); } catch( e ) {
-				err = new Error( "Malformed response from the server: bad JSON syntax" );
+		if( (!err || err.dojoType != 'cancel') && ioargs.xhr.readyState == 4 ) { // The request has completed and was not cancelled
+			var	content_type = headers[ 'Content-Type' ];
+
+			if( this.rejectMediaTypes ? 
+				!content_type || adstream.data._contentTypeInList( content_type, this.rejectContentTypes ) :
+				!adstream.data._contentTypeInList( content_type, this.acceptContentTypes ) ) {
+				err = new Error( "Unexpected media type returned: " + content_type );
+			} else if( response ) {
+				var json;
+				try { json = dojo.fromJson( response ); } catch( e ) {
+					err = new Error( "Malformed response from the server: bad JSON syntax" );
+				}
+				if( json )	try { result = this._sync( json, arg_url ); } catch( e ) { err = e; }
 			}
-			if( json )	try { result = this._sync( json, arg_url ); } catch( e ) { err = e; }
 		}
 
 		if( err ) {
