@@ -28,7 +28,8 @@ dojo.require( "dijit._Widget" );
 			).forEach( 
 				function( node ) {
 					var w = dijit.byNode( node );
-					if( w && ref_w !== w )	w.destroy();
+					if( w && ref_w !== w && !w._destroyed /* _Widget.destroy() is not protected from repeat calls */ )	
+						w.destroy( true ); // The DOM will be destroyed after transition has completed
 				} 
 			);
 	}
