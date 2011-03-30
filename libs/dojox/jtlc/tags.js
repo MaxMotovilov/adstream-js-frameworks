@@ -513,29 +513,11 @@ dojox.jtlc._declareTag( 'query', dojo.declare( dojox.jtlc._MultiArgTag, {
 	},
 
 	compile: function( self ) {
-
 		self.compileArgs.call( this, self );
 
-		if( this.loop ) {
-
-			this.generator( self.callQuery.call( this, self ) );
-
-		} else {
-
-			this._singletonQuery = this._singletonQuery || this.addGlobal( new Function(
-				"r",
-				( this.singletonQuery.failOnManyResults ? 
-					"if(r.length>1) throw Error('Singleton query \"'" + self.query + "'\" returned ' + r.length + ' results');"
-					: "" ) +
-				( this.singletonQuery.failOnNoResults ?
-					"if(!r.length) throw Error('Singleton query \"'" +  self.query + "'\" returned no results');return r[0];"
-					: "return r.length ? r[0] : null" )
-			) );
-			
-			this.expressions.push( 
-				this._singletonQuery + '(' + self.callQuery.call( this, self ) + ')'
-			);
-		}
+		if( this.loop && !this.loop.started() )
+				this.generator( self.callQuery.call( this, self ) );
+		else	this.expressions.push( self.callQuery.call( this, self ) );
 	}
 } ) );
 
