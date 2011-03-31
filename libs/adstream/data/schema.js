@@ -447,12 +447,15 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 
 		var result = null, to = {}, item;
 
-		if( depth < 0 ) for( var i in this )
-			if( this.hasOwnProperty(i) && i.charAt(0)=='@' &&
-				(item = this[i]._marshal( -1 )) ) {
-				to[i] = item;
-				result = to;
-			}
+		if( depth < 0 || 		// Called on self or parent container, so it is a POST
+			this._saveWithParent// Called on parent object -- mix POST data into a PUT
+		) 
+			for( var i in this )
+				if( this.hasOwnProperty(i) && i.charAt(0)=='@' &&
+					(item = this[i]._marshal( -1 )) ) {
+					to[i] = item;
+					result = to;
+				}
 		
 		return result;		
 	},
