@@ -451,7 +451,8 @@ dojo.declare( 'adstream.data.schema.Container', [ adstream.data.schema.Node ], {
 			this._saveWithParent// Called on parent object -- mix POST data into a PUT
 		) 
 			for( var i in this )
-				if( this.hasOwnProperty(i) && i.charAt(0)=='@' &&
+				if( this.hasOwnProperty(i) && 
+					( this._saveAllItems || i.charAt(0)=='@' ) &&
 					(item = this[i]._marshal( -1 )) ) {
 					to[i] = item;
 					result = to;
