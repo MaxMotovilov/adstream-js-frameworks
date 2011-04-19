@@ -325,13 +325,15 @@ dojo.declare( 'adstream.data.Service', null, {
 				}
 			} );
 
+			var	replaced = qi.obj._.url != qi.url;
+			if( replaced )	qi.obj._.url = qi.url; // Fixing @N URLs
+
 			for( var i in props ) {
 
 				if( props[i] ) {
 
 					if( !qi.obj.hasOwnProperty( i ) )
 						qi.obj[i] = qi.obj._schemaProp( i )._new( this, qi.obj._composeURL( i ) );
-					else qi.obj[i]._.url = qi.obj._composeURL( i ); // Fixing @N URLs
 
 					var new_qi = {
 						url: qi.url + '/' + i, obj: qi.obj[i], data: props[i], 
@@ -347,6 +349,11 @@ dojo.declare( 'adstream.data.Service', null, {
 
 				} else if( qi.url + '/' + i == arg_url ) result = null;
 			}
+
+			if( replaced ) 
+				for( var i in qi.obj )
+					if( qi.obj.hasOwnProperty(i) && !( i in props ) && qi.obj[i]._ )
+						qi.obj[i]._.url = qi.obj.composeURL( i ); // Fixing @N URLs in cache-only properties
 		}
 
 		//	Step III: disambiguate and fire the notifications
