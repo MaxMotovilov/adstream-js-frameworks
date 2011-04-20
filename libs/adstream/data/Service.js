@@ -352,8 +352,8 @@ dojo.declare( 'adstream.data.Service', null, {
 
 			if( replaced ) 
 				for( var i in qi.obj )
-					if( qi.obj.hasOwnProperty(i) && !( i in props ) && qi.obj[i]._ )
-						qi.obj[i]._.url = qi.obj.composeURL( i ); // Fixing @N URLs in cache-only properties
+					if( qi.obj.hasOwnProperty(i) && !( i in props ) && qi.obj[i] && qi.obj[i]._ )
+						qi.obj[i]._.url = qi.obj._composeURL( i ); // Fixing @N URLs in cache-only properties
 		}
 
 		//	Step III: disambiguate and fire the notifications
