@@ -240,7 +240,7 @@ dojox.jtlc.CHT.loader = (function() {
 			var result = new WaitingList();
 
 			for( var i=0; i<arguments.length; ++i ) {
-				var	mdl_list = arguments[i].split('+');
+				var	mdl_list = arguments[i].split( /\s*\+\s*/ );
 				result.push(
 					cache[ mdl_list[0] ] || 
 					( cache[mdl_list[0]] = loadAndParseModuleList( mdl_list ) )
