@@ -108,10 +108,10 @@ dojox.jtlc._CHTElement = function( text ) {
 		this.closeTag = RegExp.$1.split( /\s*[.]\s*/ ).join( '.' );
 	} else	if( /^<[?]\s*([a-z_]\w*(?:\s*[.]\s*[a-z_]\w*)*)([\s\S]*?)\s*[?]>$/i.exec( text ) ) {
 
+		var	body = RegExp.$2;
+
 		this.openTag = RegExp.$1.split( /\s*[.]\s*/ ).join( '.' );
 		this.kwarg = {}
-
-		var	body = RegExp.$2;
 
 		if( /^\s+(?![a-z]\w*=)(["']?)((?:\\.|[^\\])*?)\1(?=\s|$)/i.exec( body ) ) {
 			this.arg = RegExp.$2;
