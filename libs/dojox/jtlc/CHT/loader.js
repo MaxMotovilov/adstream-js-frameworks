@@ -167,6 +167,7 @@ dojox.jtlc.CHT.loader = (function() {
 					throw Error( '<?' + tpl + '?> is not defined in ' + mdl );
 				refs[mdl + '.' + tpl] = cached.parsed[tpl];
 			} );
+			return false; // Prevent propagation of a deferred
 		}
 	}
 
