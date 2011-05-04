@@ -595,12 +595,10 @@ dojo.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 		if( typeof value !== 'undefined' ) {
 
 			var	defaults = _descendSchema( this._.url, this._service.root )._[prop];
-			if( value ) {
-				value = dojo.delegate( defaults, value );
-				for( var i in value )
-					if( value.hasOwnProperty( i ) && value[i] === null )
-						delete value[i];
-			} else	value = defaults;
+			value = dojo.delegate( defaults, value || {} );
+			for( var i in value )
+				if( value.hasOwnProperty( i ) && value[i] === null )
+					delete value[i];
 
 			this._['_' + prop] = value;
 
