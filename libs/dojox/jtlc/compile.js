@@ -1,3 +1,8 @@
+// Copyright (C) 2010-2011 Adstream Holdings
+// All rights reserved.
+// Redistribution and use are permitted under the modified BSD license
+// available at https://github.com/MaxMotovilov/dojox.jtlc/wiki/License
+
 dojo.provide( "dojox.jtlc.compile" );
 
 if( dojo.config.isDebug )
