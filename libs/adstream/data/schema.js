@@ -230,8 +230,9 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 				if( typeof this._[prop] !== 'object' )
 					throw Error( prop + " is not a valid structured metadata property for " + this._.url );
 				
-				if( (src._[prop] || this._.hasOwnProperty( prop )) && 
-					!_identicalProp( src._[prop], this._[prop] ) 
+				if( this._.hasOwnProperty( prop ) ?
+						!src._[prop] || !_identicalProp( src._[prop], this._[prop] ) :
+						src._[prop]
 				) {
 					this._copyProp( src._[prop], prop );
 					any = true;
@@ -475,7 +476,7 @@ dojo.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 				if( this._.hasOwnProperty( '_' + prop ) ) {
 					// Do the work of the lazy server
 					result = result || !_identicalProp( this._['_' + prop], this._[prop] );
-					_copyProp( this._['_' + prop], this._[prop] );
+					this._copyProp( this._['_' + prop], prop );
 					delete this._['_' + prop];
 				}
 			}, this );
@@ -602,8 +603,10 @@ dojo.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 
 			this._['_' + prop] = value;
 
-		} else if( !this._.hasOwnProperty( '_' + prop ) )
-			this._['_' + prop] = dojo.delegate( this._[prop], {} );
+		} else if( !this._.hasOwnProperty( '_' + prop ) ) {
+			var	defaults = _descendSchema( this._.url, this._service.root )._[prop];
+			this._['_' + prop] = dojo.delegate( defaults, this._.hasOwnProperty( prop ) ? dojo.mixin( {}, this._[prop] ) : {} );
+		}
 
 		return this._['_' + prop];
 	},
