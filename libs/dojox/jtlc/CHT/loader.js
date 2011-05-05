@@ -1,7 +1,7 @@
 // Copyright (C) 2010-2011 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
-// available at https://github.com/MaxMotovilov/dojox.jtlc/wiki/License
+// available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
 
 /*
    CHT loader with support for template libraries and localization bundles
