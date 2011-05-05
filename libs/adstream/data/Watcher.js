@@ -20,7 +20,7 @@ dojo.declare( 'adstream.data.Watcher', null, {
 		if( rel_url in this._dataWatches )	delete this._dataWatches[ rel_url ];
 	},
 
-	destroy: function() {
+	uninitialize: function() {
 		for( var rel_url in this._dataWatches )
 			this._dataWatches[rel_url].ignore( rel_url );
 		return this.inherited( arguments );
