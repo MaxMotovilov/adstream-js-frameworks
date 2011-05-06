@@ -71,8 +71,8 @@ d.declare( 'dojox.jtlc.qplus', dj.JXL, {
 		"'": { close: "'", allow: "'" }
 	},
 
-	_singleScanRegex: /(?:[\[\](){}"'|]|\\.)/g,
-	_multipleScanRegex: /(?:[\[\](){}"'|,]|\\.)/g,
+	_singleScanRegex: /(?:[\[\](){}"']|\\.|\|\|?)/g,
+	_multipleScanRegex: /(?:[\[\](){}"',]|\\.|\|\|?)/g,
 	_initScanStack: { close: '', allow: '[](){}"\'|,' },
 
 	parse: function( query, multiple ) {

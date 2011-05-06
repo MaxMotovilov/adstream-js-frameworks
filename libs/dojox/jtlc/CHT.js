@@ -778,17 +778,17 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 		},
 
 		optimize: function( body ) {
-			var inner_regex = new RegExp(
-					this._chtHTML + '\\.push\\({1,2}"((?:[^"\\\\]|\\\\.)*)"\\){1,2};', "g"
-				),
-				acc = this._chtHTML;			
-
-			return dojox.jtlc.replaceWithinJavascript(
-				body,
-				new RegExp(
+			var acc = this._chtHTML,
+				outer_regex = new RegExp(
 					'[;}{](?:' + acc + '\\.push\\({1,2}"(?:[^"\\\\]|\\\\.)*"\\){1,2};){2,}',
 					"g"
-				), function( seq ) {
+				),
+				inner_regex = new RegExp(
+					acc + '\\.push\\({1,2}"((?:[^"\\\\]|\\\\.)*)"\\){1,2};', "g"
+				);
+
+			return dojox.jtlc.replaceWithinJavascript(
+				body, outer_regex, function( seq ) {
 					return seq.substr( 0, 1 ) + acc + '.push("' +
 						   seq.substr( 1 ).replace( inner_regex, '$1' ) + '");';
 				}
@@ -822,7 +822,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 			var replace_params = this['_escape' + self.cachePrefix + 'Regex'] + ',' + this['_escape' + self.cachePrefix + 'Fn'];
 
 			if( !( '_escape' + self.cachePrefix + 'Optimizer' in this.optimizers ) ) {
-				var regex = new RegExp( '\\(("(?:\\\\.|[^\\\\"])*")\\)\\.toString\\(\\)\\.replace\\(' + replace_params + '\\)', 'g' );
+				var regex = new RegExp( 'String\\(("(?:\\\\.|[^\\\\"])*")\\)\\.replace\\(' + replace_params + '\\)', 'g' );
 				this.optimizers['_escape' + self.cachePrefix + 'Optimizer'] = function( body ) {
 					return dojox.jtlc.replaceWithinJavascript( body, regex, '$1' );
 				}
@@ -832,7 +832,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 			var	what = this.popExpression();
 			if( !/^\(.*\)$/.test( what ) )
 				what = '(' + what + ')';
-			this.expressions.push( what + '.toString().replace(' + replace_params +	')' );
+			this.expressions.push( 'String' + what + '.replace(' + replace_params +	')' );
 		}
 	} );
 
