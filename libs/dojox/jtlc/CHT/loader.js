@@ -260,6 +260,11 @@ dojox.jtlc.CHT.loader = (function() {
 			var sn = splitTemplateName( tpl ),
 				cached = cache[ sn.namespace() ] || loadAndParseModule( sn );
 			return cached.then ? deferGetTemplate( cached, sn ) : getTemplate( sn );
+		},
+
+		getLocalization: function( mdl ) {
+			var	cached = cache[ splitModuleName( mdl ).namespace() ];
+			return cached && cached.nls;
 		}
 	};
 })();

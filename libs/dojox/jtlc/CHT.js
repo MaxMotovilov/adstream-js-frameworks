@@ -804,9 +804,15 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 		},
 
 		formatString: function( self ) {
-			if( this.i18nDictionary && !(self.format in this.i18nDictionary) )
-				this.i18nDictionary[self.format] = false;
-			return dj.stringLiteral( this.i18nDictionary && this.i18nDictionary[self.format] || self.format );
+			var	d = this.i18nDictionary;
+			return dj.stringLiteral( 
+				d && ( self.format in d ? d[self.format] :
+					self.format.replace( /^(\s*)(.*?)(\s*)$/, function( _, pfx, key, sfx ) {
+						if( !( key in d ) )	d[key] = false;
+						return d[key] ?	(pfx||'') + d[key] + (sfx||'') : '';
+					} )
+				) || self.format
+			);
 		}
 	} ) );
 
