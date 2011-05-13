@@ -213,8 +213,8 @@ dojo.declare( 'adstream.data.Service', null, {
 			var	content_type = headers[ 'Content-Type' ];
 
 			if( this.rejectMediaTypes ? 
-				!content_type || adstream.data._contentTypeInList( content_type, this.rejectContentTypes ) :
-				!adstream.data._contentTypeInList( content_type, this.acceptContentTypes ) ) {
+				content_type && adstream.data._contentTypeInList( content_type, this.rejectContentTypes ) :
+				!content_type || !adstream.data._contentTypeInList( content_type, this.acceptContentTypes ) ) {
 				err = new Error( "Unexpected media type returned: " + content_type );
 			} else if( response ) {
 				var json;
