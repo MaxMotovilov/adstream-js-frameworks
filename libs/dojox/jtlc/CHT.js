@@ -836,9 +836,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 			this.compile( self.arg );
 			var	what = this.popExpression();
-			if( !/^\(.*\)$/.test( what ) )
-				what = '(' + what + ')';
-			this.expressions.push( 'String' + what + '.replace(' + replace_params +	')' );
+			this.expressions.push( 'String(' + what + ').replace(' + replace_params +	')' );
 		}
 	} );
 
