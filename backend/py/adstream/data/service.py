@@ -126,7 +126,7 @@ class _SvcDeleteMethod(_SvcMethod):
 	def __call__( self, svc, kvps, response, request ):
 		if type(kvps) == tuple:	kvps = [ kvps ]
 		if self.key_depth==0:
-			for kvp in ko_pairs:
+			for kvp in kvps:
 				self.callMethod( svc, kvp, response, request )
 		else:
 			key_depth = -self.key_depth
@@ -208,6 +208,15 @@ class Service(object):
 					if isinstance( v, _SvcMethod ):	result._register( v )
 			return result
 			
+	def begin( self, verb, url, request, response ):
+		pass
+		
+	def commit( self, verb, url, request, response ):
+		pass
+		
+	def rollback( self, verb, url, request, response ):
+		pass
+			
 	def __call__( self, verb, url, body = None ):
 
 		url = urlparse.urlparse( url )
@@ -252,32 +261,48 @@ class Service(object):
 			return _wrap405( verb + ' is not supported by ' + url, allow_verbs )
 		
 		response = packet.Packet( self.schema )
+		need_rollback = False
 		
 		try:
 			if verb=='GET':
-				self._getObject( t, key, request, response, url_args.get( 'depth', None ) )
+				depth = url_args.get( 'depth', '' )
+				self._getObject( t, key, request, response, depth and int(depth) or 0 )
 			elif verb=='PUT':
+				self.begin( verb, url, request, response )
+				need_rollback = True
 				self._modifyObject( t, key, request, response, False )
+				need_rollback = False
+				self.commit( verb, url, request, response )
 			elif verb=='DELETE':
+				self.begin( verb, url, request, response )
+				need_rollback = True
 				self._deleteObject( t, key, request, response )
+				need_rollback = False
+				self.commit( verb, url, request, response )
 			elif verb=='POST':
+				self.begin( verb, url, request, response )
+				need_rollback = True
 				self._modifyObject( t, key, request, response, True )
+				need_rollback = False
+				self.commit( verb, url, request, response )
 			return _wrap200( response )
 		except Error as err:
+			if need_rollback:	self.rollback( verb, url, request, response )
 			if err.status == 405:
 				allow_verbs.remove( verb )
 				return _wrap405( err.message, allow_verbs )
 			elif err.status == 409:
 				try:
 					response = packet.Packet( self.schema )
-					if verb=='DELETE':	self._getObject( t, key, response, None )
+					if verb=='DELETE':	self._getObject( t, key, request, response, None )
 					else:				self._getAffected( t, key, request, response )
-					return _wrap409( response )
+					return _wrap409( err.message, response )
 				except:
 					return _wrap500( sys.exc_info() )
 			else:
 				return _wrapError( err.status, err.message )
 		except:
+			if need_rollback:	self.rollback( verb, url, request, response )
 			return _wrap500( sys.exc_info() )
 	
 	def _getObject( self, t, key, request, response, depth ):
@@ -322,12 +347,13 @@ class Service(object):
 			all_of_type = all_of_type.slice( key )
 			
 			if ignore == 0:
+				ignore = 1
 				if add:
 					if 'create' in t.handlers:
 						ignore = t.handlers['create'].depth + 1
 						t.handlers['create']( self, (
 							(
-								tuple( (
+								key + tuple( (
 									response.replaces[kpart] if schema._is_fake_key( kpart ) else kpart
 									for kpart in ( k[:-1] if is_item else k )
 								) ),
@@ -349,7 +375,6 @@ class Service(object):
 						), response, request )
 					elif schema.is_a( t.schema_type, schema.Container ):
 						all_of_type = request[t.children.schema_type].slice( key )
-						ignore = 1
 						
 						# Process deleted items immediately
 						all_deleted = [ ( k, _version_of( v ) ) for k,v in all_of_type.iteritems() if _is_deleted_item( v ) ]

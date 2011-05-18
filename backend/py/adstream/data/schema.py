@@ -2,6 +2,8 @@
 
 # Metaclass machinery: provides schema and instance creation, AOP-like method wrappers
 
+import copy as sysCopy
+
 def _collectDeclarations( dct, policies ):
 	declarations = {}
 	for name, typ in dct.items():
@@ -58,7 +60,14 @@ def is_a( schema_type, schema_metaclass ):
 # Serialization machinery: decides how to marshal objects and values
 
 def _convert_plain( value, schema_type ):
-	return value if isinstance( value, schema_type ) else schema_type( value )
+	if isinstance( value, schema_type ):
+		return value
+	elif type(value) == str and schema_type == unicode:
+		return value.decode('utf8')
+	elif type(value) == unicode and schema_type == str:
+		return value.encode('utf8')
+	else:
+		return schema_type( value )
 
 def _is_fake_key( key ):
 	return (type(key) == str or type(key) == unicode) and key[:1] == '@'
@@ -126,6 +135,7 @@ class _StructCore(object):
 		def _load_( self, value, is_metadata = False, **kwarg ):
 			any = False
 			for name, val in value.iteritems():
+				if name=='_':   continue
 				if name in self._schema:
 					v = _convert( val, self._schema[ name ], **kwarg )
 					if v is not None or val is None:
@@ -138,7 +148,7 @@ class _StructCore(object):
 					setattr( self, name, val )
 			
 			for name, typ in self._schema.iteritems():
-				if name not in value:
+				if name not in value and name != '_':
 					if self._missing_prop_policy_[0] == Policy.Provide and _is_value_type( typ ):
 						setattr( self, name, typ() )
 					elif self._missing_prop_policy_[0] == Policy.Fail:
@@ -244,6 +254,10 @@ class _SchemaCoreNamed(_StructCore,_SchemaCore):
 			if v is not None and _is_schema_element( typ ):
 				v._set_key( key )
 
+	def _load_( self, value, **kwarg ):
+		self._ = _unmarshal( value.get( '_', {} ), self._schema['_'], **kwarg )
+		_StructCore._load_( self, value, **kwarg )
+        
 class _SchemaElement(_MetaClass):
 	_is_metaclass_ = True
 	
@@ -252,6 +266,19 @@ class _SchemaElement(_MetaClass):
 		the_type._url = ''
 		the_type._set_urls()
 		return the_type
+
+def copy( elt, depth=0 ):
+	if not elt._schema:	raise TypeError( "Cannot use schema.copy() with objects of type %s" % type(elt).__name__ )
+	result = type( elt )( **dict( (
+		(
+			name,
+			copy( getattr( elt, name ), (depth-1) if _is_schema_element( type ) else depth ) if not _is_value_type( type ) else sysCopy.copy( getattr( elt, name ) )
+		)
+		for name, type in elt._schema.iteritems()
+		if ( not _is_schema_element( type ) or depth > 0 ) and getattr( elt, name ) is not None
+	) )	)
+	result._set_key( elt._key_ )
+	return result
 
 class Node( _SchemaElement ):
 	_is_metaclass_ 	= True

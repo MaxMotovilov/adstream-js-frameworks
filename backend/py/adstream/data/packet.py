@@ -36,7 +36,7 @@ def _is_empty( seq ):
 def _single_element( seq ):
 	if seq is None or schema._is_schema_element( type(seq) ):	return seq
 	first = True
-	for elt in seq():
+	for elt in seq:
 		if not first: raise ValueError( "Sequence contains more than one element" )
 		first = False
 	if first: raise ValueError( "Sequence contains no elements" )
@@ -60,15 +60,15 @@ class _Sequence(object):
 		
 	def __setitem__( self, key, items ):
 		key = _normalize_key( key )
-		new_url = _fill_key( self._url, key[:-1] )
-		if new_url.count('%') == 0:
-			if len(key)>0:	raise KeyError( "Key too long: '%s' already refers to a single object" % new_url )
-			else:			self._packet[new_url] = _single_element( items )
-		elif new_url.count('%') == 1:
-			self._packet[new_url%key[-1]] = _single_element( items )
+		new_url = _fill_key( self._url, key )
+		p_count = self._url.count('%')
+		if p_count < len(key):
+			raise KeyError( "Key too long: '%s' already refers to a single object" % new_url )
+		elif p_count == len(key):
+			self._packet[new_url] = _single_element( items )
 		else:
 			for k, v in items.iteritems():
-				self._packet[ _fill_key( new_url, ( key[-1], ) + _normalize_key( k ) ) ] = v
+				self._packet[ _fill_key( new_url, _normalize_key( k ) ) ] = v
 		
 	_keys_op, _values_op, _items_op = xrange(0,3)
 	
@@ -188,7 +188,6 @@ class Packet(object):
 
 	def __setitem__( self, url_or_type, item_or_items ):
 		if isinstance( url_or_type, type ):
-			url_or_type = url_or_type._url
 			self[url_or_type][()] = item_or_items
 			return
 
@@ -224,7 +223,7 @@ class Packet(object):
 			else:				new._.replaces = old_key[-1]
 		
 		if new is not None and new._ and getattr( new._, 'replaces', None ):
-			self.replaces[new._.replaces] = new._key_
+			self.replaces[new._.replaces] = new._key_[-1]
 
 		for k,v in extra:	self[k] = v
 						
@@ -251,7 +250,7 @@ class Packet(object):
 		
 	def deserialize( self, body, url_args = {} ):
 		if not isinstance( body, dict ):
-			body = json.loads( body )
+			body = json.loads( body if type(body) == unicode else str(body).decode( 'utf8' ) )
 			
 		if not isinstance( url_args, dict ):
 			url_args = dict((
@@ -267,7 +266,9 @@ class Packet(object):
 		for path, obj in self.iteritems():
 			result[path] = _marshal( obj, type(obj) )
 		if as_type == type(result): return result
-		return as_type( json.dumps( result ) )
+		result = json.dumps( result, ensure_ascii=False )
+		if as_type == type(result): return result
+		return as_type( result.encode( 'utf8' ) )
 		
 if __name__ == "__main__":
 
