@@ -1,7 +1,9 @@
 
 <? template SearchPane ?>
 	<div dojoType="app.booze.SearchPane">
-		<div id='searchPaneTitle'>Product Finder</div>
+		<div id='searchPaneTitle'>
+			Product Finder
+		</div>
 		<div id='searchPaneInner'>
 		<input type="text" name="search"><div id='searchButton'></div>
 		<? when "$.get('lists')" ?>
@@ -67,7 +69,9 @@
 			Search results: {{$.filter().search}}
 		<? /if ?>
 		<? if "$.view().count" ?>
-			<div class='listTitleCounts'>showing {{$.view().count}} of {{$.extra().totalCount}} products</div>
+			<div class='listTitleCounts'>
+				showing {{$.view().count}} of {{$.extra().totalCount}} products
+			</div>
 		<? /if ?>
 	</div>
 	<div>
@@ -81,11 +85,11 @@
 						</div>
 						{{name}}
 						<? if "vintage" ?>
-							<span class='label'>{{vintage}}</span>
+							<span class='label'>{{vintage||""}}</span>
 						<? /if ?>
 					</div><div class='half'>
 						<? if "country" ?>
-							<span class='label'>Country</span>{{country}}
+							<span class='label'>Country</span>{{country||""}}
 						<? /if ?>
 						<div class='buyButton'>Buy</div>
 						<? Price ?>
@@ -112,7 +116,7 @@
 <? /template ?>
 
 <? template NotImplemented ?>
-
-<div>The ordering functionality is not implemented. You're welcome to supply it yourself as an exercise.</div>
-
+	<div>
+		The ordering functionality is not implemented. You're welcome to supply it yourself as an exercise.
+	</div>
 <? /template ?>

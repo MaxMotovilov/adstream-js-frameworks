@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+import adstream
+from adstream.data import *
 import os, urllib, re, sys, traceback, string
 import simplejson as json
 	
@@ -10,73 +12,25 @@ def namedParameters():
         if m:   result[ m.group(1) ] = (lambda x: x if x != None else True)( m.group(2) )
     return result
 
-def decodeURLParamValue( value ):
-	value = urllib.unquote( value )
-	try:
-		value = int(value)
-	except ValueError:
-		value = unicode(value,'utf8')
-	return value
-
-def decodeURLParam( p ):
-    name,value = p.split( '=', 1 )
-    return (name, decodeURLParamValue(value))
-            
-def as_json(f):
-	def wrapper( *args, **kwargs ):
-		if 'unwrapped' in kwargs: return f( *args, **kwargs )
-		kwargs.setdefault('headers',{})['Content-Type'] = 'application/json'
-		return json.dumps( f( *args, **kwargs ), ensure_ascii=False ).encode('utf8')
-	return wrapper
-
-def json_input(f):
-	def wrapper( env, *args, **kwargs ):
-		return f( json.loads( env['wsgi.input'].read( int(env['CONTENT_LENGTH']) ) ), *args, **kwargs )
-	return wrapper
-
-def no_input(f):
-	def wrapper( env, *args, **kwargs ):
-		return f( *args, **kwargs )
-	return wrapper
-
-class Error(Exception):
-	pass
-
-class HTTPError (Error):
-
-	httpStatusCodes = {
-		200: 'OK', 302: 'FOUND', 400: 'BAD REQUEST', 401: 'UNAUTHORIZED', 404: 'NOT FOUND', 
-		405: 'METHOD NOT ALLOWED', 409: 'CONFLICT', 410: 'GONE', 500: 'INTERNAL ERROR'
-	}
-
-	def __init__( self, code, message, response = {} ):
-		self.response = response
-		self.status = str(code) + ' ' + HTTPError.httpStatusCodes.get( code, 'ERROR' )
-		self.response.setdefault( '_error', {} )['message'] = message
-
-	def result(self):
-		return json.dumps( self.response )
-
-	def headers(self):
-		return [ ('Content-Type','application/json') ]
-
-class SimError (Error):
-
-	def __init__( self, code, headers={}, response = '' ):
-		self.response = response
-		self.status = str(code) + ' ' + HTTPError.httpStatusCodes.get( code, 'ERROR' )
-		self.hdr = headers
-
-	def result(self):
-		return self.response
-
-	def headers(self):
-		return self.hdr.items()
-
 ##########################################################
 
 localpath = os.path.abspath(os.path.dirname(__file__))
 
+def saveDb():
+	f = open( os.path.join( localpath, 'booze.db.json' ), 'w' )
+	f.write( json.dumps( db, indent=2, ensure_ascii=False ).encode('utf8') )
+	f.close()
+
+def loadDb():
+	global db
+	try:
+		db = json.loads( open( os.path.join( localpath, 'booze.db.json' ), 'r' ).read() )
+	except:
+		traceback.print_exc()
+		db = { 'products': {}, 'orders': {}, 'customers': {}, 'last_id': 0 }
+
+loadDb()		
+		
 """
 	/products
 		/<ID>
@@ -105,447 +59,279 @@ localpath = os.path.abspath(os.path.dirname(__file__))
 		vintages:  [ number... ]
 """
 
-def saveDb():
-	f = open( os.path.join( localpath, 'booze.db.json' ), 'w' )
-	f.write( json.dumps( db, indent=2, ensure_ascii=False ).encode('utf8') )
-	f.close()
+class	Booze(Node):
 
-try:
-	db = json.loads( open( os.path.join( localpath, 'booze.db.json' ), 'r' ).read() )
-except:
-	traceback.print_exc()
-	db = { 'products': {}, 'orders': {}, 'customers': {}, 'last_id': 0 }
+	class products(Container):
+		class filter(MetaData):
+			search = str
+			price = float
+			section = str
+			country = str
+			vintage = int
+			
+		class view(Container.view):
+			orderby = str
+			
+		class extra(MetaData):
+			totalCount = int
+			
+		class item(Object):
+			name = str
+			price = float
+			section = str
+			country = str
+			vintage = int
+			picture = str
+			description = str
 
-saveDb()
+	class customers(Container):
+		class extra(MetaData):
+			totalCount = int
+			
+		class item(Object):
+			name = str
 
+	class orders(Container):
+		class item(Object):
+			customerID = str
+			date = int
+			
+			class items(Container):
+				class item(Object):
+					productID = str
+					quantity = int
+	
+	class lists(Object):
+		sections = Array( str )
+		countries = Array( str )
+		vintages = Array( int )
+		
 splitter = re.compile( r'\W+', re.U )
 
 def regexFromSearchPattern( search ):
 	return re.compile( '\\b' + '.*?\\b'.join( ( i for i in splitter.split( search ) if i ) ), re.I | re.U )
 
-def productMatches( product, search=None, price=None, section=None, country=None, vintage=None, **kwargs ):
+def productMatches( product, filter ):
 
 	return (
-		(not search) or (
-			regexFromSearchPattern( search ) if type(search)==unicode else search 
-		).search( 
+		(not filter.search) or
+		regexFromSearchPattern( filter.search ).search( 
 			product['name'] + ' ' + product.get( 'description', '' )
 		)
 	) and (
-		(not price) or (
-			product['price'] <= price if len(tuple(price))==1 else
-			( product['price'] > price[0] and product['price'] <= price[1] )
+		(not filter.price) or (
+			product['price'] <= filter.price if len(tuple(filter.price))==1 else
+			( product['price'] > filter.price[0] and product['price'] <= filter.price[1] )
 		)
 	) and (
-		(not section) or product['section'] == section
+		(not filter.section) or product['section'] == filter.section
 	) and (
-		(not country) or product.get( 'country', '' ) == country
+		(not filter.country) or product.get( 'country', '' ) == filter.country
 	) and (
-		(not vintage) or product.get( 'vintage', 0 ) == vintage
+		(not filter.vintage) or product.get( 'vintage', 0 ) == filter.vintage
 	)
 
-def customerMatches( customer, search=None, **kwargs ):
-	return not search or ( 
-		regexFromSearchPattern( search ) if type(search)==str else search 
+def customerMatches( customer, filter ):
+	return not filter.search or ( 
+		regexFromSearchPattern( filter.search ) if type(filter.search)==str else filter.search 
 	).search( 
 		customer['name']
 	)
-
-def normalizePostData( data, prefix ):
-
-	for i in data.iteritems():
-		name,value = i
-		if name == prefix: continue
-		if name[0:2+len(prefix)] == prefix + '/@':
-			data.setdefault( prefix, {} )[name[2+len(prefix):]] = value
-			del data[name]
-		else:
-			raise HTTPError( 400, 'Bad POST data element: ' + name )
-
-	if prefix not in data:
-		raise HTTPError( 400, 'No data submitted in a POST' )
-
-	return data[prefix]
-
-def copyObject( obj ):
-	v = dict( obj )
-	v['_'] = dict( v['_'] )
-	return v
-
-def wrapObject( root, obj_id, wrapper = None, source = None ):
-	wrapper = wrapper or {}
-	( wrapper[root] if root in wrapper else wrapper )[ 
-		obj_id if root in wrapper else root + '/' + str(obj_id) 
-	] = copyObject( source or db[root][obj_id] )
-	return wrapper
-
-def trimView( result, sort_key, offset, count ):
-	if offset==None and count==None: return
 	
-	keys = sorted( [ i for i in result.keys() if i != '_' ], lambda a,b: cmp( result[a][sort_key], result[b][sort_key] ) )
+def trimView( result, view, extra = None ):
+	if view.offset is None and view.count is None: return result
+	orderby = view.orderby or 'price'
+	result = sorted( result, lambda a,b: cmp( getattr( a[1], orderby ), getattr( b[1], orderby ) ) )
 	
-	offset = offset or 0
+	offset = view.offset or 0
 	total = len(result)
+	if extra:	extra.totalCount = total
 
-	if offset: 
-		for key in keys[:offset]:
-			del result[key]
+	if view.count is None:	return result[offset:]
+	else:					return result[offset:offset+view.count]
 
-	if count:
-		for key in keys[offset+count:]:
-			del result[key]
+class BoozeShack(Service):
 
-	result.setdefault('_',{})['view'] = { 'offset': offset, 'count': min(len(keys)-offset,count or 1000000000), 'orderby': sort_key }
-	result['_']['extra'] = { 'totalCount': total }
-
-def copyFilter( result, keys, args ):
-	f = [ ( k, args[k] ) for k in keys if k in args ]
-	if len(f): result.setdefault( '_', {} )['filter'] = dict( f )
-
-@no_input 
-@as_json
-def getProducts( orderby=None, count=None, offset=None, **kwargs ):
-
-	result = { 'products': {} }
-
-	for i in db['products'].iteritems():
-		product_id, product = i
-		if productMatches( product, **kwargs ):
-			wrapObject( 'products', product_id, result )
-
-	trimView( result['products'], orderby or 'price', offset, count )
-	copyFilter( result['products'], [ 'search', 'price', 'country', 'vintage', 'section' ], kwargs )
-
-	return result
-
-@no_input
-@as_json
-def getProduct( product_id, **kwargs ):
-
-	if product_id not in db['products']:
-		raise HTTPError( 404, 'Product does not exist' )
-
-	return wrapObject( 'products', product_id )
-
-@no_input
-@as_json
-def	getLists( **kwargs ):
+	schema = Booze
 	
-	countries = set()
-	sections = set()
-	vintages = set()
-
-	for i in db['products'].itervalues():
-		if 'country' in i:	countries.add( i['country'] )
-		if 'section' in i:	sections.add( i['section'] )
-		if 'vintage' in i:	vintages.add( i['vintage'] )
-
-	return { 'lists': { 
-		'countries': sorted(list(countries)), 
-		'sections': sorted(list(sections)), 
-		'vintages': sorted(list(vintages))
-	} }
-
-@no_input 
-@as_json
-def getCustomers( orderby=None, count=None, offset=None, **kwargs ):
-
-	result = { 'customers': {} }
-
-	for i in db['customers'].iteritems():
-		customer_id, customer = i
-		if customerMatches( customer, **kwargs ):
-			wrapObject( 'customers', customer_id, result )
-
-	trimView( result['customers'], orderby or 'name', offset, count )
-	copyFilter( result['customers'], [ 'search' ], kwargs )
-
-	return result
-
-@no_input
-@as_json
-def getCustomer( customer_id, **kwargs ):
-	if customer_id not in db['customers']:
-		raise HTTPError( 404, 'Customer does not exist' )
-
-	return wrapObject( 'customers', customer_id )
-
-@json_input
-@as_json
-def addCustomers( data, **kwargs ):
-	
-	data = normalizePostData( data, 'customers' )
-	customers = {}
-	
-	for i in data.iteritems():
-		temp, customer = i
-
-		customer.setdefault('_', {})['version'] = 1
-		db['last_id'] = db['last_id']+1
-		customer_id = str(db['last_id'])
-		db['customers'][customer_id] = customer
+	def commit( self, *arg ):
+		saveDb()
 		
-		if customerMatches( customer, **kwargs ):
-			customer = copyObject( customer )
-			customer['_']['replaces'] = '@'+temp
-			customers[customer_id] = customer
+	def rollback( self, *arg ):
+		loadDb()
+	
+	@get(Booze.lists)
+	def get_lists( self, key, response ):
+		countries = set()
+		sections = set()
+		vintages = set()
+	
+		for i in db['products'].itervalues():
+			if 'country' in i:	countries.add( i['country'] )
+			if 'section' in i:	sections.add( i['section'] )
+			if 'vintage' in i:	vintages.add( i['vintage'] )
+
+		response['lists'] = Booze.lists(
+			sections = sorted(list(sections)),
+			countries = sorted(list(countries)),
+			vintages = sorted(list(vintages))
+		)
+
+	@get(Booze.products.item, key_depth=1)
+	def get_products( self, key, response, request ):
+		if len(key)==0:
+			response[Booze.products.item] = dict(
+				trimView( [
+					( k, Booze.products.item( **v ) )
+					for k, v in db['products'].iteritems()
+					if productMatches( v, request['products'].filter )
+				], request['products'].view, response['products'].extra )
+			)
 		else:
-			customers['@'+temp] = None
+			try:
+				response[Booze.products.item][key] = db['products'][key[0]]
+			except KeyError:
+				raise Error( 404, '/products/%s does not exist' % key[0] )
+			
+	@get(Booze.customers.item, key_depth=1)
+	def get_customers( self, key, response, request ):
+		if len(key)==0:
+			response[Booze.customers.item] = dict(
+				trimView( [
+					( k, Booze.customers.item( **v ) )
+					for k, v in db['customers'].iteritems()
+					if customerMatches( v, request['customers'].filter )
+				], request['customers'].view, response['customers'].extra )
+			)
+		else:
+			try:
+				response[Booze.customers.item][key] = db['customers'][key[0]]
+			except KeyError:
+				raise Error( 404, '/customers/%s does not exist' % key[0] )
+				
+	@create(Booze.customers.item, key_depth=1)
+	def add_customers( self, kvps, response, request ):
+		for k, v in kvps:
+			v._ = Booze.customers.item._( version = 1 )
+			db['last_id'] = db['last_id']+1
+			customer_id = str(db['last_id'])
+			db['customers'][customer_id] = v._save_()
+			if customerMatches( db['customers'][customer_id], request['customers'].filter ):
+				response[Booze.customers.item][customer_id] = v
+			else:
+				response[k] = None
 
-	saveDb()
-
-	customers.setdefault('_',{})['partial'] = 1
-
-	return { 'customers': customers }
-
-@no_input
-@as_json
-def getOrder( order_id, **kwargs ):
-	if order_id not in db['orders']:
-		raise HTTPError( 404, 'Order does not exist' )
-
-	result = wrapObject( 'orders', order_id )
-	order = result['orders'][order_id]
-
-	return result
-
-def processNewOrderItems( order, data ):
-	items = {}
-
-	for i in data.iteritems():
-		temp, item = i
-
-		item.setdefault('_', {})['version'] = 1
-		item_id = item['productID']
-		if item_id not in db['products']:
-			raise HTTPError( 400, 'Order item refers to a non-existent product' )
-		del item['productID']
-		order.setdefault( 'items',{} )[item_id] = item
+	@get(Booze.orders.item,depth=2)
+	def get_order( self, key, response ):
+		try:
+			response[Booze.orders.item][key] = Booze.orders.item( **db['orders'][key[0]] )
+		except KeyError:
+			raise Error( 404, '/orders/%d does not exist' % key[0] )
 		
-		item = copyObject( item )
-		item['_']['replaces'] = ('@' if temp[0] != '@' else '') + temp
-		items[item_id] = item
+	@get(Booze.orders.item.items.item,key_depth=1)
+	def get_orderItems( self, key, response ):
+		if len(key)==1:
+			response[Booze.orders.item.items.item][key] = db['orders'][key[0]]['items']
+		else:	
+			try:
+				response[Booze.orders.item.items.item][key] = Booze.orders.item.items.item( **db['orders'][key[0]]['items'][key[1]] )
+			except KeyError:
+				raise Error( 404, '/orders/%s/items/%s does not exist' % key )
 
-	return items
-
-@json_input
-@as_json
-def addOrders( data, **kwargs ):
-
-	data = normalizePostData( data, 'orders' )
-	orders = {}
-	
-	for i in data.iteritems():
-		temp, order = i
-
-		order.setdefault('_', {})['version'] = 1
+	@create(Booze.orders.item)
+	def add_order( self, kvp, response ):
 		db['last_id'] = db['last_id']+1
 		order_id = str(db['last_id'])
-		db['orders'][order_id] = order
+		created = adstream.data.schema.copy( kvp[1] )
+		created._ = Booze.orders.item._( version=1 )
+		v = created._save_()
+		v['items'] = {}
+		db['orders'][order_id] = v
+		response[Booze.orders.item][order_id] = created
 
-		items = order.get('items',{})
-		order['items'] = {}
-		
-		items = processNewOrderItems( order, items )
+	@create(Booze.orders.item.items.item)
+	def add_orderItem( self, kvp, response ):
+		k, v = kvp
+		if v.productID not in db['products']:
+			raise Error( 400, '/products/%s does not exist' % v.productID )
+		v._ = Booze.orders.item.items.item._( version = 1 )
+		k = k+(v.productID,)
+		v.productID = None
+		db['orders'][k[0]]['items'][k[1]] = v._save_()
+		response[Booze.orders.item.items.item][k] = v
 
-		order = copyObject( order )
-		order['items'] = items
+	@update(Booze.orders.item)
+	def update_order( self, obj, response ):
+		k = obj._key_
+		if k[0] not in db['orders']:
+			raise Error( 404, '/orders/%s does not exist' % k[0] )
+		if obj._.version != db['orders'][k[0]]['_']['version']:
+			raise Error( 409, '/orders/%s has been modified' % k[0] )
+		obj._.version += 1
+		v = obj._save_()
+		if 'items' in v: del v['items']
+		db['orders'][k[0]].update( v )
+		response[Booze.orders.item][k] = obj
+			
+	@update(Booze.orders.item.items.item)
+	def update_orderItem( self, obj, response ):
+		k = obj._key_
+		if k[0] not in db['orders'] or k[1] not in db['orders'][k[0]]['items']:
+			raise Error( 404, '/orders/%s/items/%s does not exist' % k )
+		if obj._.version != db['orders'][k[0]]['items'][k[1]]['_']['version']:
+			raise Error( 409, '/orders/%s/items/%s has been modified' % k )
+		obj._.version += 1
+		db['orders'][k[0]]['items'][k[1]].update( obj._save_() )
+		response[Booze.orders.item.items.item][k] = obj
 
-		order['_']['replaces'] = '@'+temp
-		orders[order_id] = order
+	@delete(Booze.orders.item.items.item)
+	def delete_orderItem( self, kvp, response ):
+		k, ver = kvp
+		if k[0] not in db['orders'] or k[1] not in db['orders'][k[0]]['items']:
+			raise Error( 404, '/orders/%s/items/%s does not exist' % k )
+		if ver != db['orders'][k[0]]['items'][k[1]]['_']['version']:
+			raise Error( 409, '/orders/%s/items/%s has been modified' % k )
+		del db['orders'][k[0]]['items'][k[1]]
+		response[Booze.orders.item.items.item][k] = None
 
-	saveDb()
+def getStatic( path ):
+	m = re.search( '[.]([^.]*)$', path )
 
-	orders.setdefault('_',{})['partial'] = 1
-
-	return { 'orders': orders }
-
-@json_input
-@as_json
-def putOrder( data, order_id, **kwargs ):
-	if order_id not in db['orders']:
-		raise HTTPError( 404, 'Order does not exist' )
-	
-	for i in data.iteritems():
-		path,value = i
-		if path != 'orders/' + str(order_id):
-			raise HTTPError( 400, 'Bad PUT data element: ' + path )
-		if '_' not in value or 'version' not in value['_']:
-			raise HTTPError( 400, 'PUT data do not specify the version' )
-		if value['_']['version'] != db['orders'][order_id]['_']['version']:
-			raise HTTPError( 409, 'Modification collision', wrapObject( 'orders', order_id ) )
-
-		items = {}
-		
-		if 'items' in value:
-			for k in value['items'].iterkeys():
-				if k[0]=='@':
-					items[ k ] = value['items'][k]
-					del value['items'][k]
-				else:
-					if items[k]['_']['version'] != db['orders'][order_id]['items'][k]['_']['version']:
-						raise HTTPError( 409, 'Modification collision', wrapObject( 'orders', order_id ) )
-					items[k]['_']['version'] = items[k]['_']['version'] + 1
-		else:
-			value['items'] = db['orders'][order_id]['items']
-
-		value['_']['version'] = value['_']['version'] + 1
-		db['orders'][order_id] = value
-
-		items = processNewOrderItems( db['orders'][order_id], items )
-
-	saveDb()
-
-	result = getOrder( None, order_id, unwrapped=True, **kwargs )
-
-	for i in items.iteritems():
-		result['orders/'+str(order_id)].setdefault('items',{})[i[0]] = i[1]
-
-	return result
-
-@no_input
-@as_json
-def getOrderItem( order_id, item_id, **kwargs ):
-	if order_id not in db['orders'] or item_id not in db['orders'][order_id]['items']:
-		raise HTTPError( 404, 'Order or item does not exist' )
-
-	return wrapObject( 'orders/' + str(order_id) + '/items', item_id, source = db['orders'][order_id]['items'][item_id] )
-
-@json_input
-@as_json
-def addOrderItems( data, order_id, **kwargs ):
-
-	if order_id not in db['orders']:
-		raise HTTPError( 404, 'Order does not exist' )
-
-	data = normalizePostData( data, 'orders/' + str(order_id) + '/items' )
-	items = processNewOrderItems( db['orders'][order_id], data )
-	
-	saveDb()
-
-	items.setdefault('_',{})['partial'] = 1
-
-	return dict( ( ( 'orders/' + str(order_id) + '/items', items ), ) )
-
-@json_input
-@as_json
-def putOrderItem( data, order_id, item_id, **kwargs ):
-	if order_id not in db['orders'] or item_id not in db['orders'][order_id]['items']:
-		raise HTTPError( 404, 'Order or item does not exist' )
-
-	for i in data.iteritems():
-		path,value = i
-		if path != 'orders/' + str(order_id) + '/items/' + str(item_id):
-			raise HTTPError( 400, 'Bad PUT data element: ' + path )
-		if '_' not in value or 'version' not in value['_']:
-			raise HTTPError( 400, 'PUT data do not specify the version' )
-		if value['_']['version'] != db['orders'][order_id]['items'][item_id]['_']['version']:
-			raise HTTPError( 409, 'Modification collision', wrapObject( 'orders/' + str(order_id) + '/items', item_id, source = db['orders'][order_id]['items'][item_id] ) )
-		
-		value['_']['version'] = value['_']['version'] + 1
-		db['orders'][order_id]['items'][item_id] = value
-
-	saveDb()
-
-	return getOrderItem( None, order_id, item_id, unwrapped=True, **kwargs )	
-	
-@no_input
-@as_json
-def deleteOrderItem( order_id, item_id, **kwargs ):
-	if order_id not in db['orders'] or item_id not in db['orders'][order_id]['items']:
-		raise HTTPError( 404, 'Order or item does not exist' )
-
-	if 'version' not in kwargs:
-		raise HTTPError( 400, 'DELETE does not specify the version' )
-
-	if kwargs['version'] != db['orders'][order_id]['items'][item_id]['_']['version']:
-		raise HTTPError( 409, 'Modification collision', wrapObject( 'orders/' + str(order_id) + '/items', item_id, source = db['orders'][order_id]['items'][item_id] ) )
-
-	del db['orders'][order_id]['items'][item_id]
-
-	saveDb()
-
-	result = {}
-	result['orders/' + str(order_id) + '/items/' + str(item_id)] = None
-
-	return result
-		
-@no_input
-def getStatic( path_name, headers={}, **kwargs ):
-	m = re.search( '[.]([^.]*)$', path_name )
+	headers = {}
 	if m:
 		headers['Content-Type'] = {
 			'html': 'text/html', 'css': 'text/css', 'js': 'application/javascript',
 			'gif': 'image/gif', 'jpeg': 'image/jpeg', 'png': 'image/png',
 			'zip': 'application/zip'
 		}.get( m.group(1).lower(), 'text/plain' )
-	
-	path = os.path.abspath( os.path.join( localpath, path_name ) )
-
-	return open( path, 'r' )
-
-@no_input
-def signalError( code, **kwargs ):
-	raise SimError( int(code), {
-		'Content-Type': 'text/html; charset=utf-8',
-		'Location': 	'/static/loader.html'
-	}, '''
-<html><head><title>Object moved</title></head><body>
-<h2>Object moved to <a href="/static/loader.html">here</a>.</h2>
-</body></html>
-	''' )
-
-##########################################################
-
-urlMap = [
-	( re.compile( '^[/]orders[/]?$' ), { 'POST': addOrders } ),
-	( re.compile( '^[/]orders[/](\\d+)$' ), { 'GET': getOrder, 'PUT': putOrder } ),
-	( re.compile( '^[/]orders[/](\\d+)[/]items[/]?$' ), { 'GET': getOrder, 'POST': addOrderItems } ),
-	( re.compile( '^[/]orders[/](\\d+)[/]items[/](\\d+)$' ), { 'GET': getOrderItem, 'PUT': putOrderItem, 'DELETE': deleteOrderItem } ),
-	( re.compile( '^[/]products[/]?$' ), { 'GET': getProducts } ),
-	( re.compile( '^[/]products[/](\\d+)$' ), { 'GET': getProduct } ),
-	( re.compile( '^[/]lists$' ), { 'GET': getLists } ),
-	( re.compile( '^[/]static[/]+(.*)$' ), { 'GET': getStatic } ),
-	( re.compile( '^[/]error[/](\d+)$' ), { 'GET': signalError } )
-]
-
-def dispatch( path, method, env, headers, kwargs ):
-	for i in urlMap:
-		m = i[0].match( path ) 
-		if m:
-			if method in i[1]:
-				kwargs['headers'] = headers
-				return i[1][method]( env, *m.groups(), **kwargs )
-			else:
-				raise HTTPError( 405, method + ' not valid for ' + path )
-	
-	raise HTTPError( 404, path + ' not found' )
-
-def wsgi_application( env, wsgi_cb ):
+		
+	path = os.path.abspath( os.path.join( localpath, path ) )
 
 	try:
-		
-		headers = {}
-
-		result = dispatch( 
-			env['PATH_INFO'], env['REQUEST_METHOD'], env, headers,
-			dict(( decodeURLParam( p ) for p in env['QUERY_STRING'].split('&') if p ))
-		)
-
-		if 'Content-Type' not in headers:	headers['Content-Type'] = 'text/plain'
-
-		wsgi_cb( '200 OK', headers.items() )
-		return result
-
-	except Error as err:
-		wsgi_cb( err.status, err.headers() )
-		return err.result()
+		return ( 200, headers, open( path, 'r' ) )
 	except:
-		traceback.print_exc()
-		err = HTTPError( 500, ''.join( traceback.format_exception_only( sys.exc_info()[0], sys.exc_info()[1] ) ), 
-						 { '_error': { 'traceback': traceback.format_tb( sys.exc_info()[2] ) } } )
-		wsgi_cb( err.status, [ ('Content-Type','application/json') ] )
-		return err.result()		
+		return ( 404, {}, 'File %s cannot be found' % path )
+		
+httpStatusCodes = {
+	200: 'OK', 302: 'FOUND', 400: 'BAD REQUEST', 401: 'UNAUTHORIZED', 404: 'NOT FOUND', 
+	405: 'METHOD NOT ALLOWED', 409: 'CONFLICT', 410: 'GONE', 500: 'INTERNAL ERROR'
+}
+	
+svc = BoozeShack()	
+	
+def wsgi_application( env, wsgi_cb ):
+
+	if env['PATH_INFO'].startswith( '/static' ):
+		code, headers, result = getStatic( env['PATH_INFO'][8:] )
+	elif env['REQUEST_METHOD'] in { 'GET':1, 'DELETE':1 }:
+		code, headers, result = svc( env['REQUEST_METHOD'], env['PATH_INFO'] + '?' + env['QUERY_STRING'] )
+	else:
+		code, headers, result = svc( env['REQUEST_METHOD'], env['PATH_INFO'] + '?' + env['QUERY_STRING'], env['wsgi.input'].read( int(env['CONTENT_LENGTH']) ) )
+
+	if 'Content-Type' not in headers:	headers['Content-Type'] = 'text/plain'
+
+	wsgi_cb( str(code) + ' ' + httpStatusCodes.get( code, 'ERROR' ), headers.items() )
+	return result
 
 if __name__=="__main__":
     
@@ -560,7 +346,7 @@ if __name__=="__main__":
 	from twisted.application import service, strports
 
 	# Create and start a thread pool,
-	wsgiThreadPool = ThreadPool()
+	wsgiThreadPool = ThreadPool(1,1)
 	wsgiThreadPool.start()
 
 	# ensuring that it will be stopped when the reactor shuts down
@@ -569,4 +355,4 @@ if __name__=="__main__":
 	reactor.listenTCP( port, server.Site( WSGIResource(reactor, wsgiThreadPool, wsgi_application) ) )
 	log.startLogging( log.FileLogObserver( sys.stderr ) )
 	reactor.run()
-
+	
