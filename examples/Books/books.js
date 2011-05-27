@@ -4,6 +4,7 @@ dojo.require( 'dijit._Widget' );
 dojo.require( 'dijit.form.ComboBox' );
 dojo.require( 'dojox.jtlc.CHT' );
 dojo.require( 'adstream.data.Service' );
+dojo.require( 'adstream.data.ContainerStore' );
 
 bsb.downloaded_templates = dojo.xhrGet( { url: 'books.cht' } ).then( 
 	function(v){ return bsb.downloaded_templates = v; } 
@@ -42,7 +43,7 @@ dojo.ready( function() {
 				view: { offset:0, count: 30 }
 			} ),
 			authors: new ads.Container( {
-				item: new ads.Object(),
+				item: new ads.Object( null, null, { name: function() { return this.firstName + ' ' + this.lastName; } } ),
 				view: { offset:0 }
 			} )
 		} )
@@ -59,9 +60,9 @@ dojo.declare( 'bsb.TopControls', dijit._Widget, {
 	constructor: function() {
 		dojo.mixin( this, {
 			displayOffset: 	0,
-			lastViewOffset: 0,
-			searching:		false,
-			searchPending:  null
+			lastViewOffset: 0
+//			searching:		false
+//			searchPending:  null
 		} );
 	},
 	
@@ -115,7 +116,7 @@ dojo.declare( 'bsb.TopControls', dijit._Widget, {
 		if( name != this.selectedTab || data instanceof dojo.Deferred )	
 			return;
 
-		this.searching = false;
+//		this.searching = false;
 
 		if( data.view().offset != this.lastViewOffset )	{
 			this.displayOffset = 0;
@@ -212,12 +213,13 @@ dojo.declare( 'bsb.TopControls', dijit._Widget, {
 	},
 
 	onSearchKeyUp: function() {
-		if( this.searchPending )	dojo.global.clearTimeout( this.searchPending );
-		this.searchPending = dojo.global.setTimeout( dojo.hitch( this, this.search ), this.searching ? 500 : 200 );
+//		if( this.searchPending )	dojo.global.clearTimeout( this.searchPending );
+//		this.searchPending = dojo.global.setTimeout( dojo.hitch( this, this.search ), this.searching ? 500 : 200 );
+		this.search();
 	},
 
 	search: function() {	
-		this.searchPending = null;
+//		this.searchPending = null;
 		var	data = bsb.root[this.selectedTab],
 			srch = dojo.byId( 'searchBox' ).value;
 		if( data.filter() && data.filter().search == srch )	return;
@@ -329,7 +331,7 @@ dojo.declare( 'bsb.NewBookPane', dijit._Widget, {
 
 	openEditor: function() {
 		this.authors = [];
-		getTemplate( 'NewBookPane' )( bsb.root.get( 'authors' ), this ).render( this.domNode, 'only' );
+		getTemplate( 'NewBookPane' )( new adstream.data.ContainerStore( bsb.root.authors ), this ).render( this.domNode, 'only' );
 		this.onclick_cookie = dojo.query( 'button', this.domNode ).map( function(elt) {		
 			return this.connect( elt, 'onclick', this.onclickDone );
 		}, this );
