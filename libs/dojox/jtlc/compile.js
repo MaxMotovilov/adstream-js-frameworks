@@ -5,7 +5,7 @@
 
 dojo.provide( "dojox.jtlc.compile" );
 
-if( dojo.config.isDebug )
+if( dojo.config.isDebug || dojo.config.jtlcIsReadable )
 	dojo.require( "dojox.jtlc.prettyPrint" );
 
 dojox.jtlc._varNameLetters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";		
@@ -82,7 +82,7 @@ dojox.jtlc.compile = function( tpl, lang, mixin )
 		max_local: 0,
 		code: ["var $=arguments"],
 		expressions: [],
-		optimizers: dojo.config.isDebug ? { '_optimizeExtraBrackets': dojox.jtlc._optimizeExtraBrackets } : {}
+		optimizers: dojo.config.isDebug || dojo.config.jtlcIsReadable ? { '_optimizeExtraBrackets': dojox.jtlc._optimizeExtraBrackets } : {}
 	};
 
 	if( mixin )	state = dojo.mixin( {}, mixin, state );
@@ -105,7 +105,7 @@ dojox.jtlc.compile = function( tpl, lang, mixin )
 
 	body = state.optimize( body );
 
-	if( dojo.config.isDebug && !dojo.isIE )	
+	if( ( dojo.config.isDebug || dojo.config.jtlcIsReadable ) && !dojo.isIE )	
 		body = dojox.jtlc.prettyPrint( body );
 
 	return state.decorate( state.makeClosure( body ).apply( null, state.globals.values ) );
