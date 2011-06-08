@@ -489,7 +489,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 				function( cht, elt, tag ) {
 					this.name = elt.openTag;
 					this.tag = tag;
-					if( elt.arg )	this.arg = elt.arg;
+					if( elt.arg )	this.arg = cht.qplus.parse( elt.arg );
 					this.bind = cht.tags.bind;					
 				}, {
 					compile: function( self ) {

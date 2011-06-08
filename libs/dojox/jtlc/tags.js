@@ -500,7 +500,7 @@ dojox.jtlc._declareTag( 'defined', {
 
 /* query( query [,arg [,extra] ] ) -- queries arg or the input if arg is not
    present. Inside a loop it acts as a generator, outside of the 
-   loop context it returns a single value. Any extra arguments are evaluated
+   loop context it returns an array. Any extra arguments are evaluated
    and passed to the query function */
 
 dojox.jtlc._declareTag( 'query', dojo.declare( dojox.jtlc._MultiArgTag, {
