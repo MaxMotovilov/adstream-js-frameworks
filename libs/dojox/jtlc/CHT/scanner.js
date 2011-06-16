@@ -45,8 +45,10 @@ dojox.jtlc._tokenizeCHT = function( input )
 		in_substitution = false,
 
 		parsed = input.replace( 
-			/(?:<(?:[?]\s*)?\/?[a-z_]\w*|<!--|-->|[?]?>|[{][{]?|[}][}]?|["'\[\]()\\])/ig,
+			/(?:<(?:[?]\s*)?\/?[a-z_]\w*|<!--|-->|[?]?>|[{][{]?|[}][}]?|["'\[\]()\\\ufeff])/ig,
 			function( s, pos, src ) {
+
+				if( s === '\ufeff' )	return ''; // rhino: ignore BOM
 
 				if( stack[0].escape ) {
 					stack.shift();

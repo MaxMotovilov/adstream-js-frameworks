@@ -308,7 +308,7 @@ dojo.require( "dijit._Widget" );
 			for( var i=0; i<dd.length; ++i )
 				if( dd[i] ) 
 					for( var j=0; j<dd[i].length; ++j ) {
-						var v = cb( dd[i][j], i, j );
+						var v = cb( dd[i][j][0], i, j, dd[i][j][1] );
 						if( stop_if( v ) )	return v;
 					}
 
@@ -336,22 +336,22 @@ dojo.require( "dijit._Widget" );
 
 			get: function( index ) {	
 				// Assert: has( index ) == true
-				return this.storage._data[index][ this.indices[index]++ ];
+				return this.storage._data[index][ this.indices[index]++ ][0];
 			},
 
-			set: function( index, value ) {
+			set: function( index, value, handle_errors ) {
 				if( !(index in this.indices) )	this.indices[index] = 0;
-				if( this.instance )	this.instance._attach( value, index, this.indices[index] );
-				this.storage.set( index, this.indices[index]++, value );
+				if( this.instance )	this.instance._attach( value, index, this.indices[index], handle_errors );
+				this.storage.set( index, this.indices[index]++, value, handle_errors );
 			}
 		} 
 	);
 
 	dj._CHTDeferred = d.extend( deferred, {
-		set: function( index, subindex, value ) { 
+		set: function( index, subindex, value, handle_errors ) { 
 			var d = this._data;
 			if( !(index in d) )	d[index] = [];
-			d[index][subindex] = value; 
+			d[index][subindex] = [value,handle_errors]; 
 		},
 
 		forEach: 	enum_deferred( function(){ return false; } ),
@@ -379,7 +379,7 @@ dojo.require( "dijit._Widget" );
 			}
 		},
 
-		_attach: function( i, index, subindex ) {
+		_attach: function( i, index, subindex, handle_errors ) {
 
 			if( i instanceof dj._CHTIncrementalTemplateInstance )
 				i.then(
@@ -387,11 +387,10 @@ dojo.require( "dijit._Widget" );
 					d.hitch( this, '_onNestedFailed' ),
 					d.hitch( this, '_onNestedReady' )
 				);
-			else if( i instanceof d.Deferred )	
-				i.then( 
-					d.hitch( this, '_onWaitReady', index, subindex ),
-					d.hitch( this, '_onWaitFailed' )
-				);
+			else if( i instanceof d.Deferred ) {
+				var	wait_ready = d.hitch( this, '_onWaitReady', index, subindex );
+				i.then( wait_ready, handle_errors ? wait_ready : d.hitch( this, '_onWaitFailed' ) );
+			}
 		},
 
 		isDeferred: function() {

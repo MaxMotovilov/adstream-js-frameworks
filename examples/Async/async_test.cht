@@ -61,6 +61,8 @@
 		<div>Title: {{title}}</div>
 	<? else ?>
 		No data yet...
+	<? except ?>
+		<span style='color:red'>{{$.message}}</span>
 	<? /when ?>
 <? /template ?>
 
