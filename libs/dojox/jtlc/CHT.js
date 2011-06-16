@@ -560,16 +560,26 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 		}
 	),
 
-	_beginWait: function() {
+	_beginWait: function( local ) {
 		this.code.push( 'if(!' + this._chtDeferred + '.has(' + this._deferredIndex + ')){' );
-		return this.addLocal();
+		return local || this.addLocal();
 	},
 
 	_endWait: function( local, nobreak ) {
-		this.code.push( this._chtDeferred + '.set(' + this._deferredIndex + ',' + local + '=' + this.popExpression() + ');}else ' + 
-						local + '=' + this._chtDeferred + '.get(' + this._deferredIndex + ');' );
+		this.code.push( 
+			this._chtDeferred + '.set(' + 
+				this._deferredIndex + ',' + local + '=' + this.popExpression() + 
+				( this._whenCtx && this._whenCtx.hasExcept ? ',true' : '' ) +
+			');}else ' + 
+				local + '=' + this._chtDeferred + '.get(' + this._deferredIndex + ');' 
+		);
 		if( !nobreak )
-			this.code.push( 'if(' + local + ' instanceof ' + this.addGlobal( dojo.Deferred ) + ')break;' );
+			this.code.push( 'if(' + 
+				local + ' instanceof ' + this.addGlobal( dojo.Deferred ) + 
+				( this._whenCtx && this._whenCtx.hasExcept ?
+					('||' + local + ' instanceof Error')
+				: '' ) +
+			')break;' );
 
 		this._deferredIndex++;
 
@@ -647,27 +657,33 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 		},
 
 		"when": {
-			sections: { "" : {allowArgument:true}, "else": {} },
+			sections: { "" : {allowArgument:true}, "else": {}, "except": {} },
 
 			_tag: dojo.extend( 
 				function( cht, elt ) {
 					this.arg = elt.arg ? cht.qplus.parse( elt.arg ) : dj.tags.current();
 					this.ifReady = elt.body;
-					if( elt.sections.length )	
-						this.ifNotReady = elt.sections[0].body;
+					dojo.forEach( elt.sections, function(s) {
+						if( s.openTag == 'else' )
+							this.ifNotReady = s.body;
+						else
+							this.ifFailed = s.body;
+					}, this );
 				}, {
 					compile: function( self ) {
 
-						var flag;
+						var old_when_ctx;
+						if( old_when_ctx = this._whenCtx )	
+							delete this._whenCtx;
 
-						if( self.ifNotReady ) {
-							flag = this.addLocal();
-							this.code.push( flag + '=true;' );
+						if( self.ifNotReady || self.ifFailed ) {
+							this._whenCtx = { flagVar: this.addLocal(), hasExcept: self.ifFailed && true };
+							this.code.push( this._whenCtx.flagVar + '=true;' );
 						}
 
 						this.code.push( 'do{' );
 
-						this._openWait = this._beginWait();
+						this._openWait = this._beginWait( this._whenCtx && this._whenCtx && this._whenCtx.flagVar );
 
 						if( self.arg )			this.compile( self.arg );
 						else					this.generator();
@@ -689,14 +705,26 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 						this.locals.pop();
 						
-						this.code.push( '}while(' + ( self.ifNotReady ? flag + '=' : '' ) + 'false);' );
+						this.code.push( '}while(' + ( this._whenCtx ? this._whenCtx.flagVar + '=' : '' ) + 'false);' );
 						
+						if( self.ifFailed ) {
+							this.code.push( 'if(' + this._whenCtx.flagVar + ' instanceof Error){' );
+							this.nonAccumulated( function() {
+								this.compileSequence( self.ifFailed );
+							}, '(' + this._whenCtx.flagVar + ')' );
+							this.code.push( '}' );
+						}
+
 						if( self.ifNotReady ) {
-							this.code.push( 'if(' + flag + '){' );
+							this.code.push( (self.ifFailed ? 'else ' : '') + 'if(' + this._whenCtx.flagVar + '){' );
 							this.compileSequence( self.ifNotReady );
 							this.code.push( '}' );
-							this.locals.pop();
 						}
+
+						if( this._whenCtx )	this.locals.pop();
+
+						if( old_when_ctx )			this._whenCtx = old_when_ctx;
+						else if( this._whenCtx )	delete this._whenCtx;
 					}
 				}
 			),

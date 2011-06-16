@@ -79,7 +79,7 @@ def getOptions( **kwargs ):
 	time.sleep( 10 )
 	return { 'options': { 'list': [ 'Option %d' % i for i in xrange(1,10) ] } }
 
-max_records = 15
+max_records = 25
 
 @no_input
 @as_json
@@ -102,6 +102,7 @@ def getTable( offset, count, **kwargs ):
 @as_json
 def getTableItemData( item_id, **kwargs ):
 	time.sleep( random.randint( 2, 20 ) )
+	if item_id=='19': raise Exception( 'Chassit!' )
 	return { 'table/%s/data' % item_id: {
 		'age': random.randint( 20, 30 ),
 		'title': 'Title %s' % item_id
