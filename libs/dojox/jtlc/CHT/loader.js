@@ -205,7 +205,7 @@ dojox.jtlc.CHT.loader = (function() {
 				dj.compile(
 					cached.parsed[sn.templateName],
 					chtInstance(),
-					{ i18nDictionary: cached.nls }
+					{ i18nDictionary: cached.nls, compiledTemplates: cached.compiled }
 				);
 		}
 
