@@ -721,8 +721,6 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 							this.code.push( '}' );
 						}
 
-						if( this._whenCtx )	this.locals.pop();
-
 						if( old_when_ctx )			this._whenCtx = old_when_ctx;
 						else if( this._whenCtx )	delete this._whenCtx;
 					}
