@@ -181,7 +181,13 @@ def _version_of( v ):
 	return getattr( getattr( v, '_', None ), 'version', None )
 	
 def _is_deleted_item( v ):		
-	return v is None or _version_of( v ) is not None
+	if v is None:
+		return True
+	elif getattr( getattr( v, '_', None ), 'delete', None ):
+		if _version_of( v ) is None: raise ValueError( 'version is not present in metadata along with "delete: true"' )
+		return True
+	else:
+		return False		
 	
 class Service(object):
 

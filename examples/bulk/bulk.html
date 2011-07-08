@@ -1,0 +1,102 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+<head>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
+
+<script src="http://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dojo/dojo.xd.js" 
+		type="text/javascript" 
+		djConfig="isDebug: true, debugAtAllCosts: true, parseOnLoad: true, baseUrl: './', modulePaths: { 'dojox.jtlc': 'js/jtlc', 'adstream.data': 'js/data', 'app': 'js', 'CHT': '.' }"></script>
+
+<style type='text/css'>
+
+body {
+	position: relative;
+	text-align: center;
+	margin-top: 100px;
+	font-family: Tahoma, Arial, helvetica, sans;
+}
+
+div#main {
+	position: relative;
+	max-width: 800px;
+	text-align: left;
+	margin: auto;
+}
+
+div#table {
+	border: solid 3px darkcyan;
+	background-color: lightcyan;
+	padding: 5px;
+}
+
+div#table>div {
+	padding: 0px;
+	margin: 0px;
+	border: none;
+}
+
+div#controls {
+	margin-top: 5px;
+	border: solid 3px darkcyan;
+	background-color: lightcyan;
+	padding: 5px;
+	text-align: right;
+}
+
+div#table table {
+	width: 100%;
+	font-size: smaller;
+}
+
+div#table th {
+	text-align: left;
+	background-color: #408686;
+	color: white;
+}
+
+div#table tr td {
+	background-color: #d9e9e9;
+}
+
+div#table tr:hover td {
+	background-color: lightgray;
+}
+
+div#table td:first-child:hover {
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+div#table td:last-child {
+	width: 2ex;
+	text-align: center;
+}
+
+div#table th:last-child {
+	width: 2ex;
+	text-align: center;
+}
+
+input {
+	cursor: pointer;
+}
+
+</style>
+
+<script type="text/javascript">
+dojo.provide( 'app' );
+dojo.require( 'app.bulk' );
+</script>
+
+</head>
+<body>
+	
+<div id='main'>
+	<div id='table'></div>
+	<div id='controls'></div>
+</div>
+
+</body>
+</html>
+

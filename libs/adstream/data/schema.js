@@ -555,32 +555,73 @@ dojo.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 		return this[temp_id] = result;
 	},
 
-	del: function( item_id ) {
+	_bulkOp: function( what, op ) {
+		if( typeof what === 'function' ) {
+			for( var i in this )
+				if( this.hasOwnProperty(i) && this[i] instanceof ads.Node && what( this[i] ) )
+					op.call( this, this[i] );
+		} else if( what instanceof Array )
+			for( var i=0; i<what.length; ++i )
+				op.call( this, this[ what[i] ] );
+		else op.call( this, this[what] );
+	},
 
-		if( !item_id ) {
+	del: function( what ) {
+
+		if( !what ) {
 			if( !(_itemDel in this) )	
 				throw Error( "Container.del() should have a parameter if container is not an item itself" );
 			return this._itemDel();
 		}
 
-		if( this._notYetCreated() || item_id.charAt(0)=='@' ) {
-			delete this[item_id];
+		var	to_delete = [];
+		this._bulkOp( what, function( item ) {
+			if( item._notYetCreated() )
+					delete this[item.id()];
+			else	to_delete.push( item );
+		} );
+
+		if( to_delete.length == 0 )
 			return null;
-		} else {
-			return this[item_id].del();
-		}
+		else if( to_delete.length == 1 )
+			return to_delete[0].del();
+
+		// Batch delete
+
+		var	packet = {};
+		dojo.forEach( to_delete, function( item ) {
+			packet[item.id()] = 'version' in item._ ? { _: { version: item._.version, 'delete': true } } : null;
+		} );
+
+		return this._service.PUT( this._.url, this._wrap( packet ), this._URL_Params( -1 ) );
 	},
 
-	save: function( item_id, depth ) {
+	save: function( what, depth ) {
 		
-		if( item_id ) {
+		if( what ) {
 			if( this._notYetCreated() )
-				throw Error( "Cannot save " + this._composeURL( item_id ) + " as its parent has not yet been saved" );
-			if( !(item_id in this) )
-				throw Error( "Attempt to save a non-existing item " + this._composeURL( item_id ) );
-			if( item_id.toString().charAt(0) == '@' )
-					return this._service.POST( this._.url, this[item_id]._wrap( this[item_id]._marshal( -1 ) ), this._URL_Params( -1 ) );
-			else	return this[item_id].save( depth );
+				throw Error( "Cannot save children of " + this._.url + " that has not been saved yet" );
+
+			var to_save = [];
+			this._bulkOp( what, function( item ) { to_save.push( item ); } );
+
+			if( to_save.length == 0 )
+				return this;
+			else if( to_save.length == 1 )
+				if( to_save[0]._notYetCreated() )
+						return this._service.POST( this._.url, to_save[0]._wrap( to_save[0]._marshal( -1 ) ), this._URL_Params( -1 ) );
+				else	return to_save[0].save( depth );
+
+			// Batch save
+
+			var packet = {};
+			if( typeof depth !== 'undefined' )	--depth;
+			dojo.forEach( to_save, function( item ) {
+				packet[item.id()] = item._marshal( item._notYetCreated() ? -1 : depth );
+			} );
+
+			return this._service.PUT( this._.url, this._wrap( packet ), this._URL_Params( -1 ) );
+
 		} else {
 			if( this._notYetCreated() )
 					return this._saveIfNotCreated();

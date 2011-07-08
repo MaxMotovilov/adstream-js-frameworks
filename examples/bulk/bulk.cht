@@ -1,0 +1,31 @@
+<? template Table ?>
+	<table id='theTable'>
+		<tr>
+			<th>Item</th><th>&#9745;</th>
+		</tr>
+		<? foreach "from:$" ?>
+			<? TableRow ?>
+		<? /foreach ?>
+	</table>
+<? /template ?>
+
+<? template TableRow ?>
+	<tr dojoType='app.bulk.Item' data="{{ref:$}}">
+		<? TableRowContent ?>
+	</tr>
+<? /template ?>
+
+<? template TableRowContent ?>
+	<td dojoType='app.bulk.ItemLabel' data='{{ref:$}}'>{{value||''}}</td>
+	<td><input dojoType='app.bulk.ItemCheck' data='{{ref:$}}' type="checkbox" {{_.selected&&'checked'|raw}}></td>
+<? /template ?>
+
+<? template TableItemEdit ?>
+	<td><input dojoType='app.bulk.ItemLabelEdit' data='{{ref:$}}' type="text" value="{{value||''}}"></td>
+<? /template ?>
+
+<? template Controls ?>
+	<input type="button" value="Add" id='addItem'>
+	<input type="button" value="Delete" id='deleteItems'>
+	<input type="button" value="Save" id='saveItems'>
+<? /template ?>
