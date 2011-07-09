@@ -598,35 +598,33 @@ dojo.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 
 	save: function( what, depth ) {
 		
-		if( what ) {
-			if( this._notYetCreated() )
-				throw Error( "Cannot save children of " + this._.url + " that has not been saved yet" );
-
-			var to_save = [];
-			this._bulkOp( what, function( item ) { to_save.push( item ); } );
-
-			if( to_save.length == 0 )
-				return this;
-			else if( to_save.length == 1 )
-				if( to_save[0]._notYetCreated() )
-						return this._service.POST( this._.url, to_save[0]._wrap( to_save[0]._marshal( -1 ) ), this._URL_Params( -1 ) );
-				else	return to_save[0].save( depth );
-
-			// Batch save
-
-			var packet = {};
-			if( typeof depth !== 'undefined' )	--depth;
-			dojo.forEach( to_save, function( item ) {
-				packet[item.id()] = item._marshal( item._notYetCreated() ? -1 : depth );
-			} );
-
-			return this._service.PUT( this._.url, this._wrap( packet ), this._URL_Params( -1 ) );
-
-		} else {
-			if( this._notYetCreated() )
-					return this._saveIfNotCreated();
+		if( !what ) {
+			if( this._notYetCreated )	return this._saveIfNotCreated();
 			else	return this._service.POST( this._.url, this._wrap( this._marshal( -1 ) ), this._URL_Params( -1 ) );
 		}
+
+		if( this._notYetCreated() )
+			throw Error( "Cannot save children of " + this._.url + " that has not been saved yet" );
+
+		var to_save = []
+		this._bulkOp( what, function( item ) { 
+			to_save.push( item ); 
+		} );
+
+		if( to_save.length == 0 )
+			return this;
+		else if( to_save.length == 1 && !to_save[0]._notYetCreated() )
+			return to_save[0].save( depth );
+
+		// Batch save
+
+		var packet = {}, any_modified = false;
+		dojo.forEach( to_save, function( item ) {
+			any_modified = any_modified || !item._notYetCreated();
+			packet[item.id()] = item._marshal( item._notYetCreated() ? -1 : depth );
+		} );
+
+		return ( any_modified ? this._service.PUT : this._service.POST ).call( this._service, this._.url, this._wrap( packet ), this._URL_Params( -1 ) );
 	},
 
 	filter: function( new_filter ) {
