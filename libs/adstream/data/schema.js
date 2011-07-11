@@ -599,7 +599,7 @@ dojo.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 	save: function( what, depth ) {
 		
 		if( !what ) {
-			if( this._notYetCreated )	return this._saveIfNotCreated();
+			if( this._notYetCreated() )	return this._saveIfNotCreated();
 			else	return this._service.POST( this._.url, this._wrap( this._marshal( -1 ) ), this._URL_Params( -1 ) );
 		}
 
