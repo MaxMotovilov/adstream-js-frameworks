@@ -1,0 +1,34 @@
+<? template Elements ?>
+	<table>
+		<? foreach "from:$" ?>
+			<tr><td>{{name}}</td></tr>
+		<? /foreach ?>
+	</table>
+<? /template ?>
+
+<? template Collections ?>
+	<table>
+		<? foreach "from:$" ?>
+			<? CollRow ?>
+		<? /foreach ?>
+	</table>
+<? /template ?>	
+
+<? template CollRow ?>
+	<tr><td dojoType='app.connector.Coll' data='{{ref:$}}'>
+		<? CollContent ?>
+	</td></tr>
+<? /template ?>
+
+<? template CollContent ?>
+	{{elements.join(', ')|escapeText|expr:$||'&nbsp;'|raw}}
+<? /template ?>
+
+<? template CollEdit ?>
+	<input dojoType='app.connector.CollEdit' data='{{ref:$}}' type="text" value="{{elements.join(', ')}}">
+<? /template ?>
+
+<? template Controls ?>
+	<input type="button" value="Add" id='addCollection'>
+	<input type="button" value="Save" id='saveCollections'>
+<? /template ?>

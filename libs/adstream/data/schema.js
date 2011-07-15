@@ -163,7 +163,7 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 
 		if( !(this instanceof ads.Container) && this._subschema )
 			for( var i in this._subschema )
-				if( this._subschema[i] instanceof ads.Container ) {
+				if( !(this._subschema[i] instanceof ads.Object) ) {
 					obj[i] = this._subschema[i]._new( svc, obj._composeURL( i ) );
 					obj[i]._.partial = true;
 				}
@@ -378,7 +378,6 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 	}
 } );
 
-
 dojo.declare( 'adstream.data.schema.Object', [ ads.Node ], {
 
 	_unmarshal: function( data ) {
@@ -419,7 +418,6 @@ dojo.declare( 'adstream.data.schema.Object', [ ads.Node ], {
 	}
 
 } );
-
 
 dojo.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 
@@ -659,6 +657,45 @@ dojo.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 
 	refresh: function( depth ) {
 		return this.get( '', depth, true );
+	}
+} );
+
+var undefined;
+
+dojo.declare( 'adstream.data.schema.Connector', ads.Node, {
+
+	"-chains-": { constructor: "manual" },
+	
+	constructor: function() {
+		this._subschema = {};
+		this._ = {};
+	},
+
+	connect: function( node, rel_url ) {
+		this._connect_to_svc = node.service();
+		this._dest_url = node._composeURL( rel_url );
+	},
+
+	save:  undefined,
+	get:   undefined,
+	watch: undefined,
+	ignore:undefined,
+
+	_marshal: function() { 
+		return null; 
+	},
+
+	_unmarshal: function( data ) {
+		if( this._connect_to_svc ) {
+			if( this._dest_url ) {
+				var copy = {};
+				for( var i in data )	
+					copy[ this._dest_url + '/' + i ] = data[i];
+				data = copy;
+			}
+			this._connect_to_svc.push( data, this._dest_url );
+		}
+		return false;
 	}
 } );
 
