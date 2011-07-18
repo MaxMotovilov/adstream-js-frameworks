@@ -29,7 +29,7 @@ dojo.require( "dijit._Widget" );
 				ref_node.filter ? 	
 					ref_node.filter( function(node){ return dojo.attr( node, 'widgetid' ); } ) :
 				dojo.attr( ref_node, 'widgetid' ) ?
-					ref_node : []
+					[ ref_node ] : []
 			).forEach( 
 				function( node ) {
 					var w = dijit.byNode( node );
