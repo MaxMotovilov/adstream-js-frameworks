@@ -272,7 +272,7 @@ dojo.declare( 'adstream.data.Service', null, {
 				d.obj = d.obj[ d.rel_url ] = next._new( this, d.obj._composeURL( d.rel_url ) );
 			else if( next && arg_url == i )
 				result = response[i];
-			else if( d.rel_url )
+			else if( d.rel_url && !(d.obj instanceof adstream.data.schema.Connector) )
 				throw Error( "Protocol violation: " + i + " is not a valid response to " + arg_url );
 
 			q.push( { 
