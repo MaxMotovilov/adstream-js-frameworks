@@ -690,7 +690,7 @@ dojo.declare( 'adstream.data.schema.Connector', ads.Node, {
 			if( this._dest_url ) {
 				var copy = {};
 				for( var i in data )	
-					copy[ this._dest_url + '/' + i ] = data[i];
+					copy[ this._dest_url + (this._dest_url && i && '/') + i ] = data[i];
 				data = copy;
 			}
 			this._connect_to_svc.push( data, this._dest_url );
