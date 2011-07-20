@@ -211,7 +211,11 @@ d.declare( 'dojox.jtlc.qplus', dj.JXL, {
 		throw Error( "Unknown filter or tag: '" + tag.join( '.' ) + "'" );
 	},
 
-	tags: {},	//	Populated with calls to _declareTag()
+	tags: {
+		//	Populated with calls to _declareTag()
+		dict: 	function( arg ) { return { _: dj.tags.many( arg ) }; },
+		array:	function( arg ) { return [ arg ]; }
+	},
 
 	_declareTag: dj._declareTag,
 
