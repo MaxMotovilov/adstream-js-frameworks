@@ -421,8 +421,8 @@ dojo.require( "dijit._Widget" );
 			this._propagateReady();
 		},
 
-		_onNestedFailed: function() {
-			this.reject( this );
+		_onNestedFailed: function( err ) {
+			this.reject( err );
 		},
 
 		_onWaitReady: function( index, subindex, value ) {
@@ -431,8 +431,8 @@ dojo.require( "dijit._Widget" );
 			this._propagateReady();
 		},
 
-		_onWaitFailed: function() {
-			this.reject( this );
+		_onWaitFailed: function( err ) {
+			this.reject( err );
 		},
 
 		canUpdateDom: function( always ) {
