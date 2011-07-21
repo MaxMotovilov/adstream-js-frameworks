@@ -456,10 +456,15 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 							if( self.arg ) {
 								this.compile( self.arg );
 								new_input = this.popExpression();
+								local = this.addLocal();
 								if( new_input.length > 4 ) {
-									local = this.addLocal();
 									this.code.push( local + '=' + new_input + ';' );
 									new_input = '(' + local + ')';
+								} else if( new_input === local ) {
+									new_input = '(' + new_input + ')';
+								} else {
+									this.locals.pop();
+									delete local;
 								}
 							} else
 								new_input = this.generator();
