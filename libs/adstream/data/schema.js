@@ -320,7 +320,7 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 	get: function( rel_url, depth, force ) {
 		var	d = ad._descend( rel_url||'', this );
 
-		if( !force && !d.rel_url && !this._isPartial( depth||d.obj._defaultGetDepth||0 ) ) 
+		if( !force && !d.rel_url && !d.obj._isPartial( depth||d.obj._defaultGetDepth||0 ) ) 
 			return d.obj;
 
 		var	schema_obj = _descendSchema( d.rel_url, d.obj ),
