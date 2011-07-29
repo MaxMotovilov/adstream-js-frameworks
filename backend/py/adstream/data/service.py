@@ -207,11 +207,20 @@ class Service(object):
 			
 	class __metaclass__(type):
 		def __new__( meta, name, bases, dct ):
+
+			svc_methods = []
+		
+			for k, v in dct.items():
+				if isinstance( v, _SvcMethod ):
+					svc_methods.append( v )
+					dct[k] = v.method
+
 			result = type.__new__( meta, name, bases, dct )
+
 			if hasattr( result, 'schema'):
 				result._url_tree = _UrlTreeNode( None, {}, result.schema )
-				for v in dct.itervalues():
-					if isinstance( v, _SvcMethod ):	result._register( v )
+				for v in svc_methods:	result._register( v )
+
 			return result
 			
 	def begin( self, verb, url, request, response ):

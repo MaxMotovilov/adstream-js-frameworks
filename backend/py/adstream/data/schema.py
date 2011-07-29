@@ -315,7 +315,7 @@ class Object(_SchemaElement):
 
 	_policies_ = {
 		'_extra_prop_policy_'	: (Policy.Fail,Policy.Ignore),
-		'_missing_prop_policy_' : (Policy.Provide,Policy.Ignore)
+		'_missing_prop_policy_' : (Policy.Ignore,Policy.Ignore)
 	}
 
 	class _core_(_SchemaCoreNamed):
