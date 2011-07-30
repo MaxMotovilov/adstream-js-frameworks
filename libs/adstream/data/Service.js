@@ -215,7 +215,7 @@ dojo.declare( 'adstream.data.Service', null, {
 			if( this.rejectMediaTypes ? 
 				content_type && adstream.data._contentTypeInList( content_type, this.rejectContentTypes ) :
 				!content_type || !adstream.data._contentTypeInList( content_type, this.acceptContentTypes ) ) {
-				err = new Error( "Unexpected media type returned: " + content_type );
+				if( ioargs.xhr.status < 400 )	err = new Error( "Unexpected media type returned: " + content_type );
 			} else if( response ) {
 				var json;
 				try { json = dojo.fromJson( response ); } catch( e ) {
