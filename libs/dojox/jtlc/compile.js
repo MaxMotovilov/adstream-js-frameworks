@@ -35,7 +35,7 @@ dojox.jtlc.arrayAppend = function( dst, src )
 
 dojox.jtlc._replaceWithinJavascriptAll = function( s, context, repl ) 
 {
-	return s.replace( /((?:.|\n)*?)((["']).*?[^\\]?\2|$)/g, function( _1, code, trailing ) {
+	return s.replace( /((?:.|[\r\n])*?)((["']).*?[^\\]?\2|$)/g, function( _1, code, trailing ) {
 		return code.replace( context, repl ) + trailing;
 	} )
 }
@@ -43,7 +43,7 @@ dojox.jtlc._replaceWithinJavascriptAll = function( s, context, repl )
 dojox.jtlc._replaceWithinJavascriptOnce = function( s, context, repl ) 
 {
 	var once = false;
-	return s.replace( /((?:.|\n)*?)((["']).*?[^\\]?\2|$)/g, function( _1, code, trailing ) {
+	return s.replace( /((?:.|[\r\n])*?)((["']).*?[^\\]?\2|$)/g, function( _1, code, trailing ) {
 		if( once ) return code + trailing;
 		var v = code.replace( context, repl );
 		if( v != code )	once = true;
