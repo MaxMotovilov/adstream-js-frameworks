@@ -111,7 +111,7 @@ d.declare( 'dojox.jtlc.qplus', dj.JXL, {
 		var	result;
 		while( list.length ) {
 			var	item = list.shift();
-			if( /^\s*([a-z_]\w*(?:\s*[.]\s*[a-z_]\w*)*)\s*([:](?:.|\n)*)?$/i.exec( item ) && (result||RegExp.$2) ) {
+			if( /^\s*([a-z_]\w*(?:\s*[.]\s*[a-z_]\w*)*)\s*([:](?:.|[\r\n])*)?$/i.exec( item ) && (result||RegExp.$2) ) {
 				result = 
 					RegExp.$2 ? this._makeTag( RegExp.$1, this._parseOwnArg( RegExp.$2.substr(1) ), result ) :
 								this._makeTag( RegExp.$1, result );
@@ -243,7 +243,7 @@ d.declare( 'dojox.jtlc.qplus', dj.JXL, {
 	djqp._declareTag( 'do', dojo.declare( djqp.tags._expr, {
 
 		constructor: function() {
-			if( /^\{((?:.|\n)*?);?\s*\}$/.exec( this.expr ) )
+			if( /^\{((?:.|[\r\n])*?);?\s*\}$/.exec( this.expr ) )
 				this.expr = RegExp.$1;
 			this.expr = '(function(){' + this.expr + ';return $;})()';
 
