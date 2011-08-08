@@ -48,7 +48,7 @@ dojox.jtlc._tokenizeCHT = function( input )
 			/(?:<(?:[?]\s*)?\/?[a-z_]\w*|<!--|-->|[?]?>|[{][{]?|[}][}]?|["'\[\]()\\\ufeff])/ig,
 			function( s, pos, src ) {
 
-				if( s === '\ufeff' )	return ''; // rhino: ignore BOM
+				if( s === String.fromCharCode( 0xfeff ) )	return ''; // rhino: ignore BOM
 
 				if( stack[0].escape ) {
 					stack.shift();

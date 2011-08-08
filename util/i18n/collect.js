@@ -9,6 +9,7 @@ djConfig = {
 load( '../../dojo-release-1.6.1-src/dojo/dojo.js' );
 */
 
+dojo.provide( 'dojox.jtlc.CHT.instance' );
 dojo.require( 'dojox.jtlc.CHT' );
 
 // FIXME: does not support cross-module access to structured templates
