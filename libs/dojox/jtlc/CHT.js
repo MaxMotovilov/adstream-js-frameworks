@@ -41,18 +41,19 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 	},
 
 	parse: function( input, ns, url ) {
-		var _this = this;
-		
+
 		if( typeof ns === 'string' ) {
 			url = ns;
 			ns = {};
-		}
+		} else if( !ns )	
+			ns = {};
+
+		if( typeof input === 'string' )
+			input = [ { src: input } ];
 
 		return dojo.when( 
-			this._buildTemplates( dj._tokenizeCHT( input ) ),
-			function(v){ 
-				return _this._buildAST( v, ns || {}, url || '[CHT-Templates]' ); 
-			}
+			this._buildTemplates( input, ns, url || '[CHT-Templates]' ),
+			dojo.hitch( this, '_buildAST', ns )
 		);
 	},
 
@@ -63,92 +64,99 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 		It is impossible to fully parse the CHT as we don't yet know which elements
 		may require a closing tag!
 	*/
-	_buildTemplates: function( tokens ) {
+	_buildTemplates: function( input, ns, url ) {
 
 		var	_this = this,
-			current = null,
-			body = null,
-			parsed = {},
 			refs = {},
+			parsed = {},
 			tos = { 'template':1, 'section':1 };
 
 		function markDom( elt ) {
 			if( elt.markerElement )	body.push( _this.tags.markDom( elt.markerElement ) );
 		}
 
-		dojo.forEach( tokens, function( t ) {
-			if( t.substr( 0, 2 ) == '<?' ) {
-				var	elt = new dj._CHTElement( t );
-				if( !current && elt.openTag != 'template' )
-					throw Error( 'CHT element encountered outside template: ' + t );
-				if( current && elt.openTag == 'template' )
-					throw Error( 'Missing end of previous template at: ' + t );
+		for( var i=0; i<input.length; ++i ) {
 
-				if( elt.closeTag == 'template' ) {
-					markDom( current );
-					current = body = null;
-				} else if( elt.openTag in tos ) {
-					if( elt.arg in tos || elt.arg in _this.elements ||
-						!/^[a-z]\w*$/i.test( elt.arg||'' ) && (elt.openTag != 'section' || elt.arg) )
-						throw Error( 'Bad or missing name for CHT ' + elt.openTag + ': ' + t );
-					if( elt.openTag == 'template' ) {
-						parsed[elt.arg] = current = elt;
-						if( elt.kwarg.marker )	{
-							elt.markerElement = elt.kwarg.marker;
-							elt.kwarg.async = true;
+			var current = null,
+				body = null;
+
+			dojo.forEach( dj._tokenizeCHT( input[i].src ), function( t ) {
+				if( t.substr( 0, 2 ) == '<?' ) {
+					var	elt = new dj._CHTElement( t );
+					if( !current && elt.openTag != 'template' )
+						throw Error( 'CHT element encountered outside template: ' + t );
+					if( current && elt.openTag == 'template' )
+						throw Error( 'Missing end of previous template at: ' + t );
+
+					if( elt.closeTag == 'template' ) {
+						markDom( current );
+						if( !ns.hasOwnProperty(current.arg) )
+							ns[current.arg] = new this._userDefinedElement( current, ( input[i].url || url ) + '/<?' + current.arg + '?>' );
+						current = body = null;
+					} else if( elt.openTag in tos ) {
+						if( elt.arg in tos || elt.arg in _this.elements ||
+							!/^[a-z]\w*$/i.test( elt.arg||'' ) && (elt.openTag != 'section' || elt.arg) )
+							throw Error( 'Bad or missing name for CHT ' + elt.openTag + ': ' + t );
+						if( elt.openTag == 'template' ) {
+							current = elt;
+							if( !(elt.arg in parsed) )	parsed[elt.arg] = elt;
+							if( elt.kwarg.marker )	{
+								elt.markerElement = elt.kwarg.marker;
+								elt.kwarg.async = true;
+							}
+
+							if( elt.kwarg.async )	elt.kwarg.compiled = true;
+
+							if( elt.kwarg.macro && elt.kwarg.compiled )
+								throw Error( 'Compiled template cannot use macro argument substitution: ' + elt.arg );
+						} else {
+							elt.arg = elt.arg || '';
+							current.body.push( elt );
+							(current.sections = current.sections || {})[elt.arg] = {};
 						}
-
-						if( elt.kwarg.async )	elt.kwarg.compiled = true;
-
-						if( elt.kwarg.macro && elt.kwarg.compiled )
-							throw Error( 'Compiled template cannot use macro argument substitution: ' + elt.arg );
+						body = elt.body = [];
+						markDom( elt );
+					} else if( elt.closeTag == 'section' ) {
+						if( body === current.body )
+							throw Error( 'Mismatched ' + t );
+						body = current.body;
 					} else {
-						elt.arg = elt.arg || '';
-						current.body.push( elt );
-						(current.sections = current.sections || {})[elt.arg] = {};
+						if( elt.openTag && elt.openTag.indexOf('.')>=0 )
+							refs[elt.openTag] = false;
+						body.push( elt );
 					}
-					body = elt.body = [];
-					markDom( elt );
-				} else if( elt.closeTag == 'section' ) {
-					if( body === current.body )
-						throw Error( 'Mismatched ' + t );
-					body = current.body;
-				} else {
-					if( elt.openTag && elt.openTag.indexOf('.')>=0 )
-						refs[elt.openTag] = false;
-					body.push( elt );
-				}
-			} else if( t ) {
+				} else if( t ) {
 
-				var substitutions = [],
-				 	t = t.replace( /\ufffd([\s\S]*?)\ufffd/g, 
-						function( _, subst ) {
-							var	s = _this.qplus.parse( subst );
-							substitutions.push( 
-								t.charAt(0)=='<' ? 
-									/^<script/i.test( t ) ? s : 
-									_this.tags.escapeAttribute( s ) : 
-								_this.tags.escapeText( s ) 
-							);
-							return s instanceof _this.tags._do ? '' : '{' + (substitutions.length-1).toString() + '}';
-						}
-					);
+					var substitutions = [],
+					 	t = t.replace( /\ufffd([\s\S]*?)\ufffd/g, 
+							function( _, subst ) {
+								var	s = _this.qplus.parse( subst );
+								substitutions.push( 
+									t.charAt(0)=='<' ? 
+										/^<script/i.test( t ) ? s : 
+										_this.tags.escapeAttribute( s ) : 
+									_this.tags.escapeText( s ) 
+								);
+								return s instanceof _this.tags._do ? '' : '{' + (substitutions.length-1).toString() + '}';
+							}
+						);
 
-				if( !current )
-					throw Error( 'HTML content encountered outside template: ' + t );
+					if( !current )
+						throw Error( 'HTML content encountered outside template: ' + t );
 					
-				if( t == '{0}' )	
-					body.push( substitutions[0] );
-				else if( t.charAt(0) != '<' && /\b(?:[a-zA-Z][a-z]*|[A-Z]+)\b/.test( t.replace( /&[a-z]{3,4};/,'' ) ) )
-					body.push( _this.tags.i18n( t, substitutions ) );
-				else if( substitutions.length )
-					body.push( _this.tags.replaceN( t, substitutions ) );
-				else if( body.length && body[body.length-1] instanceof dj.tags._quote )
-					body[body.length-1].value += t;
-				else
-					body.push( dj.tags.quote( t ) );
-			}
-		}, this );
+					if( t == '{0}' )	
+						body.push( substitutions[0] );
+					else if( t.charAt(0) != '<' && /\b(?:[a-zA-Z][a-z]*|[A-Z]+)\b/.test( t.replace( /&[a-z]{3,4};/,'' ) ) )
+						body.push( _this.tags.i18n( t, substitutions ) );
+					else if( substitutions.length )
+						body.push( _this.tags.replaceN( t, substitutions ) );
+					else if( body.length && body[body.length-1] instanceof dj.tags._quote )
+						body[body.length-1].value += t;
+					else
+						body.push( dj.tags.quote( t ) );
+				}
+			}, this );
+		}
 
 		if( this.loadTemplates )
 			return dojo.when(
@@ -165,11 +173,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 		When this function executes, all external references should have been
 		satisfied -- and the unsatisfied ones are considered errors.
 	*/
-	_buildAST: function( rp, ns, url ) {
-
-		for( var elt_name in rp.parsed )
-			if( !ns.hasOwnProperty(elt_name) )
-				ns[elt_name] = new this._userDefinedElement( rp.parsed[elt_name], url + '/<?' + elt_name + '?>' );
+	_buildAST: function( ns, rp ) {
 
 		var	refs = dojo.mixin( rp.refs, ns, this.elements ),
 			_this = this;
