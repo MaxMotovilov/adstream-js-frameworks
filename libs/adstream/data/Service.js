@@ -141,10 +141,15 @@ dojo.declare( 'adstream.data.Service', null, {
 		return old;
 	},
 
-	_xhr: function( method, seed, rel_url, params ) {
-
+	_makeResult: function() {
 		var	result = new dojo.Deferred();
 		if( this._error_cb )	result.then( null, dojo.hitch( this, this._error_cb ) );
+		return result;
+	},
+
+	_xhr: function( method, seed, rel_url, params, result ) {
+
+		if( !result )	result = this._makeResult();
 
 		seed.url = this._ep_url + rel_url;
 		seed.handle = dojo.hitch( this, '_ioComplete', result, method, rel_url );
@@ -165,15 +170,21 @@ dojo.declare( 'adstream.data.Service', null, {
 
 		this._purgeRefreshQueue( rel_url, params.depth || 0 );
 
-		if( rel_url in this._pending_gets ) {
-			if( this._pending_gets[rel_url].params == dojo.objectToQuery( params ) )
-				return this._pending_gets[rel_url].result;
-			this._pending_gets[rel_url].result.xhrPromise.cancel(); // adstream.data promises are not cancelable
+		var	existing;
+	
+		if( existing = this._pending_gets[rel_url] ) {
+		
+			if( existing.params == dojo.objectToQuery( params ) )
+				return existing.result;
+			if( existing.result.xhrPromise ) {
+				existing.result.xhrPromise.cancel(); // adstream.data promises are not cancelable
+				delete  existing.result.xhrPromise;
+			}
 		}
 
 		return (this._pending_gets[ rel_url ] = {
 			params: dojo.objectToQuery( params ),
-			result: this._xhr( "GET", {}, rel_url, params )
+			result: this._paused === 'all' ? this._makeResult() : this._xhr( "GET", {}, rel_url, params )
 		}).result;
 	},
 
@@ -221,16 +232,16 @@ dojo.declare( 'adstream.data.Service', null, {
 			response = response.responseText || ioargs && ioargs.xhr.responseText || '';
 		}
 
-		if( method == 'GET' && (!err || err.dojoType != 'cancel') && arg_url in this._pending_gets )
+		if( method === 'GET' && (!err || err.dojoType != 'cancel') && this._pending_gets.hasOwnProperty( arg_url ) )
 			delete this._pending_gets[ arg_url ];
 
 		if( (!err || err.dojoType != 'cancel') && ioargs.xhr.readyState == 4 ) { // The request has completed and was not cancelled
 			var	content_type = headers[ 'Content-Type' ];
 
-			if( this.rejectMediaTypes ? 
+			if( this.rejectContentTypes ? 
 				content_type && adstream.data._contentTypeInList( content_type, this.rejectContentTypes ) :
 				!content_type || !adstream.data._contentTypeInList( content_type, this.acceptContentTypes ) ) {
-				if( ioargs.xhr.status < 400 )	err = new Error( "Unexpected media type returned: " + content_type );
+				if( ioargs.xhr.status < 400 )	err = new Error( "Unexpected content type returned: " + content_type );
 			} else if( response ) {
 				var json;
 				try { json = dojo.fromJson( response ); } catch( e ) {
@@ -241,11 +252,13 @@ dojo.declare( 'adstream.data.Service', null, {
 		}
 
 		if( err ) {
-			err.ioargs = ioargs;
-			err.responseHeaders = headers;
-			err.status = ioargs.xhr.status;
-			err.responseText = response;
-			promise.reject( err );
+			if( method !== 'GET' || err.dojoType != 'cancel' || this._paused !== 'all' ) {
+				err.ioargs = ioargs;
+				err.responseHeaders = headers;
+				err.status = ioargs.xhr.status;
+				err.responseText = response;
+				promise.reject( err );
+			}
 		} else if( typeof result === 'object' )	{
 			promise.resolve( result );	//	Method call with return value
 		} else {
@@ -409,7 +422,8 @@ dojo.declare( 'adstream.data.Service', null, {
 	},
 
 	_startRefreshTimer: function( ms ) {
-		this._refresh_timer = dojo.global.setTimeout( dojo.hitch( this, this._onRefresh ), ms );
+		if( !this._paused )
+			this._refresh_timer = dojo.global.setTimeout( dojo.hitch( this, this._onRefresh ), ms );
 	},
 
 	_purgeRefreshQueue: function( url, depth ) {
@@ -443,11 +457,12 @@ dojo.declare( 'adstream.data.Service', null, {
 
 	_onRefresh: function( err ) {
 
+		var	next = NaN;
+
 		if( this._refresh_queue.length == 0 ) {
 			
 			var	queue = [ { d: this.root, w: this._on_sync } ],
-				ts = (new Date()).valueOf(),
-				next = NaN;
+				ts = (new Date()).valueOf();
 		
 			while( queue.length ) {
 				var q = queue.shift();
@@ -476,6 +491,31 @@ dojo.declare( 'adstream.data.Service', null, {
 		}
 
 		if( err && err instanceof Error )	throw err;			
+	},
+
+	pause: function( all ) {
+		this._paused = all ? "all" : "auto";
+		this._refresh_queue = [];
+		if( this._refresh_timer ) {
+			dojo.global.clearTimeout( this._refresh_timer );
+			delete this._refresh_timer;
+		}
+		if( all )
+			for( var rel_url in this._pending_gets )
+				if( this._pending_gets[ rel_url ].result.xhrPromise ) {
+					this._pending_gets[ rel_url ].result.xhrPromise.cancel();
+					delete this._pending_gets[ rel_url ].result.xhrPromise;
+				}
+	},
+	
+	resume: function() {
+		if( this._paused ) {
+			delete this._paused;
+			for( var rel_url in this._pending_gets )
+				if( this._pending_gets.hasOwnProperty( rel_url ) )
+					this._xhr( "GET", {}, rel_url, dojo.queryToObject( this._pending_gets[rel_url].params ), this._pending_gets[rel_url].result );
+			this._onRefresh();
+		}	
 	}
 } );
 

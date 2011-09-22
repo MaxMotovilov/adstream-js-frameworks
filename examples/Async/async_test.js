@@ -49,15 +49,33 @@ dojo.ready( function() {
 		} )
 	);
 
+	test.root.service().catchAll( onError );
+
 	dojo.when( 
 		dojo.when( test.downloaded_templates, compileTemplates ),
 		renderPage
 	);
 } );
 
+function onError( err )
+{
+	test.root.service().pause( true );
+	dojo.byId( 'resume' ).disabled = false;
+}
+
+function resume()
+{
+	test.root.service().resume();
+	dojo.byId( 'resume' ).disabled = true;
+}
+
 function renderPage()
 {
-	getTemplate( 'Test' )( test.root ).render( 'screen', 'only' );
+	dojo.when(
+		getTemplate( 'Test' )( test.root ).render( 'screen', 'only' ),
+		function(){},
+		function(err){ alert( err.message ); }
+	);
 }
 
 test.flash = function( ctx, dom ) {
