@@ -508,12 +508,14 @@ dojo.declare( 'adstream.data.Service', null, {
 				}
 	},
 	
-	resume: function() {
+	resume: function( discard ) {
 		if( this._paused ) {
 			delete this._paused;
 			for( var rel_url in this._pending_gets )
-				if( this._pending_gets.hasOwnProperty( rel_url ) )
-					this._xhr( "GET", {}, rel_url, dojo.queryToObject( this._pending_gets[rel_url].params ), this._pending_gets[rel_url].result );
+				if( this._pending_gets.hasOwnProperty( rel_url ) ) {
+					if( discard )	delete this._pending_gets[ rel_url ];
+					else this._xhr( "GET", {}, rel_url, dojo.queryToObject( this._pending_gets[rel_url].params ), this._pending_gets[rel_url].result );
+				}
 			this._onRefresh();
 		}	
 	}
