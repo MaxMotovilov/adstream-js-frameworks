@@ -3,6 +3,9 @@
 		<? Select ?>
 	</div>
 	<div class='section'>
+		<button disabled id='resume' onclick='resume()'>Resume</button>
+	</div>
+	<div class='section'>
 		<? Table ?>
 	</div>
 <? /template ?>
