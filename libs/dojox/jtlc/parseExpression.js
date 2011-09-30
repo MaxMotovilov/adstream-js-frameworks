@@ -84,7 +84,7 @@ function makePopper( before, after ) {
 			'var callback = this.callback("{0}"), args = this.stack.splice( this.stack.length - {1}, {1} );', 
 		   [ signature, count ] 
 		) +	d.replace( 
-			'this.stack.push([ callback.apply(null,dojo.map(args,{1})), "{0}" ]);', 
+			'this.stack.push([ callback.apply(this,dojo.map(args,{1})), "{0}" ]);', 
 			[ after === '@' ? '@' : '#', 'function(i){return i[0];}' ] 
 		)
 	);
@@ -135,18 +135,6 @@ function compileGrammar( grammar ) {
 }
 
 //	Default semantics -- copy the expression as is
-
-function concatAll() {
-	return copyArguments( arguments ).join( '' );
-}
-
-function concatAllWithSpaces() {
-	return copyArguments( arguments ).join( ' ' );
-}
-
-function returnFirst( first ) {
-	return first;
-}
 
 function unfinishedTernary() {
 	throw Error( "Expected :" );
@@ -217,15 +205,21 @@ var	js_expr_grammar = compileGrammar({
 
 	'<<Number>>': 		[ '100<<Number>>100' ],
 	'<<Identifier>>': 	[ '100<<Identifier>>100' ],
-	'<<EOS>>':			[ '#0<<EOS>>0', returnFirst ]
+
+	'<<EOS>>':			[ '#0<<EOS>>0', function( first ) { return first; } ]
 });
 
 var Parser = d.extend( 
-	function( grammar ) {
+	function( grammar, options ) {
+		if( options )	d.mixin( this, options );
 		this.stack = [];
 		this.mode = '#';
 		this.grammar = grammar;
 	}, {
+		composeStrings: function() { return copyArguments( arguments ).join( '' ); },
+
+		composeTokens: function() {	return copyArguments( arguments ).join( ' ' ); },
+
 		top: function( n ){ 
 			return this.stack[ this.stack.length-1-(n||0) ]; 
 		},
@@ -240,7 +234,7 @@ var Parser = d.extend(
 
 		callback: function( signature ){ 
 			return this.rule( signature.length - signature.indexOf( ':' ) - 1 ).callback || 
-				   ( signature.indexOf( '@' ) >= 0 ? concatAll : concatAllWithSpaces );
+				   ( signature.indexOf( '@' ) >= 0 ? this.composeStrings : this.composeTokens );
 		},
 
 		push: function( token ) {
@@ -324,13 +318,14 @@ function buildParser( options ) {
 	var grammar = dojo.mixin( {}, js_expr_grammar, compileGrammar( options && options.grammar || {} ) );
 
 	function body( src ) {
-		var parser = new Parser( grammar );
+		var parser = new Parser( grammar, options );
 		scanner( src, d.hitch( parser, 'push' ), d.hitch( parser, 'skip' ) );
 		try {		
 			parser.push( '<<EOS>>' );
 		} catch( e ) {
 			throw Error( e.message + ' after ' + src );
 		}
+		
 		return parser.stack.pop()[0];
 	}
 
