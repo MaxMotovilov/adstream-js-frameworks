@@ -203,7 +203,8 @@ d.declare( 'dojox.jtlc.qplus', dj.JXL, {
 					args.unshift( '$.' + tag[ tag.length-1 ] );
 				else
 					args.unshift( tag.slice( 0, tag.length-1 ).join( '.' ) + '($).' + tag[ tag.length-1 ] );
-			} else	args.unshift( tag.join( '.' ) + '($)' );
+				args[0] += args.length > 2 ? '($1)' : '($)';
+			} else	args.unshift( tag.join( '.' ) + ( args.length > 1 ? '($,$1)' : '($)' ) );
 			
 			return dojox.jtlc.tags.expr.apply( null, args );
 		}
