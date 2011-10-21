@@ -78,8 +78,9 @@ class _Sequence(object):
 		new_url = _fill_key( self._url, key )
 		split = self._first_key_part.split( new_url, 1 )
 		if len(split) > 1:
-			container, typ = self._packet._descend( split[0], Packet._forced_get_op )
-			if container is None: return
+			ct = self._packet._descend( split[0], Packet._forced_get_op )
+			if ct is None: return
+			container, typ = ct
 			for k in container.iterkeys():
 				for result in self._enum_items( op, key + ( _key_convert( k, typ._schema['key'] ),) ):
 					yield result
