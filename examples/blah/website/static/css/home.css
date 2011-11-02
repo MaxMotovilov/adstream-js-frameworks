@@ -1,0 +1,220 @@
+div#header {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	right: 0px;
+	height: 156px;
+	background-image: url(../img/hdr-bg.jpg);
+}
+
+div#banner {
+	background: url(../img/blah.jpg) center no-repeat;
+	height: 120px;
+	width: 100%;
+}
+
+div#menu {
+	background-color: transparent;
+	width: 800px;
+	border-bottom: 3px dotted #221179;
+	border-top: 3px dotted #221179;
+	height: 30px;
+	margin: auto;
+}
+
+div#menu > form#leftMenu {
+	float: left;
+	padding:3px;
+}
+
+div#menu > form#leftMenu > span {
+	font-family: sans-serif;
+	color: #2a6350;
+	margin-right: 15px;
+}
+
+div#menu > form#rightMenu {
+	float: right;
+	padding:3px;
+}
+
+div#menu > div#rightMenu {
+	padding-top: 3px;
+	padding-right: 7px;
+	font-family: sans-serif;
+	float: right;
+	color: #2a6350;
+}
+
+div#menu > div#rightMenu.error {
+	color: red;
+}
+
+div#menu > form#rightMenu > input[type=text] {
+	width: 180px;
+}
+
+div#menu > form#leftMenu > input[type=text] {
+	width: 100px;
+}
+
+div#menu > form#leftMenu > input[type=password] {
+	width: 100px;
+}
+
+div#body {
+	position: absolute;
+	top: 156px;
+	bottom: 0px;
+	left: 0px;
+	right: 0px;
+	background-color:  #f3e4b9;
+	overflow-y: auto;
+	padding-top: 10px;
+}
+
+div#body > div {
+	position: relative;
+	width: 575px;
+	margin: 6px auto 0px auto;
+	padding-left: 125px;
+	padding-right: 100px;
+}
+
+div#body > div.topic {
+	border: 2px dotted #221179;
+	-moz-border-radius: 6px;
+	-webkit-border-radius: 6px;
+	padding-top: 5px;
+	padding-bottom: 8px;
+}
+
+div#body > div > div.time {
+	color: #221179;
+	position: absolute;
+	width: 95px;
+	right: 0px;
+	font-size: smaller;
+	padding-top: 5px;
+}
+
+div#body > div > div.author {
+	position: absolute;
+	left: 0px;
+	color: #221179;
+	font-weight: bold;
+	width: 105px;
+	text-align: right;
+}
+
+div#body > div.topic > div.author {
+	padding-top: 5px;
+}
+
+div#body > div.topic > div.time {
+	padding-top: 10px;
+}
+
+div#body > div > a {
+	display: block;
+	padding-left: 15px;
+	margin-left: -15px;
+	cursor: pointer;
+	color: #2a6350;
+}
+
+div#body > div > a:hover {
+	text-decoration: underline;
+}
+
+div#body > div.title > a {
+	background: url(../img/boxed-plus.png) no-repeat;
+	background-position: 0px 3px;
+}
+
+div#body > div.topic > a {
+	background: url(../img/boxed-minus.png) no-repeat;
+	background-position: 0px 3px;
+}
+
+a[collapse=nocollapse] {
+	background-image: none !important;
+	text-decoration: none !important;
+}
+
+div#body > div.topic > div.message {
+	margin-top: 5px;
+}
+
+div#body > div.topic > div.message > input {
+	float: right;
+}
+
+div#body > form.newTopic {
+	position: relative;
+	width: 575px;
+	margin: 6px auto 0px auto;
+	padding: 5px 100px 5px 125px;
+	border: 2px dotted #221179;
+	-moz-border-radius: 6px;
+	-webkit-border-radius: 6px;
+}
+
+div#body > form.newTopic > input[type=text] {
+	display: block;
+	width: 563px;
+}
+
+div#body > form.newTopic > textarea {
+	display: block;
+	width: 575px;
+	height: 200px;
+}
+
+div#body > form.newTopic > textarea {
+	display: block;
+	width: 575px;
+	height: 200px;
+}
+
+div#body form.newMessage {
+	position: relative;
+	padding-top: 215px;
+}
+
+div#body form.newMessage > textarea {
+	display: block;
+	position:absolute;
+	top: 5px;
+	left: 0px;
+	right: 0px;
+	height: 200px;
+	width: 100%;
+}
+
+input {
+	color: #2a6350;
+	font-size: 12px;
+	padding-left: 6px;
+	padding-right: 6px;
+}
+
+textarea {
+	color: #2a6350;
+	font-size: 12px;
+}
+
+input[type=submit] {
+	color: #221179;
+	font-weight: bold;
+}
+
+input[type=button] {
+	color: #221179;
+}
+
+input.empty {
+	font-style: italic;
+	font-weight: bold;
+	color: #cde6c8;
+}

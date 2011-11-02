@@ -102,22 +102,37 @@ dojo.declare( 'adstream.data.Service', null, {
 		if( !this._refresh_timer && options && options.refreshRate )	
 			this._startRefreshTimer( 0 );
 
-		return rel_url;
+		return cb ? rel_url + ':' + cb._on_sync_id : rel_url;
 	},
 
-	ignore: function( rel_url ) {
+	ignore: function( rel_url, cb ) {
 
 		var parent = null, 
-			last_path_item = null;
+			last_path_item = null,
+			match;
+			
+		if( cb )	cb = cb._on_sync_id;
+		else if( match = /:\d+$/.exec( rel_url ) ) {
+			rel_url = rel_url.substr( 0, match.index );
+			cb = parseInt( match[0].substr( 1 ) );
+		}
 
 		if( !adstream.data._descend( rel_url, this._on_sync, function( obj, path_item ) {
 				return (parent = obj)[last_path_item = path_item]||null;
-			} ).rel_url )	
-			delete parent[last_path_item];
+			} ).rel_url ) {
+		
+			if( cb )	dojo.forEach( parent[last_path_item]._, function( item, i, all ) {
+				if( item.cb._on_sync_id == cb )
+					all.splice( i, 1 );
+			})
+		
+			if( !cb || parent[last_path_item]._.length == 0 ) {	
+				delete parent[last_path_item];
+				this._purgeRefreshQueue( rel_url, 9999 );
+			}
+		}
 
-		this._purgeRefreshQueue( rel_url );
-
-		return rel_url;
+		return cb ? rel_url + ':' + cb : rel_url;
 	},
 
 	catchAll: function( cb ) {

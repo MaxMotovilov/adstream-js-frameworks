@@ -16,8 +16,14 @@ dojo.declare( 'adstream.data.Watcher', null, {
 	},
 
 	ignore: function( obj, rel_url ) {
-		rel_url = obj.ignore( rel_url );
-		if( rel_url in this._dataWatches )	delete this._dataWatches[ rel_url ];
+		var	del = [];
+		for( var ru in this._dataWatches ) 
+			if( this._dataWatches.hasOwnProperty( ru ) && ru.substr( 0, rel_url.length ) == rel_url ) {
+				this._dataWatches[ru].ignore( ru );
+				del.push( ru );
+			}
+			
+		dojo.forEach( del, function(ru){ delete this._dataWatches[ ru ]; } );
 	},
 
 	uninitialize: function() {
