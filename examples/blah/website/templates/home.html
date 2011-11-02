@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="content-type" content="text/html;charset=UTF-8" />
+	<title>BLAH! A sample forum application.</title>
+	<script>
+		var djConfig = {
+			isDebug: true,
+			debugAtAllCosts: true,
+			parseOnLoad: false,
+			baseUrl: '{{STATIC_URL}}',
+			dojoBlankHtmlUrl: '{{STATIC_URL}}blank.html',
+
+			modulePaths: {
+				'adstream.data':	'ext/adstream/data',
+				'dojox.jtlc':		'ext/dojox/jtlc',
+				'blah':				'js',
+				'blah.CHT':			'cht'
+			}
+		};
+	</script>
+
+	<script src="http://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dojo/dojo.xd.js"></script>
+
+	<script type="text/javascript">
+		dojo.require( 'blah.home' );
+	</script>
+
+	<link rel="stylesheet" type="text/css" href="{{STATIC_URL}}css/home.css"/>
+</head>
+
+<body>
+	<div id='header'>
+	   <div id='banner'></div>
+	   <div id='menu'></div>
+	</div>
+	<div id='body'></div>
+</body>
