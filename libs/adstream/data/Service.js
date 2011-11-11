@@ -122,7 +122,7 @@ dojo.declare( 'adstream.data.Service', null, {
 			} ).rel_url ) {
 		
 			if( cb )	dojo.forEach( parent[last_path_item]._, function( item, i, all ) {
-				if( item.cb._on_sync_id == cb )
+				if( item /* working around the quirk in dojo.forEach() */ && item.cb._on_sync_id == cb )
 					all.splice( i, 1 );
 			})
 		
