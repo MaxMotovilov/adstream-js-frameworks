@@ -16,6 +16,12 @@ dojox.jtlc.CHT.loader = (function() {
 
 	var	d = dojo, dj = dojox.jtlc;
 
+	function decorateUrl( url ) {
+		return d.config.cacheBust ?
+			url + (url.indexOf("?") == -1 ? "?" : "&") + String(d.config.cacheBust).replace(/\W+/g,"") :
+			url;
+	}
+
 	var SplitName = d.extend( 
 		function( mdl, file, tpl ) {
 			this.moduleName = mdl;
@@ -43,7 +49,7 @@ dojox.jtlc.CHT.loader = (function() {
 
 			sourceText: function() {
 				return (d.global.preloadedCHT || {})[this.url()] ||
-						d.xhrGet({ url: this.url() });
+						d.xhrGet({ url: decorateUrl( this.url() ) });
 			}
 		}
 	);
