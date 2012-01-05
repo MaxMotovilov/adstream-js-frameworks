@@ -285,7 +285,7 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 
 	_itemDelete: function() {
 
-		if( this._notYetCreated() ) {
+		if( this._notYetCreated() || this._deleteViaParent ) {
 			var	split_url = ad._splitURL( this._.url ),
 				d = ad._descend( split_url[1], this._service.root );
 
@@ -581,7 +581,7 @@ dojo.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 
 		if( to_delete.length == 0 )
 			return null;
-		else if( to_delete.length == 1 )
+		else if( to_delete.length == 1 && !to_delete[0]._deleteViaParent /* minor optimization */ )
 			return to_delete[0].del();
 
 		// Batch delete
