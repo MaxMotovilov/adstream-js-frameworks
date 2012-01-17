@@ -1,0 +1,16 @@
+{
+  "name"         : "adstream-data",
+  "version"      : "0.1.1",
+  "description"  : "Framework for adstream.data compliant services",
+  "author"       : "Max Motovilov <max@motovilov.com>",
+  "main"         : "index.js",
+  "files"		 : [ "package.json", "index.js", "lib" ],
+  "dependencies" : {
+	"connect": ">= 1.8.1",
+	"node-promise": ">= 0.5.0"
+  },
+  "repository"	 : {
+	"type": "git",
+	"url": "https://MaxMotovilov@github.com/MaxMotovilov/adstream-js-frameworks.git"
+  }
+}
