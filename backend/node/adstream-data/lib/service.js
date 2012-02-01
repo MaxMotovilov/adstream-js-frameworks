@@ -92,8 +92,8 @@ var ServiceWrapper = d.extend(
 		service: function( ctx_cons ) {
 			var svc = buildService( this.schema );
 
-			function wrap( req, resp ) {
-				var ctx = new ctx_cons();
+			function wrap( req, resp, http_req ) {
+				var ctx = new ctx_cons( http_req );
 				ctx.request = req;
 				ctx.response = resp;
 
@@ -132,7 +132,7 @@ var ServiceWrapper = d.extend(
 					request.receive( req ),
 					function() {
 						return d.when( 
-							wrap( request, response ), 
+							wrap( request, response, req ), 
 							done, done
 						);
 					},
