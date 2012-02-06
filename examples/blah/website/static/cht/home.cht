@@ -1,0 +1,99 @@
+<? template Menu ?>
+	<? LoginOrGreeting ?>
+	<? Search ?>
+<? /template ?>
+
+<? template LoginOrGreeting ?>
+	<? if "$.user && $.user.name" ?>
+		<? Greeting ?>
+	<? else ?>
+		<? Login ?>
+	<? /if ?>
+<? /template ?>
+
+<? template Login ?>
+	<form id='leftMenu' dojoType='blah.home.Login'>
+		<input dojoType='blah.home.InputBox' type='text' class='empty' name='name' value='{{i18n:Username}}'>
+		<input dojoType='blah.home.InputBox' type='password' class='empty' name='password' value='{{i18n:Password}}'>
+		<input type='submit' name='logon' value='{{i18n:Log in}}'>
+		<input type='button' name='register' value='{{i18n:Register}}'>
+	</form>
+<? /template ?>
+
+<? template Greeting ?>
+	<form id='leftMenu' dojoType='blah.home.Greeting'>
+		<span>Welcome to Blah, {{user.name}}!</span>
+		<input type='submit' name='post' value='{{i18n:New post}}'>
+		<input type='button' name='logoff' value='{{i18n:Log out}}'>
+	</form>
+<? /template ?>
+
+<? template Search ?>
+	<form id='rightMenu' dojoType='blah.home.Search'>
+		<input dojoType='blah.home.InputBox' type='text' class='empty' name='searchString' value='{{i18n:Search context}}'>
+		<input type='submit' name='search' value='{{i18n:Find}}'>
+	</form>
+<? /template ?>
+
+<? template Notification ?>
+	<div id='rightMenu' dojoType='blah.home.Notification' class='{{$1&&"error"||""}}'>{{$}}</div>
+<? /template ?>
+
+<? template TopicList ?>
+	<? foreach "[*][?messages][/messages[1].timestamp]" ?>
+		<? Topic ?>
+	<? /foreach ?>
+<? /template ?>
+
+<? template Topic ?>
+	<div class='{{$1?"topic":"title"}}' topic_id='{{id()}}' dojoType='{{$1?"blah.home.Topic":"blah.home.Title"}}'>
+		<? if "!$1" ?>
+			<? MessageHeader "messages[1]" ?>
+		<? /if ?>
+		<a collapse='{{$1||"true"}}'>{{title}}</a>
+		<? if "$1" ?>
+			<? Messages "$.messages|blah.home.makeThread" ?>
+		<? /if ?>
+	</div>
+<? /template ?>
+
+<? template MessageHeader ?>
+	<div class='author'>{{user}}</div>
+	<div class='time'>{{timestamp|blah.home.formatTime}}</div>
+<? /template ?>
+
+<? template Messages compiled="true" ?>
+	<? foreach "[/message.timestamp]" ?>
+		<? MessageHeader message ?>
+		<div class='message' style='margin-left:{{10*$.level}}px;' message_id='{{message.id()}}' level='{{level}}'>{{message.text}}
+			<? if "(blah.root.user.name)" ?>
+				<input type='button' value='{{i18n:Reply}}'>
+			<? /if ?>
+		</div>
+		<? if children ?>
+			<? Messages children ?>
+		<? /if ?>
+	<? /foreach ?>
+<? /template ?>
+
+<? template NewTopic ?>
+	<form class='newTopic' dojoType='blah.home.NewTopic'>
+		<input type='text' name='title' class='empty' value='{{i18n:Post title}}' dojoType='blah.home.InputBox'>
+		<? NewMessageContent ?>
+	</form>
+<? /template ?>
+
+<? template NewMessage ?>
+	<form class='newMessage' dojoType='blah.home.NewMessage' style='margin-left:{{10*$.level}}px; width:{{575-10*$.level}}px;'>
+		<? NewMessageContent ?>
+	</form>
+<? /template ?>
+
+<? template Nothing ?>
+<? /template ?>
+
+<? template NewMessageContent ?>
+	<textarea name='message'></textarea>
+	<input type='submit' name='post' value='{{i18n:Post message}}'>
+	<input type='button' name='cancel' value='{{i18n:Cancel}}'>
+<? /template ?>
