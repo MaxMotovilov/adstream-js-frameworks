@@ -646,7 +646,7 @@ var Item = d.extend(
 							d.mixin( {}, this._data._[i] ) : this._data._[i];
 			}
 
-			if( this._key[this._key.length-1].toString().charAt(0) == '@' )	
+			if( this._key.length && this._key[this._key.length-1].toString().charAt(0) == '@' )	
 				( result._|| (result._ = {}) ).replaces = this._key[this._key.length-1];
 
 			return result;
