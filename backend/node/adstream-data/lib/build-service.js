@@ -734,7 +734,7 @@ function /*ctx.*/ callWithItems( handlers, Item, key_suffix, k /* : Key */ ) {
 				if( Item.prototype.key_names.length )
 					result.push( handlers[op].call( ctx, k, items ) );
 				else
-					result.splice( result.length, 0, items.map( d.hitch( ctx, handlers[op], k ) ) );
+					result.push.apply( result, items.map( d.hitch( ctx, handlers[op], k ) ) );
 //			else
 //				ctx.response.fail( 405, op + '() method is not defined for "' + k.url() + '"' );
 	}
