@@ -83,7 +83,7 @@ d.declare( 'dojox.jtlc.qplus', dj.JXL, {
 			prep = query.replace( 
 				multiple ? this._multipleScanRegex : this._singleScanRegex,
 				function( c ) {
-					if( c[0] == '\\' ) return c[1];
+					if( c.charAt(0) == '\\' ) return c.charAt(1);
 					if( stack[0].allow.indexOf( c ) >= 0 ) {
 						if( c == stack[0].close )
 							stack.shift();
@@ -133,7 +133,7 @@ d.declare( 'dojox.jtlc.qplus', dj.JXL, {
 				prep = RegExp.$1.replace( 
 					this._multipleScanRegex,
 					function( c ) {
-						if( c[0] == '\\' ) return c[1];
+						if( c.charAt(0) == '\\' ) return c.charAt(1);
 						if( stack[0].allow.indexOf( c ) >= 0 ) {
 							if( c == stack[0].close )
 								stack.shift();

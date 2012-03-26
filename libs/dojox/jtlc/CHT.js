@@ -919,12 +919,13 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 		},
 		compile: function( self ) {
 			this.compile( self.arg );
-			this.code.push( this._chtRefs.refs + '.push(' + this.popExpression() + ');' );
 			this._replaceFunction = this._replaceFunction || this.addGlobal( dj._replaceN );
 
 			this.expressions.push( 
-				this._replaceFunction + '("dojo.getObject(\\"_refs.{0}.{1}\\")",' + this._chtRefs.index + ',' + this._chtRefs.refs + '.length-1)' 
+				this._replaceFunction + '("dojo.getObject(\\"_refs.{0}.{1}\\")",' + 
+				this._chtRefs.index + ',' + this._chtRefs.refs + '.push(' + this.popExpression() + ')-1)'
 			);
+
 			this._hasRefs = true;
 		}
 	} );

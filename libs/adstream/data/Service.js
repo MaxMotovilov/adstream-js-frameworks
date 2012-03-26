@@ -184,7 +184,7 @@ dojo.declare( 'adstream.data.Service', null, {
 
 		return (this._pending_gets[ rel_url ] = {
 			params: dojo.objectToQuery( params ),
-			result: this._paused === 'all' ? this._makeResult() : this._xhr( "GET", {}, rel_url, params )
+			result: this._paused === 'all' ? this._makeResult() : this._xhr( "GET", { failOk: true }, rel_url, params )
 		}).result;
 	},
 
@@ -514,7 +514,7 @@ dojo.declare( 'adstream.data.Service', null, {
 			for( var rel_url in this._pending_gets )
 				if( this._pending_gets.hasOwnProperty( rel_url ) ) {
 					if( discard )	delete this._pending_gets[ rel_url ];
-					else this._xhr( "GET", {}, rel_url, dojo.queryToObject( this._pending_gets[rel_url].params ), this._pending_gets[rel_url].result );
+					else this._xhr( "GET", { failOk: true }, rel_url, dojo.queryToObject( this._pending_gets[rel_url].params ), this._pending_gets[rel_url].result );
 				}
 			this._onRefresh();
 		}	
