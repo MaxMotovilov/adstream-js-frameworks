@@ -21,7 +21,6 @@ dojox.jtlc.CHT.loader = (function() {
 			url + (url.indexOf("?") == -1 ? "?" : "&") + String(d.config.cacheBust).replace(/\W+/g,"") :
 			url;
 	}
-
 	var SplitName = d.extend( 
 		function( mdl, file, tpl ) {
 			this.moduleName = mdl;
@@ -107,20 +106,31 @@ dojox.jtlc.CHT.loader = (function() {
 		return cht_instance;
 	}
 
+	function parseAndResolveModule( mdl, src, nls, url ) {
+
+		var	ns = {};
+
+		cache[mdl] = { parsed: ns, compiled: {}, nls: nls };
+		
+		return cache[mdl].deferred = d.when( 
+			chtInstance().parse( src, ns, url ),
+			function() { 
+				delete cache[mdl].deferred;
+				return cache[mdl]; 
+			}
+		);
+	}
+
 	function loadAndParseModule( mdl_or_sn ) {
 		var mdl = mdl_or_sn instanceof SplitName ? mdl_or_sn.namespace() : mdl_or_sn;
-		if( cache[mdl] )	return cache[mdl];
+		if( cache[mdl] )	return cache[mdl].deferred || cache[mdl];
 
 		var	sn  = mdl_or_sn instanceof SplitName ? mdl_or_sn : splitModuleName( mdl_or_sn );
 			src = sn.sourceText(),
 			nls = sn.nlsBundle();
 
 		return d.when( src,	function( src ) {
-			cache[mdl] = { parsed: {}, compiled: {}, nls: nls };
-			return d.when( 
-				chtInstance().parse( src, cache[mdl].parsed, sn.url() ),
-				function() { return cache[mdl]; }
-			)
+			return parseAndResolveModule( mdl, src, nls, sn.url() );
 		} );
 	}
 
@@ -143,13 +153,8 @@ dojox.jtlc.CHT.loader = (function() {
 			else		nls = sn.nlsBundle();
 		} );
 
-		cache[root] = { parsed: {}, compiled: {}, nls: nls };
-
 		return d.when( wait, function() {
-			return d.when( 
-				chtInstance().parse( src, cache[root].parsed ),
-				function(){ return cache[root]; }
-			);
+			return parseAndResolveModule( root, src, nls );
 		} );
 	}
 
@@ -236,7 +241,9 @@ dojox.jtlc.CHT.loader = (function() {
 			for( var i=0; i<arguments.length; ++i ) {
 				var	mdl_list = arguments[i].split( /\s*\+\s*/ );
 				result.push(
-					cache[ mdl_list[0] ] || loadAndParseModuleList( mdl_list ) 
+					cache[ mdl_list[0] ] && cache[ mdl_list[0] ].deferred || 
+					cache[ mdl_list[0] ] ||
+					loadAndParseModuleList( mdl_list ) 
 				);
 			}
 
@@ -245,7 +252,10 @@ dojox.jtlc.CHT.loader = (function() {
 
 		get: function( tpl ) {
 			var sn = splitTemplateName( tpl ),
-				cached = cache[ sn.namespace() ] || loadAndParseModule( sn );
+				cached = 
+					cache[ sn.namespace() ] && cache[ sn.namespace() ].deferred || 
+					cache[ sn.namespace() ] || 
+					loadAndParseModule( sn );
 			return cached.then ? deferGetTemplate( cached, sn ) : getTemplate( sn );
 		},
 
