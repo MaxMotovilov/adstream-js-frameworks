@@ -23,7 +23,7 @@ dojo.declare( 'adstream.data.Watcher', null, {
 				del.push( ru );
 			}
 			
-		dojo.forEach( del, function(ru){ delete this._dataWatches[ ru ]; } );
+		dojo.forEach( del, function(ru){ delete this._dataWatches[ ru ]; }, this );
 	},
 
 	uninitialize: function() {
