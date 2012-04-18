@@ -95,7 +95,7 @@ exports.forEach = function( body, rel, cb /* ( subkey, obj ) */, with_interm ) {
 	}
 	
 	function deep( obj, pos ) {
-		for( ; pos<parts.length; ++pos )
+		if( obj /* !== null */ ) for( ; pos<parts.length; ++pos )
 			if( parts[pos] == '*' ||
 				!(obj = obj[parts[pos]]) 
 			)

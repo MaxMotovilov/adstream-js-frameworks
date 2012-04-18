@@ -1,6 +1,6 @@
 {
   "name"         : "adstream-data",
-  "version"      : "0.1.4",
+  "version"      : "0.1.5",
   "description"  : "Framework for adstream.data compliant services",
   "author"       : "Max Motovilov <max@motovilov.com>",
   "main"         : "index.js",
