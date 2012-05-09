@@ -9,7 +9,7 @@ djConfig = {
 load( '../../dojo-release-1.6.1-src/dojo/dojo.js' );
 */
 
-dojo.provide( 'dojox.jtlc.CHT.instance' );
+// dojo.provide( 'dojox.jtlc.CHT.instance' );
 dojo.require( 'dojox.jtlc.CHT' );
 
 // FIXME: does not support cross-module access to structured templates
@@ -23,7 +23,8 @@ function loadNothing( ns ) {
 }
 
 var cht = new dojox.jtlc.CHT( { loadTemplates: loadNothing } ),
-	file = dojo.global.arguments[0];
+	fs = module.require('fs'),
+	file = process.argv[2]; // dojo.global.arguments[0];
 
 var dojo_getObject = dojo.getObject;
 
@@ -32,13 +33,13 @@ dojo.getObject = function( x ) {
 }
 
 dojo.when( 
-	cht.parse( readFile( file ) ), 
+	cht.parse( fs.readFileSync( file, 'utf8' ) ), 
 	function( ns ) {
 		var dict = {};
 		for( var n in ns )
 			if( ns.hasOwnProperty(n) )
 				dojox.jtlc.compile( ns[n], cht, { i18nDictionary: dict } );
-		print( dojo.toJson( dict, true ) );
+		process.stdout.write( dojo.toJson( dict, true ) );
 	}
 );
 

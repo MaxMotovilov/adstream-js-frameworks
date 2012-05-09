@@ -2,11 +2,15 @@ collect.js is a simple script that extracts all localizable strings from a
 CHT file and prints them as a JSON object that can be edited to create a 
 correct NLS bundle for this CHT module. 
 
-Usage: rhino release/collect.js FileName.cht >NLSFileName.js
+Usage: node release/collect.js FileName.cht >NLSFileName.js
 
 Note that results are always directed to standard output.
 
-Until the process of building standalone command line utilities that use 
-Dojo becomes reasonably stable, it is recommended to use the pre-built
-version of the utility in the release directory and not the script source.
+In order to build release/collect.js script from the source: 
+
+1. Download the trunk version of Dojo from http://svn.dojotoolkit.org
+2. Change directory to util/buildscripts of Dojo trunk
+3. Run "./build.sh --release --profile <<Path to collect.profile.js>>
+4. Copy or move release/dojo/dojo/dojo.js from Dojo trunk directory to 
+   release/collect.js in this directory.
 
