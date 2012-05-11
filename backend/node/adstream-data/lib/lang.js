@@ -74,10 +74,8 @@ var empty = {},
 			return (typeof it == "string" || it instanceof String); // Boolean
 		},
 
-		_utils_toArray: require( 'connect' ).utils.toArray,
-
 		_toArray: function( args, offs ) {
-			return offs ? this._utils_toArray( args ).slice( offs ) : this._utils_toArray( args );
+			return Array.prototype.slice.call( args, offs );
 		},
 
 		_hitchArgs: function(scope, method /*,...*/){
