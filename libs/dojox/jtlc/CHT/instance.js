@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2011 Adstream Holdings
+// Copyright (C) 2010-2012 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -381,13 +381,14 @@ dojo.require( "dijit._Widget" );
 
 		_attach: function( i, index, subindex, handle_errors ) {
 
-			if( i instanceof dj._CHTIncrementalTemplateInstance )
+			if( i instanceof dj._CHTIncrementalTemplateInstance ) {
+				if( i.isDeferred() ) 
 				i.then(
 					d.hitch( this, '_onNestedReady' ),
 					d.hitch( this, '_onNestedFailed' ),
 					d.hitch( this, '_onNestedReady' )
 				);
-			else if( i instanceof d.Deferred ) {
+			} else if( i instanceof d.Deferred ) {
 				var	wait_ready = d.hitch( this, '_onWaitReady', index, subindex );
 				i.then( wait_ready, handle_errors ? wait_ready : d.hitch( this, '_onWaitFailed' ) );
 			}
