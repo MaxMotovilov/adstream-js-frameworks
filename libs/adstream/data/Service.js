@@ -226,7 +226,10 @@ dojo.declare( 'adstream.data.Service', null, {
 				}
 			} );
 
-		if( response instanceof Error ) {
+		if( !response && !ioargs.xhr.status ) {
+			//	Dojo failed to signal connection loss as an error :(
+			err = new Error( "Connection to service failed" );
+		} else if( response instanceof Error ) {
 			//	Error detected by dojo.xhr() -- timeout, HTTP code etc.
 			err = response;
 			response = response.responseText || ioargs && ioargs.xhr.responseText || '';
