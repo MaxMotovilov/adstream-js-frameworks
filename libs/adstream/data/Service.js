@@ -472,6 +472,7 @@ dojo.declare( 'adstream.data.Service', null, {
 							if( q.w[i]._[j].refresh ) {
 								var ripe = (q.w[i]._[j].last_updated||0) + q.w[i]._[j].refresh;
 								if( ripe <= ts ) {
+									q.w[i]._[j].last_updated = ts;
 									this._pushRefreshQueue( q.d[i].url(), q.w[i]._[j].max_depth );
 								}
 								else if( isNaN(next) || next > ripe )
