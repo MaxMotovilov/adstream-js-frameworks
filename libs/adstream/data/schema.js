@@ -61,9 +61,10 @@ function _identical( a, b, ignore_schema_objects )
 
 	if( typeof a !== 'object' && typeof b !== 'object' )
 		return a.toString() == b.toString();
-
 	else if( typeof a !== typeof b )
 		return false;
+	else if( a === null || b === null )
+		return a === null && b === null;
 
 	for( var i in a )
 		if( a.hasOwnProperty(i) && i != '_' && !_identical( a[i], b[i] ) )
