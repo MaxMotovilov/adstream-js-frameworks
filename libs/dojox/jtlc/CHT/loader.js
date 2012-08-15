@@ -47,8 +47,9 @@ dojox.jtlc.CHT.loader = (function() {
 			},
 
 			sourceText: function() {
-				return (d.global.preloadedCHT || {})[this.url()] ||
-						d.xhrGet({ url: decorateUrl( this.url() ) });
+				var pre = d.global.preloadedCHT || (d.global.preloadedCHT = {};
+				return pre[this.url()] ||
+					   ( pre[this.url()] = d.xhrGet({ url: decorateUrl( this.url() ) }) );
 			}
 		}
 	);
@@ -107,6 +108,8 @@ dojox.jtlc.CHT.loader = (function() {
 	}
 
 	function parseAndResolveModule( mdl, src, nls, url ) {
+		if( cache[mdl] )
+			return cache[mdl].deferred || cache[mdl];
 
 		var	ns = {};
 
