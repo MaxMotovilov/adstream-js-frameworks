@@ -125,7 +125,7 @@ dojox.jtlc.CHT.loader = (function() {
 		var mdl = mdl_or_sn instanceof SplitName ? mdl_or_sn.namespace() : mdl_or_sn;
 		if( cache[mdl] )	return cache[mdl].deferred || cache[mdl];
 
-		var	sn  = mdl_or_sn instanceof SplitName ? mdl_or_sn : splitModuleName( mdl_or_sn );
+		var	sn  = mdl_or_sn instanceof SplitName ? mdl_or_sn : splitModuleName( mdl_or_sn ),
 			src = sn.sourceText(),
 			nls = sn.nlsBundle();
 
