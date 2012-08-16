@@ -468,7 +468,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 									new_input = '(' + new_input + ')';
 								} else {
 									this.locals.pop();
-									delete local;
+									local = null;
 								}
 							} else
 								new_input = this.generator();
