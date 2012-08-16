@@ -47,7 +47,7 @@ dojox.jtlc.CHT.loader = (function() {
 			},
 
 			sourceText: function() {
-				var pre = d.global.preloadedCHT || (d.global.preloadedCHT = {};
+				var pre = d.global.preloadedCHT || (d.global.preloadedCHT = {});
 				return pre[this.url()] ||
 					   ( pre[this.url()] = d.xhrGet({ url: decorateUrl( this.url() ) }) );
 			}
