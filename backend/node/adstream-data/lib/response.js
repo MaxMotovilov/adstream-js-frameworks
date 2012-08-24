@@ -22,7 +22,7 @@ exports = module.exports = d.extend(
 			resp.writeHead(
 				this.error ? this.error.httpCode || 500 : 200,
 				d.mixin( 
-					{ 'Content-Type': 'application/json' },
+					{ 'Content-Type': 'application/json; encoding=utf8' },
 					( this.error && this.error.httpHeaders ) || {}
 				)
 			);
