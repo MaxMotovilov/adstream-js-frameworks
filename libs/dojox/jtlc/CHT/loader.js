@@ -100,6 +100,24 @@ dojox.jtlc.CHT.loader = (function() {
 			if( from[i] )	to[i] = from[i];
 	}
 
+	var Context = d.extend( 
+		function( cached ) { this.cached = cached; }, 
+		{
+			enter: function( state ) {
+				state.compileArguments.options = d.delegate( 
+					state.compileArguments.options, 
+					{ i18nDictionary: this.cached.nls, oldOptions: state.compileArguments.options }
+				);
+				state.i18nDictionary = this.cached.nls;
+			},
+
+			exit: function( state ) {
+				state.compileArguments.options = state.compileArguments.options.oldOptions;
+				state.i18nDictionary = state.compileArguments.options.i18nDictionary;
+			}			
+		}
+	);
+
 	var cache = {},	cht_instance = null;
 
 	function chtInstance() {
@@ -114,6 +132,7 @@ dojox.jtlc.CHT.loader = (function() {
 		var	ns = {};
 
 		cache[mdl] = { parsed: ns, compiled: {}, nls: nls };
+		cache[mdl].context = new Context( cache[mdl] );
 		
 		return cache[mdl].deferred = d.when( 
 			chtInstance().parse( src, ns, url ),
@@ -166,7 +185,10 @@ dojox.jtlc.CHT.loader = (function() {
 			d.forEach( tpls, function( tpl ) {
 				if( !(tpl in cached.parsed) )
 					throw Error( '<?' + tpl + '?> is not defined in ' + mdl );
-				refs[mdl + '.' + tpl] = cached.parsed[tpl];
+				refs[mdl + '.' + tpl] = d.delegate( 
+					cached.parsed[tpl],
+					{ context: cached.context }
+				);
 			} );
 			return false; // Prevent propagation of a deferred
 		}

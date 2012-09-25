@@ -182,6 +182,24 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 			var	stack = [],
 				lit_seq_start = -1;
 
+			function wrapInContext( at ) {
+				if( refs[tag].context ) {
+					body.splice( at, 1, 
+						_this._contextSwitch( refs[tag].context, 'enter' ),
+						body[at],
+						_this._contextSwitch( refs[tag].context, 'exit' )
+					);
+					i += 2;
+					return true;
+				}
+				return false;
+			}
+
+			function unwrapFromContext( body ) {
+				body.unshift( _this._contextSwitch( refs[tag].context, 'exit' ) );
+				body.push( _this._contextSwitch( refs[tag].context, 'enter' ) );
+			}
+
 			for( var i=0; i<body.length; ++i ) {
 
 				if( body[i] instanceof dj._CHTElement ) {
@@ -233,6 +251,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 							body[i].sections = [];
 						} else { // non-sectioned element (widget)
 							body[i] = refs[tag].tag( _this, body[i] );
+							wrapInContext( i );
 						}
 					} else { // body[i].closeTag
 						if( !parent || parent.openTag != body[i].closeTag )
@@ -260,6 +279,12 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 						body[stack[0]] = refs[tag].tag( _this, parent );
 						body.splice( i--, 1 );
+
+						if( wrapInContext( stack[0] ) ) {
+							dojo.forEach( parent.sections, function(s){ unwrapFromContext( s.body ); } );
+							if( parent.body && parent.body.length )	unwrapFromContext( parent.body );
+						}
+
 						stack.shift();
 					}
 				} else { // Literal
@@ -395,6 +420,13 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 			}
 		}
 	),
+
+	_contextSwitch: function( ctx, mtd ) {
+		mtd = dojo.hitch( ctx, mtd );
+		return {
+			compile: function(){ mtd( this ); }
+		}
+	},
 
 	_userDefinedElement: dojo.extend( 
 		function( elt, url ) {
