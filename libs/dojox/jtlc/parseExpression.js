@@ -108,7 +108,8 @@ function classifyRules( rules ) {
 	var result = {};
 	d.forEach( rules, function(r) {
 		if( r.in_mode in result ) {
-			if( result[r.in_mode].in_pri != r.in_pri )	return null;
+			if( result[r.in_mode].in_pri != r.in_pri )
+				throw Error( "BUG -- conflict between rules for key " + key );
 		} else {
 			result[r.in_mode] = { in_pri: r.in_pri, rules: [] };
 		}
@@ -128,8 +129,8 @@ function compileGrammar( grammar ) {
 					rule.callback = grammar[key][i++];
 				rules.push( rule );
 			}
-			if( !( compiled_grammar[key] = classifyRules( rules ) ) )
-				throw Error( "BUG -- conflict between rules for key " + key );
+			
+			compiled_grammar[key] = classifyRules( rules );
 		}
 	return compiled_grammar;
 }
@@ -301,7 +302,7 @@ function buildParser( options ) {
 	var	scanner, scanner_regex;
 
 	if( options && options.scanner ) {
-		if( options.scanner === 'function' )	scanner = options.scanner;
+		if( typeof options.scanner === 'function' )	scanner = options.scanner;
 		else	scanner_regex = typeof options.scanner === 'string' ? new RegExp( options.scanner, 'g' ) : options.scanner;
 	} else	scanner_regex = // Default Javascript scanner: copy and modify it to extend the expression grammar with new token types
 		/(?:["'(),:;?\[\]{}~]|\\.|[%*\/\^]=?|[!=](?:==?)?|\+[+=]?|-[\-=]?|&[&=]?|\|[|=]?|>{1,3}=?|<<?=?|\.\d+(?:e[+\-]?\d+)?|(?!0x)\d+(?:\.\d*(?:e[+\-]?\d+)?)?|\.(?!\d)|0x[0-9a-f]+|[a-z_$][a-z_$0-9]*)/ig;
