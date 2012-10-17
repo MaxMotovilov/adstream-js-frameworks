@@ -187,12 +187,14 @@ dojo.require( "dijit._Widget" );
 
 		refs: function( outer ) {
 			outer = outer || {};
-			if( this._refs ) {
+
+			if( this._refs )
 				outer[this._refID] = this._refs;
-				d.forEach( this._split_text, function(t) {
-					if( t instanceof dj._CHTTemplateInstance )	t.refs( outer );
-				} );
-			}
+
+			d.forEach( this._split_text, function(t) {
+				if( t instanceof dj._CHTTemplateInstance )	t.refs( outer );
+			} );
+
 			return outer;
 		},
 
