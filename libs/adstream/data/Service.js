@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2011 Adstream Holdings
+// Copyright (C) 2010-2012 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -339,17 +339,24 @@ dojo.declare( 'adstream.data.Service', null, {
 				}
 			}
 
-			var sync_list = [];
-
-			var	modified = qi.obj._unmarshal( qi.data, props ),
+			var sync_list = [],
+				modified = qi.obj._unmarshal(
+					qi.data, props,
+					// Optimization: should we preserve old object content?
+					dojo.some( qi.sync_list, function(i){ return i.min_depth <= 0; } )
+				),
 				ts = (new Date()).valueOf();
 			
 			dojo.forEach( qi.sync_list, function( item ) {
 
 				if( item.min_depth <= 0 ) {
-					if( item.item.refresh )	item.item.last_updated = ts;
+					if( item.item.refresh )
+						item.item.last_updated = ts;
+						
 					if( modified ) {
-						on_sync.push( item ); 
+						if( typeof modified === 'object' )
+							item.old = modified;
+						on_sync.push( item );
 						return;
 					}
 				}
@@ -405,7 +412,7 @@ dojo.declare( 'adstream.data.Service', null, {
 			while( from < curr ) {
 				var item = on_sync[from++];
 				if( last_id != item.item.cb._on_sync_id ) {
-					item.item.cb( item.obj );
+					item.item.cb( item.obj, item.old );
 					if( item.item.refresh && !this._refresh_timer )	
 						this._startRefreshTimer( 0 );
 					last_id = item.item.cb._on_sync_id;

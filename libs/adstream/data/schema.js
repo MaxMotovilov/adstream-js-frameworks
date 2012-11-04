@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2011 Adstream Holdings
+// Copyright (C) 2010-2012 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -7,8 +7,16 @@ dojo.provide( 'adstream.data.schema' );
 
 (function() {
 
-var ad = adstream.data,
+var d = dojo,
+	ad = adstream.data,
 	ads = adstream.data.schema;
+
+function mix( to, from ) {
+	for( var i in from )
+		if( from.hasOwnProperty(i) )
+			to[i] = from[i];
+	return to;
+}
 
 ad._splitURL = function( url ) {
 	return /^(.*)\/([^\/]*)$/.exec( url ) || [ url, url, '' ];
@@ -97,9 +105,9 @@ function _bySchema( obj, path_item )
 
 function _descendSchema( rel_url, obj )
 {
-	var d = ad._descend( rel_url, obj, _bySchema );
-	if( d.rel_url )	throw Error( obj._.url + '/' + rel_url + ' does not specify an object in the schema' );
-	return d.obj;
+	var p = ad._descend( rel_url, obj, _bySchema );
+	if( p.rel_url )	throw Error( obj._.url + '/' + rel_url + ' does not specify an object in the schema' );
+	return p.obj;
 }
 
 function _identicalProp( src, dst )
@@ -132,7 +140,7 @@ function _copyProp( src, dst )
 			dst[i] = src[i];
 }
 
-dojo.declare( 'adstream.data.schema.Node', null, {
+d.declare( 'adstream.data.schema.Node', null, {
 
 	constructor: function( sub, options, proto ) {
 		this._subschema = sub || {};
@@ -156,11 +164,26 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 		if( !this.hasOwnProperty( '_subschema' ) )
 			throw Error( "_new() called on an instance instead of the schema object" );
 
-		var	impl = dojo.delegate( this, {
-				_: 			dojo.delegate( this._, { url: url } ),
-				_service: 	svc
+		var	impl = d.delegate( this, {
+				_: 			d.delegate( this._, { url: url } ),
+				_service: 	svc,
+				
+				_fork: function( props, proto, meta ) {
+					if( meta ) {
+						meta = d.delegate( this._, meta );
+						if( proto )
+							proto._ = meta;
+						else
+							proto = { _: meta };
+					}
+					
+					if( proto )	proto = d.delegate( impl, proto );
+					else		proto = impl;
+					
+					return d.delegate( proto, props );
+				}
 			} ),
-			obj = dojo.delegate( impl, {} );
+			obj = impl._fork();
 
 		if( !(this instanceof ads.Container) && this._subschema )
 			for( var i in this._subschema )
@@ -219,18 +242,15 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 		if( this._.hasOwnProperty( prop ) )
 			if( !src )	delete this._[prop];
 			else		_copyProp( src, this._[prop] );
-		else if( src )	this._[prop] = dojo.delegate( this._[prop], src );
+		else if( src )	this._[prop] = d.delegate( this._[prop], src );
 	},
 
-	_copyPropsIfChanged: function( src, props ) {
-		var	any = false;
+	_copyPropsIfChanged: function( src, props, forkme ) {
+		var	meta, _this = this;
 
-		if( src._ )	dojo.forEach( props, function(prop) {
+		if( src._ )	d.forEach( props, function(prop) {
 			
 			if( !( prop in src._ ) )	return;
-
-			if( this._.hasOwnProperty( '_'+prop ) )	
-				delete this._['_'+prop]; // Clobber the shadow copy
 
 			if( typeof src._[prop] === 'object' ) {
 				if( typeof this._[prop] !== 'object' )
@@ -240,18 +260,26 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 						!src._[prop] || !_identicalProp( src._[prop], this._[prop] ) :
 						src._[prop]
 				) {
+					modified();
 					this._copyProp( src._[prop], prop );
-					any = true;
 				}
 			} else if( typeof this._[prop] === 'object' ) 
 				throw Error( prop + " is not a valid scalar metadata property for " + this._.url );
 			else if( src._[prop] != this._[prop] ) {
+				modified();
 				this._[prop] = src._[prop];
-				any = true;
 			}
+
+			if( this._.hasOwnProperty( '_'+prop ) )
+				delete this._['_'+prop]; // Clobber the shadow copy
 		}, this );
 
-		return any;
+		return meta;
+		
+		function modified() {
+			if( !meta )
+				meta = !forkme || mix( {}, _this._ );
+		}
 	},
 
 	_isInstance: function() {
@@ -277,22 +305,22 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 		if( /@.*[\/]/.test( this._.url ) )
 			throw Error( "Cannot save " + this._.url + " as its parent has not yet been saved" );
 		var split_url = ad._splitURL( this._.url ),
-			d = ad._descend( split_url[1], this._service.root );
+			p = ad._descend( split_url[1], this._service.root );
 
-		if( d.rel_url )	throw Error( "Object at " + this._.url + " is not connected to schema" );
+		if( p.rel_url )	throw Error( "Object at " + this._.url + " is not connected to schema" );
 
-		return d.obj.save( split_url[2] );
+		return p.obj.save( split_url[2] );
 	},
 
 	_itemDelete: function() {
 
 		if( this._notYetCreated() || this._deleteViaParent ) {
 			var	split_url = ad._splitURL( this._.url ),
-				d = ad._descend( split_url[1], this._service.root );
+				p = ad._descend( split_url[1], this._service.root );
 
-			if( d.rel_url )	throw Error( "Object at " + this._.url + " is not connected to schema" );
+			if( p.rel_url )	throw Error( "Object at " + this._.url + " is not connected to schema" );
 		
-			return d.obj.del( split_url[2] );
+			return p.obj.del( split_url[2] );
 
 		} else {
 			return this._service.DELETE( this._.url, { version: this._.version } );
@@ -319,12 +347,12 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 	service: function() { return this._service; },
 
 	get: function( rel_url, depth, force ) {
-		var	d = ad._descend( rel_url||'', this );
+		var	p = ad._descend( rel_url||'', this );
 
-		if( !force && !d.rel_url && !d.obj._isPartial( depth||d.obj._defaultGetDepth||0 ) ) 
-			return d.obj;
+		if( !force && !p.rel_url && !p.obj._isPartial( depth||p.obj._defaultGetDepth||0 ) )
+			return p.obj;
 
-		var	schema_obj = _descendSchema( d.rel_url, d.obj ),
+		var	schema_obj = _descendSchema( p.rel_url, p.obj ),
 			params = schema_obj._URL_Params( depth );
 
 		if( depth = depth||schema_obj._defaultGetDepth||0 )
@@ -357,10 +385,10 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 		}
 
 		if( !options || !('maxDepth' in options) ) {
-			var	d = ad._descend( rel_url||'', this ),
-				ref_obj = d.rel_url ?
-					_descendSchema( d.rel_url, d.obj ) : 
-					d.obj;
+			var	p = ad._descend( rel_url||'', this ),
+				ref_obj = p.rel_url ?
+					_descendSchema( p.rel_url, p.obj ) :
+					p.obj;
 			if( '_defaultGetDepth' in ref_obj )
 				(options||(options={})).maxDepth = ref_obj._defaultGetDepth;
 		}
@@ -379,23 +407,35 @@ dojo.declare( 'adstream.data.schema.Node', null, {
 	}
 } );
 
-dojo.declare( 'adstream.data.schema.Object', [ ads.Node ], {
+d.declare( 'adstream.data.schema.Object', [ ads.Node ], {
 
-	_unmarshal: function( data ) {
+	_unmarshal: function( data, _, forkme ) {
 
-		if( !this._copyPropsIfChanged( data, [ 'version', 'partial' ] ) &&
+		var meta, props, _this = this;
+
+		if( !(meta = this._copyPropsIfChanged( data, [ 'version', 'partial' ], forkme )) &&
 			_identical( data, this, true )
 		)
 			return false;
 
 		for( var i in this )
-			if( this.hasOwnProperty(i) && !(this[i] instanceof ads.Node) )
+			if( this.hasOwnProperty(i) && !(this[i] instanceof ads.Node) ) {
+				modified();
 				delete this[i];
+			}
 
 		for( var i in data )
-			if( i != '_' )	this[i] = data[i];
+			if( i != '_' ) {
+				modified();
+				this[i] = data[i];
+			}
 
-		return true;
+		return !forkme || this._fork( props, null, meta );
+
+		function modified() {
+			if( forkme && !props )
+				props = mix( {}, _this );
+		}
 	},
 
 	_marshal: function( depth ) {
@@ -420,7 +460,7 @@ dojo.declare( 'adstream.data.schema.Object', [ ads.Node ], {
 
 } );
 
-dojo.declare( 'adstream.data.schema.Container', [ ads.Node ], {
+d.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 
 	constructor: function() {
 	
@@ -452,34 +492,36 @@ dojo.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 		return path_item == '_' ? null : this._subschema.item;
 	},
 
-	_unmarshal: function( data, props ) {
+	_unmarshal: function( data, props, forkme ) {
 
-		var	result = this._copyPropsIfChanged( data, [ 'filter', 'view', 'extra' ] );
+		var	meta = this._copyPropsIfChanged( data, [ 'filter', 'view', 'extra' ], forkme ),
+			props, proto, created, deleted, _this = this;
 
 		for( var i in props )
 			if( !props[i] ) {
 				if( this.hasOwnProperty(i) ) {
+					modified( null, i );
 					delete this[i];
-					result = true;
 				}
 			} else if( props[i]._ && props[i]._.replaces &&
 					   props[i]._.replaces in this ) {
+				modified( i, props[i]._.replaces );
 				this[i] = this[ props[i]._.replaces ]; // URL is now fixed by Service._sync()
 				delete this[ props[i]._.replaces ];
-				result = true;
 			} else if( !(i in this) )
-				result = true;
+				modified( i );
 
 		if( !(data._ && data._.partial) ) {
 			for( var i in this )
 				if( this.hasOwnProperty( i ) && !(i in props) && this[i] instanceof ads.Node ) {
+					modified( null, i )
 					delete this[i];
-					result = true;
 				}
-			dojo.forEach( [ 'filter', 'view' ], function( prop ) {
+			d.forEach( [ 'filter', 'view' ], function( prop ) {
 				if( this._.hasOwnProperty( '_' + prop ) ) {
 					// Do the work of the lazy server
-					result = result || !_identicalProp( this._['_' + prop], this._[prop] );
+					if( !_identicalProp( this._['_' + prop], this._[prop] ) && !meta )
+						meta = !forkme || mix( {}, this._ );
 					this._copyProp( this._['_' + prop], prop );
 					delete this._['_' + prop];
 				}
@@ -487,7 +529,30 @@ dojo.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 			if( this._.partial )	delete this._.partial;
 		}
 
-		return result;
+		if( !forkme )
+			return meta || props;
+		else if( !( meta || props ) )
+			return false;
+		else {
+			if( created )
+				(proto || (proto={})).created = created;
+			if( deleted )
+				(proto || (proto={})).deleted = deleted;
+				
+			return this._fork( props, proto, meta );
+		}
+		
+		function modified( ins, del ) {
+			if( forkme ) {
+				if( !props )
+					props = mix( {}, _this );
+				if( ins )
+					( created || (created=[]) ).push( ins );
+				if( del )
+					( deleted || (deleted=[]) ).push( del );
+			} else
+				props = true;
+		}
 	},
 
 	_marshal: function( depth ) {
@@ -513,8 +578,8 @@ dojo.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 	_URL_Params: function( depth ) {
 
 		var result = {};
-		dojo.forEach( [ 'filter', 'view' ], function(p) {
-			dojo.mixin( result, this._['_'+p] || this._[p] );
+		d.forEach( [ 'filter', 'view' ], function(p) {
+			d.mixin( result, this._['_'+p] || this._[p] );
 		}, this );
 
 		if( depth )
@@ -529,7 +594,7 @@ dojo.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 	},
 
 	_isPartial: function( depth ) {
-		return this._.partial || dojo.some( [ 'filter', 'view' ], function( prop ) {
+		return this._.partial || d.some( [ 'filter', 'view' ], function( prop ) {
 			return this._.hasOwnProperty( '_'+prop ) && 
 				   !_identicalProp( this._['_'+prop], this._[prop] );
 		}, this ) || this._anyChild( depth );
@@ -588,7 +653,7 @@ dojo.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 		// Batch delete
 
 		var	packet = {};
-		dojo.forEach( to_delete, function( item ) {
+		d.forEach( to_delete, function( item ) {
 			packet[item.id()] = 'version' in item._ ? { _: { version: item._.version, 'delete': true } } : null;
 		} );
 
@@ -618,7 +683,7 @@ dojo.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 		// Batch save
 
 		var packet = {}, any_modified = false;
-		dojo.forEach( to_save, function( item ) {
+		d.forEach( to_save, function( item ) {
 			any_modified = any_modified || !item._notYetCreated();
 			packet[item.id()] = item._marshal( item._notYetCreated() ? -1 : depth );
 		} );
@@ -639,7 +704,7 @@ dojo.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 		if( typeof value !== 'undefined' ) {
 
 			var	defaults = _descendSchema( this._.url, this._service.root )._[prop];
-			value = dojo.delegate( defaults, value || {} );
+			value = d.delegate( defaults, value || {} );
 			for( var i in value )
 				if( value.hasOwnProperty( i ) && value[i] === null )
 					delete value[i];
@@ -648,7 +713,7 @@ dojo.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 
 		} else if( !this._.hasOwnProperty( '_' + prop ) ) {
 			var	defaults = _descendSchema( this._.url, this._service.root )._[prop];
-			this._['_' + prop] = dojo.delegate( defaults, this._.hasOwnProperty( prop ) ? dojo.mixin( {}, this._[prop] ) : {} );
+			this._['_' + prop] = d.delegate( defaults, this._.hasOwnProperty( prop ) ? created( {}, this._[prop] ) : {} );
 		}
 
 		return this._['_' + prop];
@@ -663,7 +728,7 @@ dojo.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 
 var undefined;
 
-dojo.declare( 'adstream.data.schema.Connector', ads.Node, {
+d.declare( 'adstream.data.schema.Connector', ads.Node, {
 
 	"-chains-": { constructor: "manual" },
 	
@@ -702,4 +767,4 @@ dojo.declare( 'adstream.data.schema.Connector', ads.Node, {
 
 })();
 
-dojo.declare( 'adstream.data.schema.Method', null, {} );
+d.declare( 'adstream.data.schema.Method', null, {} );
