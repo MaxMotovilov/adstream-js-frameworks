@@ -645,6 +645,8 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 					if( !elt.kwarg.template )
 						throw Error( "<?embed?> must have the attribute \"template=\"" );
 
+					this.runtimeError = new Error( '"' + elt.kwarg.template + '" did not resolve to a template' );
+
 					// Note that this.template could be replaced by the <?load?> implementation!
 					this.template = cht.qplus.parse( elt.kwarg.template );
 					
@@ -657,8 +659,18 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 				},{
 					compile: function( self ) {
 						this.compile( self.template );
+						
 						// Relying on _compile() to only use its first argument once
 						self._compile.call( this, this.popExpression(), self.arg, self.async );
+						
+						var cons = this.addGlobal( dj._CHTTemplateInstance ),
+							err  = this.addGlobal( self.runtimeError );
+						
+						this.code.push(
+							'if(!(' + this._chtHTML + '[' +
+								this._chtHTML + '.push(' + this.popExpression() +
+							')-1]) instanceof ' + cons + ') throw ' + err + ';'
+						);
 					}
 				}
 			),
