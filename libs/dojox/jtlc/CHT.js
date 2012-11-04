@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2011 Adstream Holdings
+// Copyright (C) 2010-2012 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -551,16 +551,22 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 											)
 								);
 						}
+						
+						self._compile.call( this,
+							this.addGlobal( this.compiledTemplates[self.name] ),
+							self.arg,
+							this.compiledTemplates[self.name].async
+						);
+					},
 
-						var fn = this.addGlobal( this.compiledTemplates[self.name] ),
-							is_deferred = this.compiledTemplates[self.name].async;
-
+					// This function is also used by the <?embed?> tag
+					_compile: function( fn, arg, is_deferred ) {
 						var	v, w;
 
 						if( is_deferred )	w = this._beginWait();
 
-						if( self.arg )	this.compile( self.arg );
-						else			this.generator();
+						if( arg )	this.compile( arg );
+						else		this.generator();
 
 						v = this.popExpression();
 		
@@ -628,6 +634,30 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 	},
 
 	elements: {
+	
+		"embed": {
+			_tag: dojo.extend(
+				function( cht, elt ) {
+					if( !elt.kwarg.template )
+						throw Error( "<?embed?> must have the attribute \"template=\"" );
+					this.template = cht.qplus.parse( elt.kwarg.template );
+					if( elt.arg )
+						this.arg = cht.qplus.parse( elt.arg );
+					this.async = !elt.kwarg.async || elt.kwarg.async !== 'false';
+					
+					// Stealing a method to avoid the complexity of inheritance
+					this._compile = cht._userDefinedElement.prototype._compiledTag.prototype._compile;
+				},{
+					compile: function( self ) {
+						this.compile( self.template );
+						// Relying on _compile() to only use its first argument once
+						self._compile.call( this, this.popExpression(), self.arg, self.async );
+					}
+				}
+			),
+			
+			tag: function( cht, elt ) {	return new this._tag( cht, elt ); }
+		},
 
 		"if": {
 			sections: {	"" : {allowArgument:true}, "elseif" : {allowArgument:true,allowMultiple:true}, "else": {} },
