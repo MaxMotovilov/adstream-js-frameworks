@@ -254,10 +254,32 @@ dojox.jtlc.CHT.loader = (function() {
 								 getTemplate( sn ).apply( null, arguments );
 		}, cached );
 	}
+	
+	// <? load template= [async=] ?>
+	var loadExtension = {		
+		tag: function( cht, elt ) {
+			if( !elt.kwarg.template )
+				throw Error( "<?load?> must have the attribute \"template=\"" );
+			
+			var	t = cht.elements.embed.tag(	cht, elt );
+			t.template = cht.tags.bind( t.async ? loader.get : loader.getSync, t.template );
+			
+			return t;
+		}
+	};
+	
+	var loader;
 
-	return {
+	return loader || (loader = {
 		initCompiler: function( opts ) {
-			cht_instance = new dj.CHT( d.mixin( {}, opts, { loadTemplates: loadTemplates } ) );
+		
+			opts = opts ? d.mixin( {}, opts, { loadTemplates: loadTemplates } ) : { loadTemplates: loadTemplates };
+		
+			opts.elements = opts.elements
+				? d.mixin( { load: loadExtension }, opts.elements )
+				: { load: loadExtension };
+			
+			cht_instance = new dj.CHT( opts );
 		},
 
 		require: function( /* tpl_module_with_overrides... */ ) {
@@ -283,10 +305,22 @@ dojox.jtlc.CHT.loader = (function() {
 					loadAndParseModule( sn );
 			return cached.then ? deferGetTemplate( cached, sn ) : getTemplate( sn );
 		},
-
+		
+		getSync: function( tpl ) {
+			var sn = splitTemplateName( tpl ),
+				cached = 
+					cache[ sn.namespace() ] && cache[ sn.namespace() ].deferred || 
+					cache[ sn.namespace() ];
+					
+			if( !cached || cached.then )
+				throw Error( "CHT template \"" + tpl + "\" has not been loaded" );
+					
+			return getTemplate( sn );
+		},
+		
 		getLocalization: function( mdl ) {
 			var	cached = cache[ splitModuleName( mdl ).namespace() ];
 			return cached && cached.nls;
 		}
-	};
+	});
 })();

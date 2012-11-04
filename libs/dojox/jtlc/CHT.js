@@ -644,7 +644,10 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 				function( cht, elt ) {
 					if( !elt.kwarg.template )
 						throw Error( "<?embed?> must have the attribute \"template=\"" );
+
+					// Note that this.template could be replaced by the <?load?> implementation!
 					this.template = cht.qplus.parse( elt.kwarg.template );
+					
 					if( elt.arg )
 						this.arg = cht.qplus.parse( elt.arg );
 					this.async = !elt.kwarg.async || elt.kwarg.async !== 'false';
