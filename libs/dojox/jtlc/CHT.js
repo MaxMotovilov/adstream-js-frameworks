@@ -37,6 +37,8 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 	constructor: function( settings ) {
 
+		if( !settings )
+			settings = {};
 		if( settings.elements )
 			settings.elements = dojo.mixin( {}, this.elements, settings.elements );
 		if( settings.tags )
