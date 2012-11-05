@@ -216,7 +216,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 					}
 
 					var	tag = body[i].openTag || body[i].closeTag,
-						parent,
+						parent, def_sections,
 						section = ( stack.length && (parent = body[stack[0]]).def_sections ||
 								    stack.length > 1 && (parent = body[stack[1]]).def_sections )
 								  &&  parent.def_sections[tag];
@@ -249,9 +249,12 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 							parent.sections.push( body[i] );
 							stack.unshift( i );
-						} else if( refs[tag].sections ) {
+						} else if(
+							(def_sections = refs[tag].sections) && // Hook for CHT loader follows
+							(typeof def_sections !== 'function' || (def_sections = def_sections( parent )))
+						) {
 							stack.unshift( i );
-							body[i].def_sections = refs[tag].sections;
+							body[i].def_sections = def_sections;
 							body[i].sections = [];
 						} else { // non-sectioned element (widget)
 							body[i] = refs[tag].tag( _this, body[i] );
@@ -652,7 +655,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 					
 					if( elt.arg )
 						this.arg = cht.qplus.parse( elt.arg );
-					this.async = !elt.kwarg.async || elt.kwarg.async !== 'false';
+					this.async = elt.kwarg.async !== 'false';
 					
 					// Stealing a method to avoid the complexity of inheritance
 					this._compile = cht._userDefinedElement.prototype._compiledTag.prototype._compile;

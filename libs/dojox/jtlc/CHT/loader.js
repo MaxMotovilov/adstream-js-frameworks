@@ -261,10 +261,40 @@ dojox.jtlc.CHT.loader = (function() {
 			if( !elt.kwarg.template )
 				throw Error( "<?load?> must have the attribute \"template=\"" );
 			
-			var	t = cht.elements.embed.tag(	cht, elt );
-			t.template = cht.tags.bind( t.async ? loader.get : loader.getSync, t.template );
+			var	embed = cht.elements.embed.tag(	cht, elt );
 			
-			return t;
+			if( !embed.async ) {
+			
+				embed.template = cht.tags.bind( loader.getSync, embed.template );
+				return embed;
+				
+			} else {
+			
+				if( elt.body )
+					elt.sections = [ {
+						openTag: "else",
+						kwarg: {},
+						body: elt.body
+					} ];
+					
+				elt.arg = cht.tags.expr(
+					"[$0,$]", 
+					cht.tags.wait(
+						cht.tags.bind( loader.get, embed.template )
+					)
+				);
+
+				embed.template = cht.tags.expr( "$[1]" );
+				embed.arg = cht.tags.expr( "$[0]" );
+			
+				elt.body = [ embed ];
+				
+				return cht.elements.embed.when( cht, elt );
+			}
+		},
+		
+		sections: function( elt ) {
+			return elt.kwarg.async !== 'false' && {	"" : {allowArgument:true} };
 		}
 	};
 	
