@@ -36,12 +36,18 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 	domMarkerPrefix: '_CHT_DOM_Marker_',
 
 	constructor: function( settings ) {
+
 		if( settings.elements )
 			settings.elements = dojo.mixin( {}, this.elements, settings.elements );
 		if( settings.tags )
 			settings.tags = dojo.mixin( {}, this.tags, settings.tags );
-		this.qplus = new dj.qplus( settings );
+
 		dojo.mixin( this, settings );
+
+		if( !settings.tags )
+			settings.tags = this.tags;
+
+		this.qplus = new dj.qplus( settings );
 	},
 
 	parse: function( input, ns, url ) {
