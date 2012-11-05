@@ -55,7 +55,9 @@
 <? /template ?>
 
 <? template TableRow marker='tr' transition='test.flash' ?>
-	<tr><td><a onclick="dojo.toggleClass(event.target.parentNode.parentNode,'selected')">{{name}}</a></td><td><? Data ?></td></tr>
+	<tr><td><a onclick="dojo.toggleClass(event.target.parentNode.parentNode,'selected')">{{name}}</a></td><td>
+		<? embed template="(test.getTemplate('Data'))" ?>
+	</td></tr>
 <? /template ?>
 
 <? template Data ?>

@@ -30,6 +30,8 @@ function getTemplate( name )
 	);
 }
 
+test.getTemplate = getTemplate;
+
 dojo.ready( function() {
 
 	var ads = adstream.data.schema;
