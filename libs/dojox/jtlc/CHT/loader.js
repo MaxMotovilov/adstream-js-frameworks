@@ -121,7 +121,8 @@ dojox.jtlc.CHT.loader = (function() {
 	var cache = {},	cht_instance = null;
 
 	function chtInstance() {
-		if( !cht_instance )	cht_instance = new dj.CHT( { loadTemplates: loadTemplates } );
+		if( !cht_instance )	
+			loader.initCompiler();
 		return cht_instance;
 	}
 
@@ -265,7 +266,7 @@ dojox.jtlc.CHT.loader = (function() {
 			
 			if( !embed.async ) {
 			
-				embed.template = cht.tags.bind( loader.getSync, embed.template );
+				embed.template = dj.tags.bind( loader.getSync, embed.template );
 				return embed;
 				
 			} else {
@@ -280,7 +281,7 @@ dojox.jtlc.CHT.loader = (function() {
 				elt.arg = cht.tags.expr(
 					"[$0,$]", 
 					cht.tags.wait(
-						cht.tags.bind( loader.get, embed.template )
+						dj.tags.bind( loader.get, embed.template )
 					)
 				);
 
@@ -289,7 +290,7 @@ dojox.jtlc.CHT.loader = (function() {
 			
 				elt.body = [ embed ];
 				
-				return cht.elements.embed.when( cht, elt );
+				return cht.elements.when.tag( cht, elt );
 			}
 		},
 		

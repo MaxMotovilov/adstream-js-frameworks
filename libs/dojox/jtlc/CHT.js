@@ -257,7 +257,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 							stack.unshift( i );
 						} else if(
 							(def_sections = refs[tag].sections) && // Hook for CHT loader follows
-							(typeof def_sections !== 'function' || (def_sections = def_sections( parent )))
+							(typeof def_sections !== 'function' || (def_sections = def_sections( body[i] )))
 						) {
 							stack.unshift( i );
 							body[i].def_sections = def_sections;
@@ -760,7 +760,11 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 			_tag: dojo.extend( 
 				function( cht, elt ) {
-					this.arg = elt.arg ? cht.qplus.parse( elt.arg ) : dj.tags.current();
+					this.arg = elt.arg 
+						? typeof elt.arg === 'string' // Hook for the CHT loader
+							? cht.qplus.parse( elt.arg ) 
+							: elt.arg
+						: dj.tags.current();
 					this.ifReady = elt.body;
 					dojo.forEach( elt.sections, function(s) {
 						if( s.openTag == 'else' )
