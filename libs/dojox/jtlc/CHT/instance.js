@@ -338,7 +338,10 @@ dojo.require( "dijit._Widget" );
 
 			get: function( index ) {	
 				// Assert: has( index ) == true
-				return this.storage._data[index][ this.indices[index]++ ][0];
+				var v = this.storage._data[index][ this.indices[index]++ ][0];
+				if( v instanceof dj._CHTIncrementalTemplateInstance && v._dirty )
+					v.update();
+				return v;
 			},
 
 			set: function( index, value, handle_errors ) {
@@ -385,11 +388,11 @@ dojo.require( "dijit._Widget" );
 
 			if( i instanceof dj._CHTIncrementalTemplateInstance ) {
 				if( i.isDeferred() ) 
-				i.then(
-					d.hitch( this, '_onNestedReady' ),
-					d.hitch( this, '_onNestedFailed' ),
-					d.hitch( this, '_onNestedReady' )
-				);
+					i.then(
+						d.hitch( this, '_onNestedReady' ),
+						d.hitch( this, '_onNestedFailed' ),
+						d.hitch( this, '_onNestedReady' )
+					);
 			} else if( i instanceof d.Deferred ) {
 				var	wait_ready = d.hitch( this, '_onWaitReady', index, subindex );
 				i.then( wait_ready, handle_errors ? wait_ready : d.hitch( this, '_onWaitFailed' ) );

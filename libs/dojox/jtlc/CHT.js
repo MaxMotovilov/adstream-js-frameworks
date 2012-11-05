@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2011 Adstream Holdings
+// Copyright (C) 2010-2012 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -36,8 +36,20 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 	domMarkerPrefix: '_CHT_DOM_Marker_',
 
 	constructor: function( settings ) {
-		this.qplus = new dj.qplus( dojo.mixin( {}, { tags: this.tags }, settings ) );
+
+		if( !settings )
+			settings = {};
+		if( settings.elements )
+			settings.elements = dojo.mixin( {}, this.elements, settings.elements );
+		if( settings.tags )
+			settings.tags = dojo.mixin( {}, this.tags, settings.tags );
+
 		dojo.mixin( this, settings );
+
+		if( !settings.tags )
+			settings.tags = this.tags;
+
+		this.qplus = new dj.qplus( settings );
 	},
 
 	parse: function( input, ns, url ) {
@@ -212,7 +224,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 					}
 
 					var	tag = body[i].openTag || body[i].closeTag,
-						parent,
+						parent, def_sections,
 						section = ( stack.length && (parent = body[stack[0]]).def_sections ||
 								    stack.length > 1 && (parent = body[stack[1]]).def_sections )
 								  &&  parent.def_sections[tag];
@@ -245,9 +257,12 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 							parent.sections.push( body[i] );
 							stack.unshift( i );
-						} else if( refs[tag].sections ) {
+						} else if(
+							(def_sections = refs[tag].sections) && // Hook for CHT loader follows
+							(typeof def_sections !== 'function' || (def_sections = def_sections( body[i] )))
+						) {
 							stack.unshift( i );
-							body[i].def_sections = refs[tag].sections;
+							body[i].def_sections = def_sections;
 							body[i].sections = [];
 						} else { // non-sectioned element (widget)
 							body[i] = refs[tag].tag( _this, body[i] );
@@ -551,16 +566,22 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 											)
 								);
 						}
+						
+						self._compile.call( this,
+							this.addGlobal( this.compiledTemplates[self.name] ),
+							self.arg,
+							this.compiledTemplates[self.name].async
+						);
+					},
 
-						var fn = this.addGlobal( this.compiledTemplates[self.name] ),
-							is_deferred = this.compiledTemplates[self.name].async;
-
+					// This function is also used by the <?embed?> tag
+					_compile: function( fn, arg, is_deferred ) {
 						var	v, w;
 
 						if( is_deferred )	w = this._beginWait();
 
-						if( self.arg )	this.compile( self.arg );
-						else			this.generator();
+						if( arg )	this.compile( arg );
+						else		this.generator();
 
 						v = this.popExpression();
 		
@@ -628,6 +649,45 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 	},
 
 	elements: {
+	
+		"embed": {
+			_tag: dojo.extend(
+				function( cht, elt ) {
+					if( !elt.kwarg.template )
+						throw Error( "<?embed?> must have the attribute \"template=\"" );
+
+					this.runtimeError = new Error( '"' + elt.kwarg.template + '" did not resolve to a template' );
+
+					// Note that this.template could be replaced by the <?load?> implementation!
+					this.template = cht.qplus.parse( elt.kwarg.template );
+					
+					if( elt.arg )
+						this.arg = cht.qplus.parse( elt.arg );
+					this.async = elt.kwarg.async !== 'false';
+					
+					// Stealing a method to avoid the complexity of inheritance
+					this._compile = cht._userDefinedElement.prototype._compiledTag.prototype._compile;
+				},{
+					compile: function( self ) {
+						this.compile( self.template );
+						
+						// Relying on _compile() to only use its first argument once
+						self._compile.call( this, this.popExpression(), self.arg, self.async );
+						
+						var cons = this.addGlobal( dj._CHTTemplateInstance ),
+							err  = this.addGlobal( self.runtimeError );
+						
+						this.code.push(
+							'if(!(' + this._chtHTML + '[' +
+								this._chtHTML + '.push(' + this.popExpression() +
+							')-1]) instanceof ' + cons + ') throw ' + err + ';'
+						);
+					}
+				}
+			),
+			
+			tag: function( cht, elt ) {	return new this._tag( cht, elt ); }
+		},
 
 		"if": {
 			sections: {	"" : {allowArgument:true}, "elseif" : {allowArgument:true,allowMultiple:true}, "else": {} },
@@ -702,7 +762,11 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 			_tag: dojo.extend( 
 				function( cht, elt ) {
-					this.arg = elt.arg ? cht.qplus.parse( elt.arg ) : dj.tags.current();
+					this.arg = elt.arg 
+						? typeof elt.arg === 'string' // Hook for the CHT loader
+							? cht.qplus.parse( elt.arg ) 
+							: elt.arg
+						: dj.tags.current();
 					this.ifReady = elt.body;
 					dojo.forEach( elt.sections, function(s) {
 						if( s.openTag == 'else' )

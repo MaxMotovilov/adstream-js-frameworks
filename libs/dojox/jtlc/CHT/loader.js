@@ -121,7 +121,8 @@ dojox.jtlc.CHT.loader = (function() {
 	var cache = {},	cht_instance = null;
 
 	function chtInstance() {
-		if( !cht_instance )	cht_instance = new dj.CHT( { loadTemplates: loadTemplates } );
+		if( !cht_instance )	
+			loader.initCompiler();
 		return cht_instance;
 	}
 
@@ -254,10 +255,62 @@ dojox.jtlc.CHT.loader = (function() {
 								 getTemplate( sn ).apply( null, arguments );
 		}, cached );
 	}
+	
+	// <? load template= [async=] ?>
+	var loadExtension = {		
+		tag: function( cht, elt ) {
+			if( !elt.kwarg.template )
+				throw Error( "<?load?> must have the attribute \"template=\"" );
+			
+			var	embed = cht.elements.embed.tag(	cht, elt );
+			
+			if( !embed.async ) {
+			
+				embed.template = dj.tags.bind( loader.getSync, embed.template );
+				return embed;
+				
+			} else {
+			
+				if( elt.body )
+					elt.sections = [ {
+						openTag: "else",
+						kwarg: {},
+						body: elt.body
+					} ];
+					
+				elt.arg = cht.tags.expr(
+					"[$0,$]", 
+					cht.tags.wait(
+						dj.tags.bind( loader.get, embed.template )
+					)
+				);
 
-	return {
+				embed.template = cht.tags.expr( "$[1]" );
+				embed.arg = cht.tags.expr( "$[0]" );
+			
+				elt.body = [ embed ];
+				
+				return cht.elements.when.tag( cht, elt );
+			}
+		},
+		
+		sections: function( elt ) {
+			return elt.kwarg.async !== 'false' && {	"" : {allowArgument:true} };
+		}
+	};
+	
+	var loader;
+
+	return loader || (loader = {
 		initCompiler: function( opts ) {
-			cht_instance = new dj.CHT( d.mixin( {}, opts, { loadTemplates: loadTemplates } ) );
+		
+			opts = opts ? d.mixin( {}, opts, { loadTemplates: loadTemplates } ) : { loadTemplates: loadTemplates };
+		
+			opts.elements = opts.elements
+				? d.mixin( { load: loadExtension }, opts.elements )
+				: { load: loadExtension };
+			
+			cht_instance = new dj.CHT( opts );
 		},
 
 		require: function( /* tpl_module_with_overrides... */ ) {
@@ -283,10 +336,22 @@ dojox.jtlc.CHT.loader = (function() {
 					loadAndParseModule( sn );
 			return cached.then ? deferGetTemplate( cached, sn ) : getTemplate( sn );
 		},
-
+		
+		getSync: function( tpl ) {
+			var sn = splitTemplateName( tpl ),
+				cached = 
+					cache[ sn.namespace() ] && cache[ sn.namespace() ].deferred || 
+					cache[ sn.namespace() ];
+					
+			if( !cached || cached.then )
+				throw Error( "CHT template \"" + tpl + "\" has not been loaded" );
+					
+			return getTemplate( sn );
+		},
+		
 		getLocalization: function( mdl ) {
 			var	cached = cache[ splitModuleName( mdl ).namespace() ];
 			return cached && cached.nls;
 		}
-	};
+	});
 })();
