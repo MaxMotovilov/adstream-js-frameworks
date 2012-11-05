@@ -495,7 +495,7 @@ d.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 	_unmarshal: function( data, props, forkme ) {
 
 		var	meta = this._copyPropsIfChanged( data, [ 'filter', 'view', 'extra' ], forkme ),
-			props, proto, created, deleted, _this = this;
+			saved_props, proto, created, deleted, _this = this;
 
 		for( var i in props )
 			if( !props[i] ) {
@@ -530,8 +530,8 @@ d.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 		}
 
 		if( !forkme )
-			return meta || props;
-		else if( !( meta || props ) )
+			return meta || saved_props;
+		else if( !( meta || saved_props ) )
 			return false;
 		else {
 			if( created )
@@ -539,19 +539,19 @@ d.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 			if( deleted )
 				(proto || (proto={})).deleted = deleted;
 				
-			return this._fork( props, proto, meta );
+			return this._fork( saved_props, proto, meta );
 		}
 		
 		function modified( ins, del ) {
 			if( forkme ) {
-				if( !props )
-					props = mix( {}, _this );
+				if( !saved_props )
+					saved_props = mix( {}, _this );
 				if( ins )
 					( created || (created=[]) ).push( ins );
 				if( del )
 					( deleted || (deleted=[]) ).push( del );
 			} else
-				props = true;
+				saved_props = true;
 		}
 	},
 
@@ -713,7 +713,7 @@ d.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 
 		} else if( !this._.hasOwnProperty( '_' + prop ) ) {
 			var	defaults = _descendSchema( this._.url, this._service.root )._[prop];
-			this._['_' + prop] = d.delegate( defaults, this._.hasOwnProperty( prop ) ? created( {}, this._[prop] ) : {} );
+			this._['_' + prop] = d.delegate( defaults, this._.hasOwnProperty( prop ) ? mix( {}, this._[prop] ) : {} );
 		}
 
 		return this._['_' + prop];
@@ -765,6 +765,7 @@ d.declare( 'adstream.data.schema.Connector', ads.Node, {
 	}
 } );
 
+d.declare( 'adstream.data.schema.Method', null, {} );
+
 })();
 
-d.declare( 'adstream.data.schema.Method', null, {} );
