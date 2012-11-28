@@ -181,6 +181,15 @@ d.declare( 'adstream.data.schema.Node', null, {
 					else		proto = impl;
 					
 					return d.delegate( proto, props );
+				},
+
+				_override: function( name, mtd ) {
+					var	old = this[name];
+					if( mtd )	
+						impl[name] = mtd;
+					else if( impl.hasOwnProperty(name) )
+						delete impl[name];
+					return old;
 				}
 			} ),
 			obj = impl._fork();
