@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2011 Adstream Holdings
+// Copyright (C) 2010-2012 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -12,6 +12,10 @@ dojo.declare( 'adstream.data.Watcher', null, {
 	},
 
 	watch: function( method, obj, rel_url, options ) {
+		//	Separate use cases related to dojo.Stateful.watch()
+		if( (typeof obj) in { 'undefined': 1, 'function': 1 } )
+			return this.inherited( arguments );
+
 		this._dataWatches[ obj.watch( dojo.hitch( this, method ), rel_url, options ) ] = obj.service();
 	},
 
