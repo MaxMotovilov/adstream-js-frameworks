@@ -15,10 +15,6 @@ var keys = Object.keys || function( o ) {
 }
 
 dojo.ready( function() {
-
-	(new adstream.data.extensions.IncrementalContainer())
-		.install( app.root.numbers );
-
 	loader.get( 'scroll.header' )().render( 'header' );
 	loader.get( 'scroll.table' )().render( 'table' );
 } );
@@ -63,6 +59,7 @@ dojo.declare( 'app.scroll.Table', [ dijit._Widget, adstream.data.Watcher ], {
 
 	constructor: function() {
 		this._firstTime = true;
+		this._extension = new adstream.data.extensions.IncrementalContainer();
 	},
 
 	postCreate: function() {
@@ -78,9 +75,15 @@ dojo.declare( 'app.scroll.Table', [ dijit._Widget, adstream.data.Watcher ], {
 	},
 
 	startup: function() {
+		this._extension.install( app.root.numbers );
 		this.watch( 'gotData', app.root.numbers );
 		this.setStrut();
 		this.more( 20 );
+		this.inherited( arguments );
+	},
+
+	uninitialize: function() {
+		this._extension.uninstall();
 		this.inherited( arguments );
 	},
 
