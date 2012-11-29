@@ -1,0 +1,94 @@
+<!DOCTYPE HTML>
+
+<html>
+<head>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
+
+<script src="http://ajax.googleapis.com/ajax/libs/dojo/1.6/dojo/dojo.xd.js" 
+		type="text/javascript" data-dojo-config="
+			isDebug: true,
+			debugAtAllCosts: true,
+			locale: 'en',
+			baseUrl: './',
+			hashPollFrequency: 200,
+			parseOnLoad: true,
+			modulePaths: {
+				'app':	'.',
+				'dojox.jtlc': 'js/jtlc',
+				'adstream.data': 'js/data'
+			}"></script>
+
+<style type="text/css">
+
+#body {
+	position: absolute;
+	left: 50px;
+	top: 50px;
+	bottom: 50px;
+	right: 50px;
+}
+
+#header {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	right: 0px;
+	height: 20px;
+	padding-bottom: 10px;
+}
+
+#header>input {
+	position: absolute;
+	background: #f0f4f8;
+	border: 2px inset #f0f4f8;
+	padding: 0px 20px 0px 20px;
+	left: 0px;
+	right: 0px;
+}
+
+#table {
+	position: absolute;
+	background: #f0f4f8;
+	left: 0px;
+	right: 0px;
+	top: 30px;
+	bottom: 0px;
+	border: 2px inset #f0f4f8;
+}
+
+#table>div {
+	position: absolute;
+	left: 20px;
+	right: 0px;
+	bottom: 20px;
+	top: 20px;
+	overflow-x: hidden;
+	overflow-y: scroll;
+}
+
+.strut {
+	margin: 0px;
+	padding: 0px;
+	border: 0px;
+	visibility: hidden;
+}
+
+</style>
+
+<script type="text/javascript">
+dojo.provide( 'app' );
+dojo.require( 'app.schema' );
+dojo.require( 'app.scroll' );
+</script>
+
+</head>
+<body>
+	
+<div id='body'>
+	<div id='header'></div>
+	<div id='table'></div>
+</div>
+
+</body>
+</html>
+

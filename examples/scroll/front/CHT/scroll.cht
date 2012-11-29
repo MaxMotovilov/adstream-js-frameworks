@@ -1,0 +1,13 @@
+<? template header ?>
+	<input type="text" data-dojo-type="app.scroll.Filter"></input>
+<? /template ?>
+
+<? template table ?>
+	<div data-dojo-type="app.scroll.Table"><div class="strut"></div></div>
+<? /template ?>
+
+<? template tableBody ?>
+	<? foreach ?>
+		<div>{{(app.root.numbers[$].text)}}</div>
+	<? /foreach ?>
+<? /template ?>

@@ -1,0 +1,11 @@
+{
+	"name"			: "scroll-test",
+	"version"		: "0.0.1",
+	"main"			: "app.js",
+	"engines" : { "node": ">= 0.8.0" },
+	"dependencies"	: {
+		"connect":			">= 2.0",
+		"node-promise":		">= 0.5.4",
+		"adstream-data":	">= 0.1.2"
+	}
+}
