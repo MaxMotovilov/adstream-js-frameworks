@@ -27,7 +27,7 @@ dojo.require( 'adstream.data.extensions' );
 			if( add.count + add.offset == old.offset ) {
 				old.count = (old.count||0) + add.count;
 				old.offset = add.offset;
-			} else if( (old.count||0) + (old.offset||0) == add.count ) {
+			} else if( (old.count||0) + (old.offset||0) == add.offset ) {
 				old.count = (old.count||0) + add.count;
 			} else
 				return false;
@@ -47,7 +47,7 @@ dojo.require( 'adstream.data.extensions' );
 				var	old_view = this._.hasOwnProperty( 'view' ) 
 						? this._.view : d.delegate( this._.view );
 				if( ext.compatibleFilter( this._.filter || {}, data._ && data._.filter || {} ) &&
-					!ext.extendView( old_view, data._ && data._.view || {} )
+					ext.extendView( old_view, data._ && data._.view || {} )
 				) {
 					this._.view = old_view;
 					if( this._._view )	delete this._._view;
@@ -55,7 +55,7 @@ dojo.require( 'adstream.data.extensions' );
 					if( data._.filter )	delete data._.filter;
 				}
 				
-				return ext.unmarshal( data, props, forkme );
+				return ext._unmarshal( data, props, forkme );
 			}
 		}
 	} );

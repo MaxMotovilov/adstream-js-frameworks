@@ -24,7 +24,7 @@ dojo.provide( 'adstream.data.extensions' );
 		},
 
 		_installMethod: function( obj, name ) {
-			var	_this = this, mtd = this.extensionMethods[m];
+			var	_this = this, mtd = this.extensionMethods[name];
 			this[name] = d.hitch( obj, obj._override( name, function() {
 				return mtd.apply( this, extraArg( _this, arguments ) );
 			} ) );
