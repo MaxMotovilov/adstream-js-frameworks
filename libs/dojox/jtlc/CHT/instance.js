@@ -13,6 +13,10 @@ dojo.require( "dijit._Widget" );
 
 	var	d = dojo, dj = dojox.jtlc;
 
+	function _isDefaultThis( _this ) {
+		return this === _this;
+	}
+
 	function _cleanupWidgets( ref_node, ref_w ) {
 
 		// It would be better to check for dojoType, but unfortunately dijit.byNode() does
@@ -328,13 +332,13 @@ dojo.require( "dijit._Widget" );
 	}
 
 	dj._CHTDeferredAccessor = d.extend( 
-		function( instance ){
+		function( scope ){
 
 			this.indices = [];
 
-			if( '_cht_deferred' in instance ) {
-				this.instance = instance;
-				this.storage  = instance._cht_deferred;
+			if( scope && scope._deferred ) {
+				this.instance = scope;
+				this.storage  = this.instance._deferred;
 				for( var i=0; i<this.storage._data.length; ++i )
 					this.indices.push( 0 );
 			} else	this.storage = new dj._CHTDeferred();
@@ -376,15 +380,18 @@ dojo.require( "dijit._Widget" );
 /*
 	_CHTIncrementalTemplateInstance serves as a context object for the evaluator function.
 	The latter updates its _refs and _split_text members and relies on changes in
-	_cht_deferred in order to generate intermediate as well as final results.
+	_deferred in order to generate intermediate as well as final results.
 */
 
 	d.declare( 'dojox.jtlc._CHTIncrementalTemplateInstance', [ dj._CHTTemplateInstance, d.Deferred ], {
 
 		constructor: function() {
 			if( this.isDeferred() )
-				this._cht_deferred.forEach( this._attach, this );
+				this._deferred.forEach( this._attach, this );
 			this._dirty = false;
+
+			if( _isDefaultThis( this._this ) )
+				delete this._this;
 
 			//	dojo.Deferred is not a well-behaved object!
 			var	_then = this.then;
@@ -409,7 +416,7 @@ dojo.require( "dijit._Widget" );
 		},
 
 		isDeferred: function() {
-			return this._dirty && this._cht_deferred._data.length < this._max_deferred || this._cht_deferred.some( function(i){ 
+			return this._dirty && this._deferred._data.length < this._max_deferred || this._deferred.some( function(i){ 
 				return i instanceof dj._CHTIncrementalTemplateInstance ? i.isDeferred() : i instanceof d.Deferred;
 			} );
 		},
@@ -427,8 +434,10 @@ dojo.require( "dijit._Widget" );
 		_propagateReady: function() {
 			var def = this.isDeferred();
 
-			if( def )	this.progress( this );
-			else		this.resolve( this );
+			if( def )	
+				this.progress( this );
+			else
+		 		this.resolve( this );
 		},
 
 		_onNestedReady: function( who ) {
@@ -441,7 +450,7 @@ dojo.require( "dijit._Widget" );
 		},
 
 		_onWaitReady: function( index, subindex, value ) {
-			this._cht_deferred.set( index, subindex, value );
+			this._deferred.set( index, subindex, value );
 			this._dirty = true;
 			this._propagateReady();
 		},
@@ -453,13 +462,14 @@ dojo.require( "dijit._Widget" );
 		canUpdateDom: function( always ) {
 			return '_marker_query' in this ||
 					!this._dirty && 
-					this._cht_deferred.every( function(i){ 
+					this._deferred.every( function(i){ 
 						return i instanceof dj._CHTIncrementalTemplateInstance ? i.canUpdateDom() : !( always && i instanceof d.Deferred );
 					} );
 		},
 
 		update: function() {
-			this._self.apply( this, this._args );
+			var	_this = { _cht: this };
+			this._self.apply( this._this ? d.delegate( this._this, _this ) : _this, this._args );
 			this._dirty = false;
 		},
 
@@ -498,7 +508,7 @@ dojo.require( "dijit._Widget" );
 
 				var	wait_for = [], any = false;
 
-				this._cht_deferred.forEach( function(i) {
+				this._deferred.forEach( function(i) {
 					if( i instanceof dj._CHTIncrementalTemplateInstance ) {
 						var wf = i.updateDom( root, options ); // Should be able to, since canUpdateDom() checks it recursively
 						if( wf )	any = true;
@@ -554,7 +564,8 @@ dojo.require( "dijit._Widget" );
 			args.push( d.mixin( {}, options, { returnContext: true } ) );
 
 			var	ctx = this.place.apply( this, args );
-			if( !this.isDeferred() )	return ctx;
+			if( !this.isDeferred() )
+				return ctx;
 
 			if( !this.canUpdateDom( true ) )
 				this._innerCtx = ctx.inner();

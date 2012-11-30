@@ -335,7 +335,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 		var def_code_idx = this.code.length;
 		this._chtDeferred = this.addLocal();
-		this.code.push( this._chtDeferred + '=new ' + this.addGlobal( dj._CHTDeferredAccessor ) + '(this);' );
+		this.code.push( this._chtDeferred + '=new ' + this.addGlobal( dj._CHTDeferredAccessor ) + '(this._cht);' );
 
 		var refID = this.addLocal(),
 			gctx = this.addGlobal( dj._chtGlobalContext );
@@ -383,12 +383,12 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 		}
 
 		this.expressions.push( this._deferredIndex ?
-			'this instanceof ' + cons + '?' + this.addGlobal( dojo.mixin ) + '(this,{' +
+			'this._cht instanceof ' + cons + '?' + this.addGlobal( dojo.mixin ) + '(this._cht,{' +
 				baseProps( this._hasRefs ) +
 				( this._chtMarkerQuery ? ',_marker_query:' + this._chtMarkerQuery : '' ) +
 			'}):new ' + cons + '({' + baseProps( this._hasRefs ) +
 				( this._chtMarkerQuery ? ',_marker_query:' + this._chtMarkerQuery : '' ) +
-				',_self:$self,_args:$,_cht_deferred:' + this._chtDeferred + '.storage,_max_deferred:' + this._deferredIndex +
+				',_self:$self,_this:this,_args:$,_deferred:' + this._chtDeferred + '.storage,_max_deferred:' + this._deferredIndex +
 			'})' :
 			'new ' + cons + '({' + baseProps( this._hasRefs ) + '})'
 		);
