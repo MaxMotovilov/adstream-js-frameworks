@@ -80,7 +80,7 @@ dojox.jtlc.compile = function( tpl, lang, mixin )
 		globals: { names: [], values: [] },
 		locals: [],
 		max_local: 0,
-		code: ["var $=arguments"],
+		code: ["var $=arguments,$this=this"],
 		expressions: [],
 		optimizers: dojo.config.isDebug || dojo.config.jtlcIsReadable ? { '_optimizeExtraBrackets': dojox.jtlc._optimizeExtraBrackets } : {}
 	};

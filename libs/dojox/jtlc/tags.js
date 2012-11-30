@@ -284,7 +284,7 @@ dojox.jtlc._declareTag( 'expr', dojo.declare( dojox.jtlc._MultiArgTag, {
 		dojox.jtlc.replaceWithinJavascript( self.expr, /\$[0-9#]?/g, function(s){ 
 			if( !( s in refs ) )	refs[s] = 1;
 			else					++refs[s];
-			any_refs = any_refs || s in { '$':1, '$#':1 };
+			any_refs = any_refs || s in { '$':1, '$#':1, '$@':1 };
 		} );
 
 		if( !any_refs && this.loop && !this.loop.started() )
@@ -299,7 +299,7 @@ dojox.jtlc._declareTag( 'expr', dojo.declare( dojox.jtlc._MultiArgTag, {
 
 		this.nonAccumulated( function() {
 			for( var i in refs ) 
-				if( !( i in { '$':1, '$#': 1, '$0':1 } ) ) {
+				if( !( i in { '$':1, '$#': 1, '$0':1, '$@':1 } ) ) {
 					var n = parseInt( i.charAt(1) );
 					if( self.args.length <= parseInt(n) )
 						throw Error( "Expression " + dojox.jtlc.stringLiteral(self.expr) + " refers to argument " + i + " that was not supplied" );
@@ -318,6 +318,9 @@ dojox.jtlc._declareTag( 'expr', dojo.declare( dojox.jtlc._MultiArgTag, {
 
 		if( '$#' in refs )
 			refs['$#'] = this.loop.count();
+
+		if( '$@' in refs )
+			refs['$@'] = '$this';
 
 		while( this.expressions.length > old_expr_length )
 			this.popExpression();
