@@ -12,6 +12,19 @@ dojo.require( 'dojox.jtlc.tags' );
 
 	dj.CHT._declareTag = dj._declareTag;
 
+	function _renderAttributeDict( dict ) {
+		var v = [];
+		for( var a in dict )
+			v.push( 
+				a + '="' + 
+				dict[a].toString().replace(
+					dj.CHT.prototype.tags._escapeAttribute.prototype.escapeRegex,
+					dj.CHT.prototype.tags._escapeAttribute.prototype.escapeFn
+				) + '"' 
+			);
+		return v.join( ' ' );
+	}
+
 	dj.CHT._declareTag( 'foreachBody', {
 
 		constructor: function( body, input ) {
@@ -224,6 +237,20 @@ dojo.require( 'dojox.jtlc.tags' );
 			')' );
 		}
 	} ) );
+
+	dj.CHT._declareTag( 
+		'attributes', 
+		dojo.declare( [dj.CHT.tags._raw, dj.tags._bind], {} ),
+		function( cls ) {
+			return function() {
+				var args = arguments;
+				return new cls( 
+					_renderAttributeDict,
+					dj.CHT.prototype.tags.expr.apply( dj.CHT.prototype.tags, args )
+				);
+			}
+		}
+	);
 
 })();
 
