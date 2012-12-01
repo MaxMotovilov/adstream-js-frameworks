@@ -45,7 +45,11 @@ dojox.jtlc.CHT.elements = (function() {
 				}
 			),
 		
-			tag: function( cht, elt ) {	return new this._tag( cht, elt ); }
+			tag: function( cht, elt ) {
+				var slots = cht._attributeSlots( elt, "template", "async" ),
+					t = new this._tag( cht, elt );
+				return slots ? dj.tags.scope( t, slots ) : t;
+			}
 		},
 
 		"scope": {

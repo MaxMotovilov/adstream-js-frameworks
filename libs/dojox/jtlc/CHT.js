@@ -619,7 +619,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 						: new this._tag( cht, elt, this ),
 					slots = cht._attributeSlots( elt );
 	
-				if( slots ) return dojox.jtlc.tags.scope( t, slots );
+				if( slots ) return dj.tags.scope( t, slots );
 				else		return t;
 			},
 
@@ -631,12 +631,16 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 		}	 
 	),
 
-	_attributeSlots: function( elt, except ) {
+	_attributeSlots: function( elt ) {
 		var	v = {},
-			any = false;
+			any = false,
+			except = {};
+
+		for( var i=1; i<arguments.length; ++i )
+			except[arguments[i]] = true;
 
 		for( var s in elt.kwarg )
-			if( s !== except ) {
+			if( !except[s] ) {
 				v[s] = elt.kwarg[s].parse( this );
 				any = true;
 			}

@@ -262,12 +262,13 @@ dojox.jtlc.CHT.loader = (function() {
 			if( !elt.kwarg.template )
 				throw Error( "<?load?> must have the attribute \"template=\"" );
 			
-			var	embed = cht.elements.embed.tag(	cht, elt );
+			var	nested = cht.elements.embed.tag( cht, elt ),
+				embed = nested instanceof dj.tags._scope ? nested.body : nested;
 			
 			if( !embed.async ) {
 			
 				embed.template = dj.tags.bind( loader.getSync, embed.template );
-				return embed;
+				return nested;
 				
 			} else {
 			
@@ -288,7 +289,7 @@ dojox.jtlc.CHT.loader = (function() {
 				embed.template = cht.tags.expr( "$[1]" );
 				embed.arg = cht.tags.expr( "$[0]" );
 			
-				elt.body = [ embed ];
+				elt.body = [ nested ];
 				
 				return cht.elements.when.tag( cht, elt );
 			}
