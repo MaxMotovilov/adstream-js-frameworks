@@ -809,7 +809,7 @@ dojox.jtlc._declareTag( 'scope', {
 
 	compile: function( self ) {
 
-		var arg, v;
+		var arg, v, result;
 
 		if( self.arg ) {
 			this.compile( self.arg );
@@ -842,17 +842,25 @@ dojox.jtlc._declareTag( 'scope', {
 
 			this.compile( self.body );
 
-			var v = this.addLocal(),
-				result = this.popExpression();
-
-			if( v != result )
-				this.code.push( v + '=' + result + ';' );
+			var	result = this.popExpression();
+			if( typeof result !== 'undefined' ) {
+				var v = this.addLocal();
+				if( v != result ) {
+					this.code.push( v + '=' + result + ';' );
+					result = v;
+				}
+			}
 
 			this.code.push( "$this=" + saved_scope + ";" );
 		}, v );
 
+		this.expressions.push( result );
+
+		if( typeof result !== 'undefined' )
+			this.locals.pop();	
+
 		this.locals.pop();	
-		this.locals.pop();	
+
 		if( v )	this.locals.pop();	
 	}
 } );
