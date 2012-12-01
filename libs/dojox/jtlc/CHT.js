@@ -165,18 +165,22 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 			return { refs: refs, parsed: parsed };
 	},
 
-	_parseTextWithSubstitutions: function( t ) {
+	_parseTextWithSubstitutions: function( t, is_attr ) {
 		var substitutions = [], _this = this;
 
 	 	t = t.replace( /\ufffd([\s\S]*?)\ufffd/g, 
 			function( _, subst ) {
 				var	s = _this.qplus.parse( subst );
-				substitutions.push( 
-					t.charAt(0)=='<' ? 
-						/^<script/i.test( t ) ? s : 
-						_this.tags.escapeAttribute( s ) : 
-					_this.tags.escapeText( s ) 
+				substitutions.push(
+					is_attr ? 
+						_this.tags.escapeAttribute( s )
+					: t.charAt(0)=='<' ? 
+							/^<script/i.test( t ) ?
+								s : _this.tags.escapeAttribute( s )
+							:
+								_this.tags.escapeText( s )
 				);
+
 				return s instanceof _this.tags._do ? '' : '{' + (substitutions.length-1).toString() + '}';
 			}
 		);
@@ -609,9 +613,14 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 			),
 
 			tag: function( cht, elt ) {
-				if( this.kwarg.compiled && elt.openTag )
-						return new cht._appendToOutput( [ new this._compiledTag( cht, elt, new this._tag( cht, {}, this ) ) ] );
-				else	return new this._tag( cht, elt, this ); 
+
+				var	t = this.kwarg.compiled && elt.openTag
+						? new cht._appendToOutput( [ new this._compiledTag( cht, elt, new this._tag( cht, {}, this ) ) ] )
+						: new this._tag( cht, elt, this ),
+					slots = cht._attributeSlots( elt );
+	
+				if( slots ) return dojox.jtlc.tags.scope( t, slots );
+				else		return t;
 			},
 
 			compile: function( self ) {
@@ -621,6 +630,19 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 			}
 		}	 
 	),
+
+	_attributeSlots: function( elt, except ) {
+		var	v = {},
+			any = false;
+
+		for( var s in elt.kwarg )
+			if( s !== except ) {
+				v[s] = elt.kwarg[s].parse( this );
+				any = true;
+			}
+
+		return any && { attributes: dojox.jtlc.tags.extend( v ) };
+	},
 
 	_userDefinedSection: dojo.extend(
 		function( name, body, tpl_name ) {
