@@ -141,34 +141,17 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 						body.push( elt );
 					}
 				} else if( t ) {
-
-					var substitutions = [],
-					 	t = t.replace( /\ufffd([\s\S]*?)\ufffd/g, 
-							function( _, subst ) {
-								var	s = _this.qplus.parse( subst );
-								substitutions.push( 
-									t.charAt(0)=='<' ? 
-										/^<script/i.test( t ) ? s : 
-										_this.tags.escapeAttribute( s ) : 
-									_this.tags.escapeText( s ) 
-								);
-								return s instanceof _this.tags._do ? '' : '{' + (substitutions.length-1).toString() + '}';
-							}
-						);
-
 					if( !current )
 						throw Error( 'HTML content encountered outside template: ' + t );
+
+					t = _this._parseTextWithSubstitutions( t );
 					
-					if( t == '{0}' )	
-						body.push( substitutions[0] );
-					else if( t.charAt(0) != '<' && /\b(?:[a-zA-Z][a-z]*|[A-Z]+)\b/.test( t.replace( /&[a-z]{3,4};/,'' ) ) )
-						body.push( _this.tags.i18n( t, substitutions ) );
-					else if( substitutions.length )
-						body.push( _this.tags.replaceN( t, substitutions ) );
-					else if( body.length && body[body.length-1] instanceof dj.tags._quote )
-						body[body.length-1].value += t;
+					if( body.length && body[body.length-1] instanceof dj.tags._quote &&
+						t instanceof dj.tags._quote 
+					)
+						body[body.length-1].value += t.value;
 					else
-						body.push( dj.tags.quote( t ) );
+						body.push( t );
 				}
 			}, this );
 		}
@@ -180,6 +163,32 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 			);
 		else
 			return { refs: refs, parsed: parsed };
+	},
+
+	_parseTextWithSubstitutions: function( t ) {
+		var substitutions = [], _this = this;
+
+	 	t = t.replace( /\ufffd([\s\S]*?)\ufffd/g, 
+			function( _, subst ) {
+				var	s = _this.qplus.parse( subst );
+				substitutions.push( 
+					t.charAt(0)=='<' ? 
+						/^<script/i.test( t ) ? s : 
+						_this.tags.escapeAttribute( s ) : 
+					_this.tags.escapeText( s ) 
+				);
+				return s instanceof _this.tags._do ? '' : '{' + (substitutions.length-1).toString() + '}';
+			}
+		);
+
+		if( t == '{0}' )	
+			return( substitutions[0] );
+		else if( t.charAt(0) != '<' && /\b(?:[a-zA-Z][a-z]*|[A-Z]+)\b/.test( t.replace( /&[a-z]{3,4};/,'' ) ) )
+			return this.tags.i18n( t, substitutions );
+		else if( substitutions.length )
+			return this.tags.replaceN( t, substitutions );
+		else
+			return dj.tags.quote( t );
 	},
 
 	/*
@@ -462,7 +471,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 			_tag: dojo.extend(
 				function( cht, elt, def ) {
 					this.def = def;
-					if( elt.arg )	this.arg = cht.qplus.parse( elt.arg );
+					if( elt.arg )	this.arg = elt.arg.parse( cht );
 					if( elt.sections ) {
 						this.sections = {};
 						dojo.forEach( elt.sections, function(s) {
@@ -548,7 +557,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 				function( cht, elt, tag ) {
 					this.name = elt.openTag;
 					this.tag = tag;
-					if( elt.arg )	this.arg = cht.qplus.parse( elt.arg );
+					if( elt.arg )	this.arg = elt.arg.parse( cht );
 					this.bind = cht.tags.bind;					
 				}, {
 					compile: function( self ) {

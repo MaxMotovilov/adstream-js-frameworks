@@ -18,10 +18,10 @@ dojox.jtlc.CHT.elements = (function() {
 					this.runtimeError = new Error( '"' + elt.kwarg.template + '" did not resolve to a template' );
 
 					// Note that this.template could be replaced by the <?load?> implementation!
-					this.template = cht.qplus.parse( elt.kwarg.template );
+					this.template = elt.kwarg.template.parse( cht );
 				
 					if( elt.arg )
-						this.arg = cht.qplus.parse( elt.arg );
+						this.arg = elt.arg.parse( cht );
 					this.async = elt.kwarg.async !== 'false';
 				
 					// Stealing a method to avoid the complexity of inheritance
@@ -76,11 +76,11 @@ dojox.jtlc.CHT.elements = (function() {
 			),
 
 			tag: function( cht, elt ) {
-				var body = new this._tag( elt.body, elt.arg && cht.qplus.parse( elt.arg ) ),
+				var body = new this._tag( elt.body, elt.arg && elt.arg.parse( cht ) ),
 					slots = {};
 
 				for( var s in elt.kwarg )
-					slots[s] = cht.qplus.parse( elt.kwarg[s] );
+					slots[s] = elt.kwarg[s].parse( cht );
 
 				return dojox.jtlc.tags.scope( body, slots );
 			}
@@ -92,14 +92,14 @@ dojox.jtlc.CHT.elements = (function() {
 			_tag: dojo.extend( 
 				function( cht, elt ) {
 					this.ifTrue = [ {
-						condition: elt.arg ? cht.qplus.parse( elt.arg ) : dj.tags.current(),
+						condition: elt.arg ? elt.arg.parse( cht ) : dj.tags.current(),
 						body: elt.body
 					} ];
 
 					dojo.forEach( elt.sections, function(s) {
 						if( s.openTag == 'elseif' )
 							this.ifTrue.push( {
-								condition: s.arg ? cht.qplus.parse( s.arg ) : dj.tags.current(),
+								condition: s.arg ? s.arg.parse( cht ) : dj.tags.current(),
 								body: s.body
 							} );
 						else
@@ -131,7 +131,7 @@ dojox.jtlc.CHT.elements = (function() {
 			sections: { "" : {allowArgument:true}	},
 			tag: function( cht, elt ) {
 				return dj.tags.one( dj.tags.many(	// Ensure fresh loop context
-					cht.tags.foreachBody( elt.body, elt.arg && cht.qplus.parse( elt.arg ) )
+					cht.tags.foreachBody( elt.body, elt.arg && elt.arg.parse( cht ) )
 				) );
 			}
 		},
@@ -145,10 +145,10 @@ dojox.jtlc.CHT.elements = (function() {
 				return dj.tags.one( dj.tags.many(	// Ensure fresh loop context
 					dj.tags.group( 
 						elt.kwarg.key ?
-							cht.qplus.parse( elt.kwarg.key, true ) :
+							elt.kwarg.key.parse( cht, true ) :
 							dj.tags.expr( 'Math.floor($#/(' + elt.kwarg.count + '))' ),
 						cht.tags.genericBody( elt.body ),
-						elt.arg ? cht.qplus.parse( elt.arg ) : dj.tags.current()
+						elt.arg ? elt.arg.parse( cht ) : dj.tags.current()
 					)
 				) );
 			}
@@ -160,8 +160,8 @@ dojox.jtlc.CHT.elements = (function() {
 			_tag: dojo.extend( 
 				function( cht, elt ) {
 					this.arg = elt.arg 
-						? typeof elt.arg === 'string' // Hook for the CHT loader
-							? cht.qplus.parse( elt.arg ) 
+						? elt.arg.parse // Hook for the CHT loader
+							? elt.arg.parse( cht ) 
 							: elt.arg
 						: dj.tags.current();
 					this.ifReady = elt.body;

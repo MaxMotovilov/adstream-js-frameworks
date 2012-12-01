@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2011 Adstream Holdings
+// Copyright (C) 2010-2012 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -107,37 +107,70 @@ dojox.jtlc._tokenizeCHT = function( input )
 	return parsed;
 }
 
-dojox.jtlc._CHTElement = function( text ) {
+dojox.jtlc._CHTElement = dojo.extend(
+	function( text ) {
 
-	this.text = text;
+		this.text = text;
 
-	if( /^<[?]\s*\/([a-z_]\w*(?:\s*[.]\s*[a-z_]\w*)*)[\s\S]*?[?]>$/i.exec( text ) ) {
-		this.closeTag = RegExp.$1.split( /\s*[.]\s*/ ).join( '.' );
-	} else	if( /^<[?]\s*([a-z_]\w*(?:\s*[.]\s*[a-z_]\w*)*)([\s\S]*?)\s*[?]>$/i.exec( text ) ) {
+		if( /^<[?]\s*\/([a-z_]\w*(?:\s*[.]\s*[a-z_]\w*)*)[\s\S]*?[?]>$/i.exec( text ) ) {
+			this.closeTag = RegExp.$1.split( /\s*[.]\s*/ ).join( '.' );
+		} else	if( /^<[?]\s*([a-z_]\w*(?:\s*[.]\s*[a-z_]\w*)*)([\s\S]*?)\s*[?]>$/i.exec( text ) ) {
 
-		var	body = RegExp.$2;
+			var	body = RegExp.$2;
 
-		this.openTag = RegExp.$1.split( /\s*[.]\s*/ ).join( '.' );
-		this.kwarg = {}
+			this.openTag = RegExp.$1.split( /\s*[.]\s*/ ).join( '.' );
+			this.kwarg = {}
 
-		if( /^\s+(?![a-z]\w*=)(["']?)((?:\\.|[^\\])*?)\1(?=\s|$)/i.exec( body ) ) {
-			this.arg = RegExp.$2;
-			body = body.substr( RegExp.lastMatch.length );
-		}
+			if( /^\s+(?![a-z]\w*=)(@)?(["']?)((?:\\.|[^\\])*?)\2(?=\s|$)/i.exec( body ) ) {
+				this.arg = new ( RegExp.$1 ? this.literalArg : this.chtArg )( RegExp.$3 );
+				body = body.substr( RegExp.lastMatch.length );
+			}
 
-		while( body.length && /^\s+([a-z_]\w*)=/i.exec( body ) ) {
-			body = body.substr( RegExp.lastMatch.length );
-			var name = RegExp.$1;
-			if( !/^(["']?)((?:\\.|[^\\])*?)\1(?=\s|$)/.exec( body ) )
-				break;
-			body = body.substr( RegExp.lastMatch.length );
-			this.kwarg[name] = RegExp.$2;
-		}
+			while( body.length && /^\s+([a-z_]\w*)=/i.exec( body ) ) {
+				body = body.substr( RegExp.lastMatch.length );
+				var name = RegExp.$1;
+				if( !/^(@)?(["']?)((?:\\.|[^\\])*?)\2(?=\s|$)/.exec( body ) )
+					break;
 
-		if( body.length )
-			throw Error( "Invalid CHT tag: " + text );
+				this.kwarg[name] = new ( RegExp.$1 ? this.literalArg : this.chtArg )( RegExp.$3 );
+				body = body.substr( RegExp.lastMatch.length );
+			}
 
-	} else throw Error( "Invalid CHT tag: " + text );
-}
+			if( body.length )
+				throw Error( "Invalid CHT tag: " + text );
+
+		} else throw Error( "Invalid CHT tag: " + text );
+	}, {
+		chtArg: dojo.extend(
+			function( s ) {
+				this.s = s;
+			},{
+				toString: function() { 
+					return this.s; 
+				},
+
+				parse: function( cht, mult ) { 
+					return cht.qplus.parse( this.s, mult );
+				}
+			}
+		),
+
+		literalArg: dojo.extend(
+			function( s ) {
+				this.s = s;
+			},{
+				toString: function() { 
+					return this.s; 
+				},
+
+				parse: function( cht, mult ) { 
+					if( mult ) throw Error( "Literal attribute cannot be used here: " + this.s );
+					return cht._parseTextWithSubstitutions( this.s );
+				}
+			}
+		)
+	}
+);
+
 
 
