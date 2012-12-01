@@ -760,26 +760,42 @@ dojox.jtlc._declareTag( 'iota', {
    or the input. Slot values are evaluated against arg (if present) 
    in original scope.
 
-   If a slot evaluates to a bag of properties (i.e. an object with
-   constructor == Object such as an object literal), and a slot with
-   the same name exists in original scope, the new value will delegate
-   to the old one via prototype chain inheritance. A non-object value 
-   or anobject with a nontrivial constructor will completely hide the 
-   old slot value in the scope of the body.
+   If a slot is marked with extend() tag, it must evaluate to an 
+   object that will be treated as a bag of properties to extend an
+   slot with the same name already existing in the original scope.
+   The new slot value will consist of the property dictionary delegating
+   to the old slot value via prototype chain inheritance. If there is
+   no old slot value, or if the old slot value is falsy, extend() has 
+   no effect.
 */
 
+dojox.jtlc._declareTag( 'extend', {
+	constructor: function( tpl ) {
+		this.tpl = tpl;
+	},
+
+	compile: function( self ) {
+		this.compile( self.tpl );
+	}
+} );
+
 dojox.jtlc.makeScope = function( old_scope, slots ) {
+
 	var new_scope = dojo.delegate( old_scope, {} );
-	for( var s in slots )
-		if( s in old_scope && typeof slots[s] === 'object' && 
-			slots[s] && slots[s].constructor === Object 
-		)
-			new_scope[s] = dojo.delegate( old_scope[s], slots[s] );
-		else
-			new_scope[s] = slots[s];
+
+	if( slots.s )
+		for( var s in slots.s )
+			new_scope[s] = slots.s[s];
+
+	if( slots.x )
+		for( var s in slots.x )
+			if( old_scope[s] )
+				new_scope[s] = dojo.delegate( old_scope[s], slots.x[s] );
+			else
+				new_scope[s] = slots.x[s];
 
 	return new_scope;
-}	
+}
 
 dojox.jtlc._declareTag( 'scope', {
 
@@ -808,11 +824,14 @@ dojox.jtlc._declareTag( 'scope', {
 			acc = this.addLocal();
 
 		this.nonAccumulated( function() {
-			this.code.push( acc + "={};" );
+			this.code.push( acc + "={s:{},x:{}};" );
 
 			for( var s in self.slots ) {
 				this.compile( self.slots[s] );
-				this.code.push( acc + "[" + dojox.jtlc.stringLiteral( s ) + "]=" + this.popExpression() + ";" );
+				this.code.push( 
+					acc + ( self.slots[s] instanceof dojox.jtlc.tags._extend ? ".x" : ".s" ) +
+					"[" + dojox.jtlc.stringLiteral( s ) + "]=" + this.popExpression() + ";" 
+				);
 			}
 
 			this.code.push( 
