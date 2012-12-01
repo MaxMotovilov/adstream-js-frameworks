@@ -13,15 +13,25 @@ dojo.require( 'dojox.jtlc.tags' );
 	dj.CHT._declareTag = dj._declareTag;
 
 	function _renderAttributeDict( dict ) {
+
+		if( !dict )	return "";
+		if( typeof dict !== 'object' )
+			throw Error( "attributes() expects a dictionary" );
+
 		var v = [];
 		for( var a in dict )
-			v.push( 
-				a + '="' + 
-				dict[a].toString().replace(
-					dj.CHT.prototype.tags._escapeAttribute.prototype.escapeRegex,
-					dj.CHT.prototype.tags._escapeAttribute.prototype.escapeFn
-				) + '"' 
-			);
+			if( dict[a] === null || dict[a] === false || typeof dict[a] === "undefined" )
+				;
+			else if( dict[a] === true )
+				v.push( a )
+			else
+				v.push( 
+					a + '="' +
+					dict[a].toString().replace(
+						dj.CHT.prototype.tags._escapeAttribute.prototype.escapeRegex,
+						dj.CHT.prototype.tags._escapeAttribute.prototype.escapeFn
+					) + '"' 
+				);
 		return v.join( ' ' );
 	}
 
