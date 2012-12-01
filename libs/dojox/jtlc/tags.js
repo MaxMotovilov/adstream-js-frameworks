@@ -396,7 +396,7 @@ dojox.jtlc._declareTag( 'keys', dojo.declare( dojox.jtlc._ArrayOrGenerator, {
 	}
 } ) );
 
-/* setkey( [template [, source ]] ) -- sets the dictionary key to
+/* setkey( template [, source ] ) -- sets the dictionary key to
    a value returned by template. Template is typically a combination
    of replace() and expr() which is evaluated over source (defaults 
    to current input). Returned value is the same as source */
@@ -415,7 +415,7 @@ dojox.jtlc._declareTag( 'setkey', {
 		this.compile( self.arg );
 
 		if( !this.sink || !this.sink.key )
-			throw Error( "setkey() should only be used within an object literal" );
+			throw Error( "setkey() should only be used within a dictionary sink" );
 
 		var input = this.popExpression(),
 			t = this.addLocal();
@@ -755,4 +755,85 @@ dojox.jtlc._declareTag( 'iota', {
 	}
 } );
 
+/* scope( body, slots [, arg] ) -- evaluates body template in the 
+   scope modified by the slots dictionary, against arg (if present)
+   or the input. Slot values are evaluated against arg (if present) 
+   in original scope.
 
+   If a slot evaluates to a bag of properties (i.e. an object with
+   constructor == Object such as an object literal), and a slot with
+   the same name exists in original scope, the new value will delegate
+   to the old one via prototype chain inheritance. A non-object value 
+   or anobject with a nontrivial constructor will completely hide the 
+   old slot value in the scope of the body.
+*/
+
+dojox.jtlc.makeScope = function( old_scope, slots ) {
+	var new_scope = dojo.delegate( old_scope, {} );
+	for( var s in slots )
+		if( s in old_scope && typeof slots[s] === 'object' && 
+			slots[s] && slots[s].constructor === Object 
+		)
+			new_scope[s] = dojo.delegate( old_scope[s], slots[s] );
+		else
+			new_scope[s] = slots[s];
+
+	return new_scope;
+}	
+
+dojox.jtlc._declareTag( 'scope', {
+
+	constructor: function( body, slots, arg ) {
+		if( arguments.length < 2 )
+			throw Error( "scope() requires at least 2 arguments" );
+		this.slots = slots;
+		this.body = body;
+		if( arg )	this.arg = arg;
+	},
+
+	compile: function( self ) {
+
+		var arg, v;
+
+		if( self.arg ) {
+			this.compile( self.arg );
+			arg = this.popExpression();
+			v = this.addLocal();
+
+			if( v != arg )	
+				this.code.push( v + '=' + arg + ';' );
+		}
+
+		var	saved_scope = this.addLocal(),
+			acc = this.addLocal();
+
+		this.nonAccumulated( function() {
+			this.code.push( acc + "={};" );
+
+			for( var s in self.slots ) {
+				this.compile( self.slots[s] );
+				this.code.push( acc + "[" + dojox.jtlc.stringLiteral( s ) + "]=" + this.popExpression() + ";" );
+			}
+
+			this.code.push( 
+				saved_scope + "=$this;$this=" + this.addGlobal( dojox.jtlc.makeScope ) + "($this," + acc + ");"
+			);
+
+			this.locals.pop();	
+
+			this.compile( self.body );
+
+			var v = this.addLocal(),
+				result = this.popExpression();
+
+			if( v != result )
+				this.code.push( v + '=' + result + ';' );
+
+			this.code.push( "$this=" + saved_scope + ";" );
+		}, v );
+
+		this.locals.pop();	
+		this.locals.pop();	
+		if( v )	this.locals.pop();	
+	}
+} );

@@ -336,8 +336,9 @@ dojo.require( "dijit._Widget" );
 
 			this.indices = [];
 
-			if( scope && scope._deferred ) {
-				this.instance = scope;
+			if( scope.$CHT && !scope.$CHT._locked ) {
+				this.instance = scope.$CHT;
+				this.instance._locked = true;
 				this.storage  = this.instance._deferred;
 				for( var i=0; i<this.storage._data.length; ++i )
 					this.indices.push( 0 );
@@ -468,7 +469,7 @@ dojo.require( "dijit._Widget" );
 		},
 
 		update: function() {
-			var	_this = { _cht: this };
+			var	_this = { $CHT: this };
 			this._self.apply( this._this ? d.delegate( this._this, _this ) : _this, this._args );
 			this._dirty = false;
 		},

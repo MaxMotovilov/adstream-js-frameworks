@@ -335,7 +335,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 		var def_code_idx = this.code.length;
 		this._chtDeferred = this.addLocal();
-		this.code.push( this._chtDeferred + '=new ' + this.addGlobal( dj._CHTDeferredAccessor ) + '(this._cht);' );
+		this.code.push( this._chtDeferred + '=new ' + this.addGlobal( dj._CHTDeferredAccessor ) + '(this);' );
 
 		var refID = this.addLocal(),
 			gctx = this.addGlobal( dj._chtGlobalContext );
@@ -383,7 +383,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 		}
 
 		this.expressions.push( this._deferredIndex ?
-			'this._cht instanceof ' + cons + '?' + this.addGlobal( dojo.mixin ) + '(this._cht,{' +
+			this._chtDeferred + '.instance?' + this.addGlobal( dojo.mixin ) + '(this.$CHT,{_locked:false,' +
 				baseProps( this._hasRefs ) +
 				( this._chtMarkerQuery ? ',_marker_query:' + this._chtMarkerQuery : '' ) +
 			'}):new ' + cons + '({' + baseProps( this._hasRefs ) +
@@ -589,9 +589,9 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 						v = this.popExpression();
 		
 						if( v == '$[0]' ) {
-							this.expressions.push( fn + '.apply(null,$)' );
+							this.expressions.push( fn + '.apply($this,$)' );
 						} else {
-							this.expressions.push( fn + '.apply(null,' + this.addGlobal( dj._copyArgumentsReplaceFirst ) + '($,' + v + '))' );
+							this.expressions.push( fn + '.apply($this,' + this.addGlobal( dj._copyArgumentsReplaceFirst ) + '($,' + v + '))' );
 						}
 
 						if( is_deferred )	this._endWait( w, true );

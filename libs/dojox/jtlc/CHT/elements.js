@@ -48,6 +48,44 @@ dojox.jtlc.CHT.elements = (function() {
 			tag: function( cht, elt ) {	return new this._tag( cht, elt ); }
 		},
 
+		"scope": {
+			sections: {	"" : {allowArgument:true} },
+
+			_tag: dojo.extend(
+				function( body, arg ) {
+					this.body = body;
+					if( arg )	this.arg = arg;
+				}, {
+					compile: function( self ) {
+
+						var arg, v;
+
+						if( self.arg ) {
+							this.compile( self.arg );
+							arg = this.popExpression();
+							v = this.addLocal();
+						}
+
+						this.nonAccumulated( function() {
+							this.compileSequence( self.body );
+						}, v );
+
+						if( v )	this.locals.pop();
+					}
+				}
+			),
+
+			tag: function( cht, elt ) {
+				var body = new this._tag( elt.body, elt.arg && cht.qplus.parse( elt.arg ) ),
+					slots = {};
+
+				for( var s in elt.kwarg )
+					slots[s] = cht.qplus.parse( elt.kwarg[s] );
+
+				return dojox.jtlc.tags.scope( body, slots );
+			}
+		},
+
 		"if": {
 			sections: {	"" : {allowArgument:true}, "elseif" : {allowArgument:true,allowMultiple:true}, "else": {} },
 
