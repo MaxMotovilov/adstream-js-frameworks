@@ -820,25 +820,23 @@ dojox.jtlc._declareTag( 'scope', {
 				this.code.push( v + '=' + arg + ';' );
 		}
 
-		var	saved_scope = this.addLocal(),
-			acc = this.addLocal();
+		var	saved_scope = this.addLocal();
 
 		this.nonAccumulated( function() {
-			this.code.push( acc + "={s:{},x:{}};" );
 
-			for( var s in self.slots ) {
-				this.compile( self.slots[s] );
-				this.code.push( 
-					acc + ( self.slots[s] instanceof dojox.jtlc.tags._extend ? ".x" : ".s" ) +
-					"[" + dojox.jtlc.stringLiteral( s ) + "]=" + this.popExpression() + ";" 
-				);
-			}
+			var	sink = {};
+
+			for( var s in self.slots )
+				if( self.slots[s] instanceof dojox.jtlc.tags._extend )
+					(sink.x || (sink.x = {}))[s] = self.slots[s];
+				else
+					(sink.s || (sink.s = {}))[s] = self.slots[s];
+
+			this.compile( sink );
 
 			this.code.push( 
-				saved_scope + "=$this;$this=" + this.addGlobal( dojox.jtlc.makeScope ) + "($this," + acc + ");"
+				saved_scope + "=$this;$this=" + this.addGlobal( dojox.jtlc.makeScope ) + "($this," + this.popExpression() + ");"
 			);
-
-			this.locals.pop();	
 
 			this.compile( self.body );
 
