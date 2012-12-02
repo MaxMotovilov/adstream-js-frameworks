@@ -55,32 +55,8 @@ dojox.jtlc.CHT.elements = (function() {
 		"scope": {
 			sections: {	"" : {allowArgument:true} },
 
-			_tag: dojo.extend(
-				function( body, arg ) {
-					this.body = body;
-					if( arg )	this.arg = arg;
-				}, {
-					compile: function( self ) {
-
-						var arg, v;
-
-						if( self.arg ) {
-							this.compile( self.arg );
-							arg = this.popExpression();
-							v = this.addLocal();
-						}
-
-						this.nonAccumulated( function() {
-							this.compileSequence( self.body );
-						}, v );
-
-						if( v )	this.locals.pop();
-					}
-				}
-			),
-
 			tag: function( cht, elt ) {
-				var body = new this._tag( elt.body, elt.arg && elt.arg.parse( cht ) ),
+				var body = new cht.tags.genericBody( elt.body, elt.arg && elt.arg.parse( cht ) ),
 					slots = {};
 
 				for( var s in elt.kwarg )
@@ -141,7 +117,7 @@ dojox.jtlc.CHT.elements = (function() {
 		},
 
 		"group": {
-			sections: { "" : {allowArgument:true}	},
+			sections: { "" : {allowArgument:true} },
 
 			tag: function( cht, elt ) {
 				if( !!elt.kwarg.key == !!elt.kwarg.count )

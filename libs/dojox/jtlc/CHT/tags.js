@@ -55,12 +55,25 @@ dojo.require( 'dojox.jtlc.tags' );
 	} );
 
 	dj.CHT._declareTag( 'genericBody', {
-		constructor: function( body ) {
+		constructor: function( body, arg ) {
 			this.body = body;
+			if( arg )	this.arg = arg;
 		},
 
 		compile: function( self ) {
-			this.compileSequence( self.body );
+			var arg, v;
+
+			if( self.arg ) {
+				this.compile( self.arg );
+				arg = this.popExpression();
+				v = this.addLocal();
+			}
+
+			this.nonAccumulated( function() {
+				this.compileSequence( self.body );
+			}, v );
+
+			if( v )	this.locals.pop();
 			this.generator();
 		}
 	} );
