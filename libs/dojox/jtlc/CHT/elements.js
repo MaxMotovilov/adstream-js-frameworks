@@ -199,13 +199,16 @@ dojox.jtlc.CHT.elements = (function() {
 
 				compile: function( self ) {
 
-					var	old_cuts = this._chtShuffle;
-					this._chtShuffle = this.addLocal();
-					this.code.push( this._chtShuffle + '=new ' + this.addGlobal( _deckShuffle ) + '(' + this._chtHTML + ');' );
+					var	old_cuts = this._chtShuffle, cp = this.code.length;
+					this._chtShuffle = { lvar: this.addLocal() };
+					this.code.push( this._chtShuffle.lvar + '=new ' + this.addGlobal( _deckShuffle ) + '(' + this._chtHTML + ');' );
 
 					self.inheritedCompile.call( this, self );
 
-					this.code.push( this._chtShuffle + '.shuffle();' );
+					if( !this._chtShuffle.cuts )
+						this.code.splice( cp, 1 );
+					else
+						this.code.push( this._chtShuffle.lvar + '.shuffle();' );
 
 					this.locals.pop();
 					if( !old_cuts )	delete this._chtShuffle;
@@ -237,6 +240,8 @@ dojox.jtlc.CHT.elements = (function() {
 						if( !this._chtShuffle )
 							throw Error( "<?cut?> cannot be used outside of shuffle or from a different compiled template" );
 
+						this._chtShuffle.cuts = true;
+
 						if( self.forward ) {
 							if( self.compileAndCheck( this, self.forward ) && self.back ) {
 								fwd = this.popExpression();
@@ -255,7 +260,7 @@ dojox.jtlc.CHT.elements = (function() {
 							back = this.popExpression();
 						}
 
-						this.code.push( this._chtShuffle + ".cut(" + ( v || fwd || "null" ) + "," + ( back || "null" ) + ");" );
+						this.code.push( this._chtShuffle.lvar + ".cut(" + ( v || fwd || "null" ) + "," + ( back || "null" ) + ");" );
 
 						if( v )	this.locals.pop();
 					}
