@@ -602,9 +602,9 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 						v = this.popExpression();
 		
 						if( v == '$[0]' ) {
-							this.expressions.push( fn + '.apply($this,$)' );
+							this.expressions.push( fn + '.apply(' + this.scopes[0] + ',$)' );
 						} else {
-							this.expressions.push( fn + '.apply($this,' + this.addGlobal( dj._copyArgumentsReplaceFirst ) + '($,' + v + '))' );
+							this.expressions.push( fn + '.apply(' + this.scopes[0] + ',' + this.addGlobal( dj._copyArgumentsReplaceFirst ) + '($,' + v + '))' );
 						}
 
 						if( is_deferred )	this._endWait( w, true );

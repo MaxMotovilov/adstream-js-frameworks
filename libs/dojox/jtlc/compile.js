@@ -74,14 +74,33 @@ dojox.jtlc._optimizeExtraBrackets = function( body ) {
 	return body;
 }
 
+dojox.jtlc.makeScope = function( old_scope, slots ) {
+
+	var new_scope = dojo.delegate( old_scope, {} );
+
+	if( slots.s )
+		for( var s in slots.s )
+			new_scope[s] = slots.s[s];
+
+	if( slots.x )
+		for( var s in slots.x )
+			if( old_scope[s] )
+				new_scope[s] = dojo.delegate( old_scope[s], slots.x[s] );
+			else
+				new_scope[s] = slots.x[s];
+
+	return new_scope;
+}
+
 dojox.jtlc.compile = function( tpl, lang, mixin ) 
 {
 	var	state = {
 		globals: { names: [], values: [] },
 		locals: [],
 		max_local: 0,
-		code: ["var $=arguments,$this=this"],
+		code: ["var $=arguments"],
 		expressions: [],
+		scopes: ["this"],
 		optimizers: dojo.config.isDebug || dojo.config.jtlcIsReadable ? { '_optimizeExtraBrackets': dojox.jtlc._optimizeExtraBrackets } : {}
 	};
 
@@ -176,6 +195,22 @@ dojo.declare( 'dojox.jtlc.Language', null, {
 		if( this.locals.length && this.locals[this.locals.length-1] === expr )
 			this.locals.pop();
 		return expr;
+	},
+
+	popScope: function() {
+		if( this.scopes.length == 1 )
+			throw Error( "BUG: scope stack is empty" );
+		if( this.locals.length && this.locals[this.locals.length-1] === this.scopes[0] )
+			this.locals.pop();
+		this.scopes.shift();
+	},
+
+	pushScope: function( expr, slots ) {
+		var v = this.addLocal();
+		this.code.push( 
+			v + '=' + this.addGlobal( dojox.jtlc.makeScope ) + "(" + this.scopes[0] + "," + expr + ");"
+		);
+		this.scopes.unshift( v );
 	},
 
 	decorate: function( f ) { return f; },

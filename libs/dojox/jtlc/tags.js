@@ -320,7 +320,7 @@ dojox.jtlc._declareTag( 'expr', dojo.declare( dojox.jtlc._MultiArgTag, {
 			refs['$#'] = this.loop.count();
 
 		if( '$@' in refs )
-			refs['$@'] = '$this';
+			refs['$@'] = this.scopes[0];
 
 		while( this.expressions.length > old_expr_length )
 			this.popExpression();
@@ -779,24 +779,6 @@ dojox.jtlc._declareTag( 'extend', {
 	}
 } );
 
-dojox.jtlc.makeScope = function( old_scope, slots ) {
-
-	var new_scope = dojo.delegate( old_scope, {} );
-
-	if( slots.s )
-		for( var s in slots.s )
-			new_scope[s] = slots.s[s];
-
-	if( slots.x )
-		for( var s in slots.x )
-			if( old_scope[s] )
-				new_scope[s] = dojo.delegate( old_scope[s], slots.x[s] );
-			else
-				new_scope[s] = slots.x[s];
-
-	return new_scope;
-}
-
 dojox.jtlc._declareTag( 'scope', {
 
 	constructor: function( body, slots, arg ) {
@@ -820,8 +802,6 @@ dojox.jtlc._declareTag( 'scope', {
 				this.code.push( v + '=' + arg + ';' );
 		}
 
-		var	saved_scope = this.addLocal();
-
 		this.nonAccumulated( function() {
 
 			var	sink = {};
@@ -833,14 +813,14 @@ dojox.jtlc._declareTag( 'scope', {
 					(sink.s || (sink.s = {}))[s] = self.slots[s];
 
 			this.compile( sink );
-
-			this.code.push( 
-				saved_scope + "=$this;$this=" + this.addGlobal( dojox.jtlc.makeScope ) + "($this," + this.popExpression() + ");"
-			);
+			this.pushScope( this.popExpression() );
 
 			this.compile( self.body );
 
 			var	result = this.popExpression();
+
+			this.popScope();
+
 			if( typeof result !== 'undefined' ) {
 				var v = this.addLocal();
 				if( v != result ) {
@@ -848,16 +828,12 @@ dojox.jtlc._declareTag( 'scope', {
 					result = v;
 				}
 			}
-
-			this.code.push( "$this=" + saved_scope + ";" );
 		}, v );
 
 		this.expressions.push( result );
 
 		if( typeof result !== 'undefined' )
 			this.locals.pop();	
-
-		this.locals.pop();	
 
 		if( v )	this.locals.pop();	
 	}
