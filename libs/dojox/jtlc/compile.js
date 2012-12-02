@@ -74,6 +74,53 @@ dojox.jtlc._optimizeExtraBrackets = function( body ) {
 	return body;
 }
 
+dojox.jtlc._splitIntoStatements = function( body ) {
+	var	brackets = {
+			'"' : { suffix: '"', allow: '"' },
+			"'" : { suffix: "'", allow: "'" },
+			"(": { suffix: ")", allow: "()[{" },
+			"[": { suffix: "]", allow: "([]{" },
+			"{": { suffix: "}", allow: "([{};" }
+		},
+		stack = [ { allow: '"\'({[;' } ];
+	
+	return body.replace(
+		/(?:["'{}()\[\];]|\\.)/g,
+		function( ch ) {
+			if( stack[0].allow.indexOf( ch ) < 0 )
+				;
+			else if( ch === stack[0].suffix )
+				stack.shift();
+			else if( ch in brackets )
+				stack.unshift( brackets[ch] );
+			else if( ch === ';' )
+				return '\uffff';
+			return ch;
+		}
+	);
+}
+
+dojox.jtlc._optimizeDictInitializer = function( body ) {
+	var	old = dojox.jtlc._splitIntoStatements( body );
+	while( 
+		(body = old.replace(
+			/(\uffff|\{)([a-z][a-z0-9]?)=\{([^\uffff]*?)\}\uffff\2\[("(?:\\.|[^"])*")]=([^\uffff]*)/ig,
+			function( _, prefix, lvar, init, prop, value ) {
+				return prefix + lvar + '={' + init + ( init && ',' ) + prop + ':' + value + '}';
+			}
+		)) !== old 
+			||
+		(body = old.replace(
+			/(\uffff|\{)([a-z][a-z0-9]?)=(\{[^\uffff]*?\})\uffff([a-z][a-z0-9]?)\[("(?:\\.|[^"])*")]=\2/ig,
+			function( _, prefix, lvar1, init, lvar2, prop ) {
+				return prefix + lvar2 + '[' + prop + ']=' + init;
+			}
+		)) !== old
+	)
+		old = body;
+	return body.replace( /\uffff/g, ';' );
+}
+
 dojox.jtlc.makeScope = function( old_scope, slots ) {
 
 	var new_scope = dojo.delegate( old_scope, {} );
@@ -377,6 +424,9 @@ dojo.declare( 'dojox.jtlc._DictionarySink', dojox.jtlc._Sink, {
 
 	constructor: function() {
 		this.accumulator = this.compiler.addLocal();
+		if( !this.compiler.optimizers._optimizeDictInitializer )
+			this.compiler.optimizers._optimizeDictInitializer =
+				dojox.jtlc._optimizeDictInitializer;
 	},
 
 	append: function() {
