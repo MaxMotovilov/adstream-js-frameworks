@@ -5,12 +5,68 @@
 
 dojo.provide( "dojox.jtlc.CHT.elements" );
 
+dojo.require( "dojox.jtlc.CHT.tags" );
+
 dojox.jtlc.CHT.elements = (function() {
-	var	dj = dojox.jtlc;
+	var	d = dojo, dj = dojox.jtlc;
+
+	var _deckShuffle = d.extend(
+		function( cards ) {
+			this.cards = cards;
+			this.seq = [{ front: { pos: cards.length } }];
+		}, {
+
+			cut: function( fwd, back ) {
+				this.seq[ this.seq.length-1 ].back = this._cut( back );
+				this.seq.push({ front: this._cut( fwd ) });
+			},
+			
+			_cut: function( value ) {
+				var v = { pos: this.cards.length };
+				if( typeof value !== "undefined" && value !== null && value !== "" && value !== false )
+					v.key = value;
+				return v;
+			},
+
+			shuffle: function() {
+				this.seq[ this.seq.length-1 ].back = { pos: this.cards.length };
+
+				var	from = this.seq[0].front.pos,
+					to = this.seq[this.seq.length-1].back.pos,
+					splice_args = [ from, to-from ];
+
+				d.forEach( this.seq, function( seq ) {
+					if( 'key' in seq.front )
+						seq.key = seq.front.key;
+					else if( 'key' in seq.back )
+						seq.key = seq.back.key;
+				}, this );
+
+				d.forEach(
+					d.filter( 
+						this.seq, function( seq ){ return 'key' in seq; }
+					).sort( function( s1, s2 ) {
+						if( typeof s1.key === 'number' && typeof s2.key === 'number' )
+							return s1.key - s2.key;
+						else
+							return s1.key.toString().localeCompare( s2.key.toString() );
+					} ),
+					function( s ) {
+						var slc = this.cards.slice( s.front.pos, s.back.pos );
+						slc.unshift( splice_args.length, 0 );
+						splice_args.splice.apply( splice_args, slc );
+					},
+					this
+				);
+				
+				this.cards.splice.apply( this.cards, splice_args );
+			}
+		}
+	);
 
 	return {	
 		"embed": {
-			_tag: dojo.extend(
+			_tag: d.extend(
 				function( cht, elt ) {
 					if( !elt.kwarg.template )
 						throw Error( "<?embed?> must have the attribute \"template=\"" );
@@ -62,21 +118,21 @@ dojox.jtlc.CHT.elements = (function() {
 				for( var s in elt.kwarg )
 					slots[s] = elt.kwarg[s].parse( cht );
 
-				return dojox.jtlc.tags.scope( body, slots );
+				return dj.tags.scope( body, slots );
 			}
 		},
 
 		"if": {
 			sections: {	"" : {allowArgument:true}, "elseif" : {allowArgument:true,allowMultiple:true}, "else": {} },
 
-			_tag: dojo.extend( 
+			_tag: d.extend( 
 				function( cht, elt ) {
 					this.ifTrue = [ {
 						condition: elt.arg ? elt.arg.parse( cht ) : dj.tags.current(),
 						body: elt.body
 					} ];
 
-					dojo.forEach( elt.sections, function(s) {
+					d.forEach( elt.sections, function(s) {
 						if( s.openTag == 'elseif' )
 							this.ifTrue.push( {
 								condition: s.arg ? s.arg.parse( cht ) : dj.tags.current(),
@@ -88,7 +144,7 @@ dojox.jtlc.CHT.elements = (function() {
 				},{
 					compile: function( self ) {
 				
-						dojo.forEach( self.ifTrue, function( s, i ) {
+						d.forEach( self.ifTrue, function( s, i ) {
 							this.compile( s.condition );
 							this.code.push( ( i == 0 ? 'if(' : '}else if(' ) + this.popExpression() + '){' );
 							this.compileSequence( s.body );
@@ -134,10 +190,92 @@ dojox.jtlc.CHT.elements = (function() {
 			}
 		},
 
+		"shuffle": {
+			sections: { "" : {allowArgument:true} },
+			
+			_tag: d.declare( dj.CHT.tags._genericBody, {
+
+				inheritedCompile: dj.CHT.tags._genericBody.prototype.compile,
+
+				compile: function( self ) {
+
+					var	old_cuts = this._chtShuffle;
+					this._chtShuffle = this.addLocal();
+					this.code.push( this._chtShuffle + '=new ' + this.addGlobal( _deckShuffle ) + '(' + this._chtHTML + ');' );
+
+					self.inheritedCompile.call( this, self );
+
+					this.code.push( this._chtShuffle + '.shuffle();' );
+
+					this.locals.pop();
+					if( !old_cuts )	delete this._chtShuffle;
+					else			this._chtShuffle = old_cuts;
+				}
+			} ),
+
+			tag: function( cht, elt ) { 
+				return new this._tag( elt.body, elt.arg && elt.arg.parse( cht ) );
+			}
+		},
+
+		"cut": {
+			_tag: d.extend(
+				function( fwd, back ) {
+					if( fwd )	this.forward = fwd;
+					if( back )	this.back = back;
+				}, {
+					compileAndCheck: function( cpl, arg ) {
+						var cp = cpl.code.length;
+						cpl.compile( arg );
+						return cpl.code.length > cp;
+					},
+
+					compile: function( self ) {
+
+						var	v, cp, fwd, back;
+
+						if( !this._chtShuffle )
+							throw Error( "<?cut?> cannot be used outside of shuffle or from a different compiled template" );
+
+						if( self.forward ) {
+							if( self.compileAndCheck( this, self.forward ) && self.back ) {
+								fwd = this.popExpression();
+								v = this.addLocal();
+								if( v != fwd ) {
+									cp = this.code.length;
+									this.code.push( v + '=' + fwd + ';' );
+								}
+							} else
+								fwd = this.popExpression();
+						}
+
+						if( self.back ) {
+							if( !self.compileAndCheck( this, self.back ) && cp )
+								this.code.splice( cp, 1 );
+							back = this.popExpression();
+						}
+
+						this.code.push( this._chtShuffle + ".cut(" + ( v || fwd || "null" ) + "," + ( back || "null" ) + ");" );
+
+						if( v )	this.locals.pop();
+					}
+				}
+			),
+
+			tag: function( cht, elt ) { 
+				if( elt.arg )	
+					throw Error( "<?cut?> should not have a positional argument" );
+				return new this._tag( 
+					elt.kwarg.forward && elt.kwarg.forward.parse( cht ),
+					elt.kwarg.back && elt.kwarg.back.parse( cht )
+				);
+			}
+		},
+
 		"when": {
 			sections: { "" : {allowArgument:true}, "else": {}, "except": {} },
 
-			_tag: dojo.extend( 
+			_tag: d.extend( 
 				function( cht, elt ) {
 					this.arg = elt.arg 
 						? elt.arg.parse // Hook for the CHT loader
@@ -145,7 +283,7 @@ dojox.jtlc.CHT.elements = (function() {
 							: elt.arg
 						: dj.tags.current();
 					this.ifReady = elt.body;
-					dojo.forEach( elt.sections, function(s) {
+					d.forEach( elt.sections, function(s) {
 						if( s.openTag == 'else' )
 							this.ifNotReady = s.body;
 						else
