@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2011 Adstream Holdings
+// Copyright (C) 2010-2012 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -246,6 +246,10 @@ d.declare( 'dojox.jtlc.qplus', dj.JXL, {
 		constructor: function() {
 			if( /^\{((?:.|[\r\n])*?);?\s*\}$/.exec( this.expr ) )
 				this.expr = RegExp.$1;
+
+			var _this = this;
+			dojox.jtlc.replaceWithinJavascript( this.expr, /\$@/, function(){ _this.usesScope = true; } );
+
 			this.expr = '(function(){' + this.expr + ';return $;})()';
 
 			this.simplify = arguments.length <= 1 ? this._simplify : this._cant_simplify;			
@@ -255,7 +259,14 @@ d.declare( 'dojox.jtlc.qplus', dj.JXL, {
 			this.expr = this.expr.replace( /;return \$;\}\)\(\)$/, '})()' );
 		},
 	
-		_cant_simplify: function() {}
+		_cant_simplify: function() {},
+
+		compile: function( self ) {
+			var	need_scope_var = self.usesScope && this.scopes[0] === 'this';
+			if( need_scope_var )	this.pushScope( '{}' );
+			djqp.tags._expr.prototype.compile.call( this, self );
+			if( need_scope_var )	this.popScope();
+		}
 	} ) );
 
 	djqp._declareTag( 'query', dojo.declare( dj.tags._query, {

@@ -205,7 +205,7 @@ dojo.declare( 'dojox.jtlc.Language', null, {
 		this.scopes.shift();
 	},
 
-	pushScope: function( expr, slots ) {
+	pushScope: function( expr ) {
 		var v = this.addLocal();
 		this.code.push( 
 			v + '=' + this.addGlobal( dojox.jtlc.makeScope ) + "(" + this.scopes[0] + "," + expr + ");"
