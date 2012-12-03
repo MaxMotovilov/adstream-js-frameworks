@@ -422,6 +422,13 @@ d.declare( 'adstream.data.schema.Object', [ ads.Node ], {
 
 		var meta, props, _this = this;
 
+		if( this._.version && data._ && data._.version && data._.version < this._.version ) {
+			if( dojo.config.isDebug )
+				console.warn( "Discarding update to " + _this._url + " as current version " + 
+							  this._.version + " is greater than the new version " + data._.version );
+			return false;
+		}
+
 		if( !(meta = this._copyPropsIfChanged( data, [ 'version', 'partial' ], forkme )) &&
 			_identical( data, this, true )
 		)
