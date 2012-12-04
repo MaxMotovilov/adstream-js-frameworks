@@ -46,7 +46,7 @@ dojo.require( "dijit._Widget" );
 	// The following code has been lifted from dojo.parser as there's no convenience API for it. Note that
 	// it has changed since Dojo 1.8
 
-	var _startupWidgets = dojo.version.major * 1000 + dojo.version.minor > 1008
+	var _startupWidgets = dojo.version.major * 1000 + dojo.version.minor >= 1008
 		? function _startupWidgets( instances ) {
 			dojo.forEach( instances, function(instance){
 				if(	instance && instance.startup &&	!instance._started )
