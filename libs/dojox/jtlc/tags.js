@@ -290,8 +290,8 @@ dojox.jtlc._declareTag( 'expr', dojo.declare( dojox.jtlc._MultiArgTag, {
 		if( !any_refs && this.loop && !this.loop.started() )
 			throw Error( "Expression " + dojox.jtlc.stringLiteral(self.expr) + " cannot be used as a generator" );
 
-		if( '$#' in refs && !this.loop )
-			throw Error( "$# cannot be used in singleton expressions" );
+		if( '$#' in refs && !(this.loop || this.lastLoop) )
+			throw Error( "$# cannot be used outside an iterating construct" );
 
 		var	old_expr_length = this.expressions.length;
 
@@ -317,7 +317,7 @@ dojox.jtlc._declareTag( 'expr', dojo.declare( dojox.jtlc._MultiArgTag, {
 		}
 
 		if( '$#' in refs )
-			refs['$#'] = this.loop.count();
+			refs['$#'] = (this.loop||this.lastLoop).count();
 
 		if( '$@' in refs )
 			refs['$@'] = this.scopes[0];

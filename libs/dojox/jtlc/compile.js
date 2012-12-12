@@ -319,9 +319,13 @@ dojo.declare( 'dojox.jtlc.Language', null, {
 	},
 
 	nonAccumulated: function( inner, current ) {
-		var old_loop = this.loop;
-
-		if( this.loop )	delete this.loop;
+		var old_loop = this.loop,
+			old_last_loop = this.lastLoop;
+		
+		if( this.loop )	{
+			this.lastLoop = this.loop;
+			delete this.loop;
+		}
 
 		var	old_current_input = this.hasOwnProperty( 'current_input' ) ? this.current_input : null;
 
@@ -337,6 +341,11 @@ dojo.declare( 'dojox.jtlc.Language', null, {
 		}
 
 		if( old_loop )	this.loop = old_loop;
+
+		if( old_last_loop !== this.lastLoop ) {
+			if( old_last_loop )	this.lastLoop = old_last_loop;
+			else				delete this.lastLoop;
+		}
 	},
 
 	generator: function( expr ) {

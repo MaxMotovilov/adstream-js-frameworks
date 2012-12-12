@@ -421,15 +421,17 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 	},
 
 	compileSequence: function( body ) {
-		this.accumulated( null, new dj._NullSink( this ), this.loop, 
-			function() {
-				dojo.forEach( body, function(v) {
-					this.compile( v );
-					this.sink.append();
-				}, this );
-			}
-		);
-		this.expressions.pop();
+		
+		var old_sink = this.sink;
+		this.sink = new dj._NullSink( this );
+
+		dojo.forEach( body, function(v) {
+			this.compile( v );
+			this.sink.append();
+		}, this );
+
+		if( old_sink )	this.sink = old_sink;
+		else			delete this.sink;
 	},
 
 	replaceLanguage:	dojo.replace,
