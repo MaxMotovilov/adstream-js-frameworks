@@ -141,17 +141,19 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 						body.push( elt );
 					}
 				} else if( t ) {
-					if( !current )
-						throw Error( 'HTML content encountered outside template: ' + t );
-
-					t = _this._parseTextWithSubstitutions( t );
+					if( !current ) {
+						if( !/^(?:\s|\n)+$/.test( t ) )
+							throw Error( 'HTML content encountered outside template: ' + t );
+					} else {
+						t = _this._parseTextWithSubstitutions( t );
 					
-					if( body.length && body[body.length-1] instanceof dj.tags._quote &&
-						t instanceof dj.tags._quote 
-					)
-						body[body.length-1].value += t.value;
-					else
-						body.push( t );
+						if( body.length && body[body.length-1] instanceof dj.tags._quote &&
+							t instanceof dj.tags._quote 
+						)
+							body[body.length-1].value += t.value;
+						else
+							body.push( t );
+					}
 				}
 			}, this );
 		}
