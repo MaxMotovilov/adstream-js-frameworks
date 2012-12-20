@@ -282,7 +282,7 @@ dojo.declare( 'adstream.data.Service', null, {
 		var result, q = [];
 
 		for( var i in response ) 
-			if( i.charAt(0) != '_' && !response[i] || response[i]._ && response[i]._.replaces ) {
+			if( i.indexOf('/') >= 0 ) {
 				// These items ought to be processed by their respective containers
 				var	split_url = adstream.data._splitURL( i ),
 					parent = response[split_url[1]] = response[split_url[1]] || {};
