@@ -145,6 +145,10 @@ var MapEntry = dojo.extend(
 			if( !args )	return new Error( 'Bad hash ' + hash );
 
 			var parsed = new ParsedHash( {
+
+				// Should be removed!
+				url:		this._pattern.replace(/\?$/,'').split('/'),
+
 				key: 		args.slice( 1, this._subs+1 ),
 				action: 	this._action ? args[this._subs+1] : '',
 				parameters:	{},
@@ -260,8 +264,8 @@ var MapEntry = dojo.extend(
 							} );
 
 						var obj = getCached( root, path );
-						if( obj && obj.view ) hash.setMetadata( obj.view() );
-						if( obj && obj.filter ) hash.setMetadata( obj.filter() );
+						if( obj && obj.view ) hash.fillMetadata( obj.view() );
+						if( obj && obj.filter ) hash.fillMetadata( obj.filter() );
 
 						return root.get( path, depth );
 					} );
