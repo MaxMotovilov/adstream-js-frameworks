@@ -36,19 +36,20 @@ if( !dojox || !dojox.promise ) {
 						if( --todo === 0 )
 							deferred.resolve(array);
 					}
+
+					function failOnce( err ) {
+						if( once ) {
+							cancel( i );
+							deferred.reject( err );
+							once = false;
+						}
+					}
 				});
 
-				function failOnce( err ) {
-					if( once ) {
-						cancel();
-						deferred.reject( err );
-						once = false;
-					}
-				}
-
-				function cancel() {
-					d.forEach( array, function(p) {
-						if( p.then && p.cancel )	p.cancel();
+				function cancel( except ) {
+					d.forEach( array, function(p,i) {
+						if( i !== except && p.then && p.cancel )	
+							p.cancel();
 					} );
 				}
 
