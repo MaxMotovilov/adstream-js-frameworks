@@ -440,7 +440,7 @@ var ParsedHash = dojo.extend(
 			var i=0, _this = this;
 			return s
 				.replace( /\*/g, function(){ return _this.key[i++]; } )
-				.replace( /:([a-z][a-z\-_0-9]*)/ig, function( _, key ) { return _this.namedKey[key]; } );
+				.replace( /:([a-z][a-z_0-9]*)/ig, function( _, key ) { return _this.namedKey[key]; } );
 		},
 
 		fillMetadata: function( meta ) {
