@@ -103,7 +103,7 @@ function _bySchema( obj, path_item )
 	return ret && (ret instanceof ads.Node) && ret;
 }
 
-function _descendSchema( rel_url, obj )
+ad._descendSchema = function( rel_url, obj )
 {
 	var p = ad._descend( rel_url, obj, _bySchema );
 	if( p.rel_url )	throw Error( obj._.url + '/' + rel_url + ' does not specify an object in the schema' );
@@ -361,7 +361,7 @@ d.declare( 'adstream.data.schema.Node', null, {
 		if( !force && !p.rel_url && !p.obj._isPartial( depth||p.obj._defaultGetDepth||0 ) )
 			return p.obj;
 
-		var	schema_obj = _descendSchema( p.rel_url, p.obj ),
+		var	schema_obj = ad._descendSchema( p.rel_url, p.obj ),
 			params = schema_obj._URL_Params( depth );
 
 		if( depth = depth||schema_obj._defaultGetDepth||0 )
@@ -396,7 +396,7 @@ d.declare( 'adstream.data.schema.Node', null, {
 		if( !options || !('maxDepth' in options) ) {
 			var	p = ad._descend( rel_url||'', this ),
 				ref_obj = p.rel_url ?
-					_descendSchema( p.rel_url, p.obj ) :
+					ad._descendSchema( p.rel_url, p.obj ) :
 					p.obj;
 			if( '_defaultGetDepth' in ref_obj )
 				(options||(options={})).maxDepth = ref_obj._defaultGetDepth;
@@ -719,7 +719,7 @@ d.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 
 		if( typeof value !== 'undefined' ) {
 
-			var	defaults = _descendSchema( this._.url, this._service.root )._[prop];
+			var	defaults = ad._descendSchema( this._.url, this._service.root )._[prop];
 			value = d.delegate( defaults, value || {} );
 			for( var i in value )
 				if( value.hasOwnProperty( i ) && value[i] === null )
@@ -728,7 +728,7 @@ d.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 			this._['_' + prop] = value;
 
 		} else if( !this._.hasOwnProperty( '_' + prop ) ) {
-			var	defaults = _descendSchema( this._.url, this._service.root )._[prop];
+			var	defaults = ad._descendSchema( this._.url, this._service.root )._[prop];
 			this._['_' + prop] = d.delegate( defaults, this._.hasOwnProperty( prop ) ? mix( {}, this._[prop] ) : {} );
 		}
 
