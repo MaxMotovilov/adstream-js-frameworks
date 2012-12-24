@@ -308,18 +308,19 @@ var MapEntry = dojo.extend(
 		call: function( cb ) {
 			if( !this._execute.length )
 				this._execute.unshift( dojo.delegate( this, {} ) );
-			return this._execute[0]._call(
+			this._execute[0]._call(
 				function( args, hash ) {
 					cb.apply( hash, args.concat( hash ) );
 				}
 			);
+			return this;
 		},
 
 		load: function( url, node, place ) {
 			if( !this._execute.length )
 				this._execute.unshift( dojo.delegate( this, {} ) );
 
-			return this._execute[0]._call( function( _, hash ) {
+			this._execute[0]._call( function( _, hash ) {
 
 				if( typeof url === 'function' )
 					url = url.call( hash, hash );
@@ -337,6 +338,7 @@ var MapEntry = dojo.extend(
 					annotateError( "While retrieving " + url + ": " )
 				);
 			} );
+			return this;
 		},
 
 		notify: function( cb, eb ) {
@@ -372,7 +374,7 @@ var MapEntry = dojo.extend(
 				}
 			);
 
-			return this._execute[0]._call(
+			this._execute[0]._call(
 				function( args, hash ) {
 					var tpl_name  = tpl.replace( '*', hash.action && ( prefix + hash.action ) ), 
 						anno = annotateError( "In " + tpl_name + ": " );
@@ -397,6 +399,7 @@ var MapEntry = dojo.extend(
 					}
 				}
 			);
+			return this;
 		},
 
 		where: function( predicate ) {
