@@ -100,7 +100,7 @@ var MapEntry = dojo.extend(
 		} );
 
 		if( action ) {
-			 if( !(action = /^:(\*|[a-zA-Z_\-]+(?:,[A-Za-z_\-]+)*\??)$/.exec( action )) )
+			 if( !(action = /^:(\*|[a-zA-Z][a-zA-Z0-9_]*(?:,[a-zA-Z][A-Za-z0-9_]*)*\??)$/.exec( action )) )
 				throw Error( 'Bad action suffix in ' + pattern );
 
 			var action_opt = action[1] == '*' || action[1].charAt(action[1].length-1) == '?';
@@ -114,8 +114,8 @@ var MapEntry = dojo.extend(
 			parse += ':';
 
 			if( action[1] == '*' ) {
-				match += '[A-Za-z_\\-]+';
-				parse += '([A-Za-z_\\-]+)';
+				match += '[a-zA-Z][A-Za-z0-9_]*';
+				parse += '([a-zA-Z][A-Za-z0-9_]*)';
 			} else {
 				var list = action[1].replace( /\??$/, '' ).replace( /,/g, '|' );
 				match += list.indexOf('|') >= 0 ? '(?:' + list + ')' : list;
@@ -134,6 +134,7 @@ var MapEntry = dojo.extend(
 			_pattern:		pattern,
 			_matchSequence:	match + (trailing ? '' : ( action ? '(?:\\?|$)' : '\\/?(?:\\?|$)' )),
 			_parseRegex:	new RegExp( "^" + parse + (trailing ? '' : '(?:\\?(.*))?$') ),
+			_pathFormat:	parse.replace( /:\(.*$/, '' ).replace( /\\\/\?$/, '' ).replace( /\([^)]+\)/g, '*' ).replace( /\\\//g, '/' ),
 			_subs:			subs,
 			_action:		action ? action_opt ? "o" : "m" : "",
 			_opt:			opt,
@@ -144,7 +145,7 @@ var MapEntry = dojo.extend(
 			var	args = this._parseRegex.exec( hash );
 			if( !args )	return new Error( 'Bad hash ' + hash );
 
-			var parsed = new ParsedHash( {
+			var parsed = new ParsedHash( this, {
 
 				// Should be removed!
 				url:		this._pattern.replace(/\?$/,'').split('/'),
@@ -168,7 +169,7 @@ var MapEntry = dojo.extend(
 			if( !this._execute.length )
 				return new Error( 'No action associated with ' + this._pattern );
 
-			dojo.publish( "/adstream/navigator/changing", [hash,parsed] );
+			dojo.publish( "/adstream/navigator/changing", [parsed] );
 
 			return dojo.when(
 				dojox.promise.allOrNone( 
@@ -182,7 +183,7 @@ var MapEntry = dojo.extend(
 					} )
 				),
 				function( result ) {
-					dojo.publish( "/adstream/navigator/changed", [hash,parsed] );
+					dojo.publish( "/adstream/navigator/changed", [parsed] );
 					return result;
 				},
 				function( err ) {
@@ -432,7 +433,8 @@ var MapEntry = dojo.extend(
 );
 
 var ParsedHash = dojo.extend(
-	function( props ) {
+	function( entry, props ) {
+		this._mapEntry = entry;
 		dojo.mixin( this, props );
 		this.ext = this.namedKey; // Backward compatibility!
 	}, {
@@ -457,6 +459,42 @@ var ParsedHash = dojo.extend(
 				navigator.config.defaultViews || [ 'app-view', 'app-main' ],
 				dojo.byId
 			) || this._controlledNode;
+		},
+
+		toString: function() {
+			var params = this._paramList();
+			return (
+				this._formatPath() +
+				( this.action ? ":" + this.action : "" ) +
+				( params.length ? "?" + params.join( "&" ) : "" )
+			);
+		},
+
+		toAltString: function( props ) {
+			if( props.namedKey )
+				props.key = getMergedKey( this._mapEntry._pathFormat, props.key || this.key, props.namedKey );
+
+			if( props.key && props.key.length < this.key.length ) {
+				if( !props.action )		props.action = false;
+				if( !props.parameters )	props.parameters = false;
+			}
+
+			return dojo.delegate( this, props ).toString();
+		},
+
+		_formatPath: function() {
+			var i=0, _this = this;
+			return this._mapEntry._pathFormat.replace( /\*/g, function() {
+				return _this.key[i++] || '\uffff';
+			} ).replace( /\/?\uffff.*$/, '' );
+		},
+
+		_paramList: function() {
+			var result = [];
+			for( var i in this.parameters )
+				if( this.parameters[i] )
+					result.push( i + '=' + this.parameters[i] );
+			return result;
 		}
 	}
 );
@@ -505,6 +543,22 @@ function getExtendIds(hash, pattern) {
 		if(p[i] == '*') res[h[i-1]] = h[i];
 	}
 	return res;
+}
+
+function getMergedKey( pattern, key, map ) {
+	var result = [], n = 0;
+	dojo.forEach( 
+		pattern.split( '/' ),
+		function( v, i, all ) {
+			if( v == '*' ) {
+				v = all[i-1] in map ? map[ all[i-1] ] : key[n];
+				if( typeof v !== 'undefined' )
+					result.push( v );
+				++n;
+			}
+		}
+	);
+	return result;
 }
 
 function getCached( root, path )
