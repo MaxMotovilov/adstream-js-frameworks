@@ -135,13 +135,15 @@ dojox.jtlc.CHT.loader = (function() {
 		cache[mdl] = { parsed: ns, compiled: {}, nls: nls };
 		cache[mdl].context = new Context( cache[mdl] );
 		
-		return cache[mdl].deferred = d.when( 
+		var result = d.when( 
 			chtInstance().parse( src, ns, url ),
-			function() { 
+			function() {
 				delete cache[mdl].deferred;
 				return cache[mdl]; 
 			}
 		);
+
+		return result.then ? (cache[mdl].deferred = result) : result;
 	}
 
 	function loadAndParseModule( mdl_or_sn ) {
