@@ -235,14 +235,16 @@ dojox.jtlc.CHT.loader = (function() {
 	function deferGetTemplate( cached, sn ) {
 
 		var deferredTemplateInstance = d.extend( 
-			function( args ) {
+			function( ctx, args ) {
+				this.ctx = ctx;
 				this.args = dj._copyArguments( args );
 			}, {
 				render: function( /* render args */ ) {
 					var render_args = dj._copyArguments( arguments ),
-						evaluator_args = this.args;
+						evaluator_args = this.args,
+						ctx = this.ctx;
 					return d.when( cached, function() {
-						var inst = getTemplate( sn ).apply( null, evaluator_args );
+						var inst = getTemplate( sn ).apply( ctx, evaluator_args );
 						return inst.render.apply( inst, render_args );
 					} );
 				}
@@ -251,8 +253,8 @@ dojox.jtlc.CHT.loader = (function() {
 
 		return deferredFunction( function( /* evaluator args */ ) {
 			d.when( cached, function( cached_value ) { cached = cached_value; } );
-			return cached.then ? new deferredTemplateInstance( arguments ) :
-								 getTemplate( sn ).apply( null, arguments );
+			return cached.then ? new deferredTemplateInstance( this, arguments ) :
+								 getTemplate( sn ).apply( this, arguments );
 		}, cached );
 	}
 	
