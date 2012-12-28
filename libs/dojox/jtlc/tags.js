@@ -281,7 +281,7 @@ dojox.jtlc._declareTag( 'expr', dojo.declare( dojox.jtlc._MultiArgTag, {
 
 		var	refs = {}, any_refs = false, expr = self.expr;
 
-		dojox.jtlc.replaceWithinJavascript( self.expr, /\$[0-9#@]?/g, function(s){ 
+		dojox.jtlc.replaceWithinJavascript( self.expr, /\$[0-9#@]?(?![a-z])/ig, function(s){ 
 			if( !( s in refs ) )	refs[s] = 1;
 			else					++refs[s];
 			any_refs = any_refs || s in { '$':1, '$#':1, '$@':1 };
@@ -325,7 +325,7 @@ dojox.jtlc._declareTag( 'expr', dojo.declare( dojox.jtlc._MultiArgTag, {
 		while( this.expressions.length > old_expr_length )
 			this.popExpression();
 
-		this.expressions.push( dojox.jtlc.replaceWithinJavascript( self.expr, /\$[0-9#@]?/g, function(s) { 
+		this.expressions.push( dojox.jtlc.replaceWithinJavascript( self.expr, /\$[0-9#@]?(?![a-z])/ig, function(s) { 
 			return refs[s]
 		} ) );
 	}

@@ -6,6 +6,7 @@
 dojo.provide( "dojox.jtlc.CHT.elements" );
 
 dojo.require( "dojox.jtlc.CHT.tags" );
+dojo.require( "dojox.jtlc.CHT.userDefinedElement" );
 
 dojox.jtlc.CHT.elements = (function() {
 	var	d = dojo, dj = dojox.jtlc;
@@ -64,6 +65,28 @@ dojox.jtlc.CHT.elements = (function() {
 		}
 	);
 
+	var _moduleElement = d.declare( 
+		dj.CHT.userDefinedElement,
+		(function( ct ){
+			return {
+				_compiledTag: d.extend(
+					function() {
+						ct.apply( this, arguments );
+						this._compileOptions = function( compiler ) {
+							return d.mixin(
+								{ _chtSections: compiler._chtSections },
+								ct.prototype._compileOptions.apply( this, arguments )
+							);
+					 	}
+					}, 
+					ct.prototype
+				)
+			}
+		})( dj.CHT.userDefinedElement.prototype._compiledTag )
+	);
+
+	var unique_module_id = 0;
+
 	return {	
 		"embed": {
 			_tag: d.extend(
@@ -106,6 +129,24 @@ dojox.jtlc.CHT.elements = (function() {
 					t = new this._tag( cht, elt );
 				return slots ? dj.tags.scope( t, slots ) : t;
 			}
+		},
+
+		"module": {
+			sections: {	"" : {allowArgument:true} },
+
+			tag: function( cht, elt, outer_def ) {
+				var name = "$module_" + (++unique_module_id).toString(),
+					mdl = new _moduleElement( 
+						{ arg: name, kwarg: { compiled: true } },
+						outer_def.sourceUrl + "/" + name
+					),
+					ref = { openTag: name };
+
+				mdl.body = elt.body;
+				if( elt.arg )	ref.arg = elt.arg;
+
+				return mdl.tag( cht, ref, outer_def );
+			}			
 		},
 
 		"scope": {
