@@ -79,9 +79,11 @@ dojox.jtlc.CHT.loader = (function() {
 		return new SplitName( spl.length > 1 ? spl.slice( 0, spl.length-1 ).join( '.' ) : "", spl[spl.length-1] );
 	}
 
-	function splitTemplateName( tpl_name ) {
+	function splitTemplateName( tpl_name, noerror ) {
 		var spl = tpl_name.split( '.' );
-		if( spl.length < 2 )	throw Error( 'Template module name is missing in reference to ' + tpl_name );
+		if( spl.length < 2 )
+			if( noerror ) return null;
+			else throw Error( 'Template module name is missing in reference to ' + tpl_name );
 		return new SplitName( 
 			spl.length > 2 ? spl.slice( 0, spl.length-2 ).join( '.' ) : "", 
 			spl[spl.length-2], spl[spl.length-1]
@@ -188,25 +190,34 @@ dojox.jtlc.CHT.loader = (function() {
 			d.forEach( tpls, function( tpl ) {
 				if( !(tpl in cached.parsed) )
 					throw Error( '<?' + tpl + '?> is not defined in ' + mdl );
+				addToRefs( tpl );
+			} );
+
+			for( var r in refs )
+				if( r.indexOf('.') < 0 && r in cached.parsed )
+					addToRefs( r );
+					
+			return false; // Prevent propagation of a deferred
+
+			function addToRefs( tpl ) {
 				refs[mdl + '.' + tpl] = d.delegate( 
 					cached.parsed[tpl],
 					{ context: cached.context }
 				);
-			} );
-			return false; // Prevent propagation of a deferred
+			}
 		}
 	}
 
 	function loadTemplates( refs ) {
 
-		var namespaces = {}, deferred = new WaitingList();
+		var namespaces = {}, deferred = new WaitingList(), sn;
 
-		for( var tpl in refs ) {
-			var sn = splitTemplateName( tpl );
-			if( !(sn.namespace() in namespaces) )
-				namespaces[sn.namespace()] = [];
-			namespaces[sn.namespace()].push( sn.templateName );
-		}
+		for( var tpl in refs )
+			if( sn = splitTemplateName( tpl, true ) ) {
+				if( !(sn.namespace() in namespaces) )
+					namespaces[sn.namespace()] = [];
+				namespaces[sn.namespace()].push( sn.templateName );
+			}
 		
 		for( var ns in namespaces )
 			deferred.push( d.when(

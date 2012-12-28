@@ -136,7 +136,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 							throw Error( 'Mismatched ' + t );
 						body = current.body;
 					} else {
-						if( elt.openTag && elt.openTag.indexOf('.')>=0 )
+						if( elt.openTag )
 							refs[elt.openTag] = false;
 						body.push( elt );
 					}
@@ -230,6 +230,15 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 				body.push( _this._contextSwitch( refs[tag].context, 'enter' ) );
 			}
 
+			function qualify( tag ) {
+				if( tag.indexOf('.') < 0 && !tag[refs] )
+					for( var i=0; i<stack.length; ++i ) {
+						var alt = body[stack[i]].openTag.replace( /\.[^.]+$/, '' );
+						if( alt && refs[ alt = alt + "." + tag ] ) return alt;
+					}
+				return tag;
+			}
+
 			for( var i=0; i<body.length; ++i ) {
 
 				if( body[i] instanceof dj._CHTElement ) {
@@ -255,14 +264,15 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 					if( section && body[i].closeTag )
 						throw Error( 'Closing tags not allowed for sections: ' + body[i].text );
 
-					if( !section && !(tag in refs) && tag != 'section' )
+					if( !section && !((tag = qualify(tag)) in refs) )
 						throw Error( 'Unknown CHT element: ' + body[i].text );
 
 					if( body[i].openTag ) {
+						body[i].openTag = tag;
 						if( section ) {
 							if( body[i].arg && !section.allowArgument )
 								throw Error( 'Argument not allowed here: ' + body[i].text );
-							if( !section.allowMultiple && dojo.some( parent.sections, function(s){ return s.openTag == body[i].openTag; } ) )
+							if( !section.allowMultiple && dojo.some( parent.sections, function(s){ return s.openTag == tag; } ) )
 								throw Error( 'Section appears more than once: ' + body[i].text );
 							body[stack[0]].body = body.splice( stack[0]+1, i - stack[0] - 1 );
 								i = stack[0] + 1;
@@ -286,7 +296,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 							wrapInContext( i );
 						}
 					} else { // body[i].closeTag
-						if( !parent || parent.openTag != body[i].closeTag )
+						if( !parent || parent.openTag != tag )
 							throw Error( 'Unbalanced closing tag: ' + body[i].text );
 
 						body[stack[0]].body = body.splice( stack[0]+1, i - stack[0] - 1 );
