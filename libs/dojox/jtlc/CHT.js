@@ -268,8 +268,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 								i = stack[0] + 1;
 
 							if( body[stack[0]] !== parent )	{
-								body.splice( stack[0], 1 );
-								stack.shift();
+								body.splice( stack.shift(), 1 );
 								--i;
 							}
 
@@ -294,8 +293,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 						i = stack[0] + 1;
 
 						if( body[stack[0]] !== parent )	{
-							body.splice( stack[0], 1 );
-							stack.shift();
+							body.splice( stack.shift(), 1 );
 							--i;
 						}
 
@@ -313,12 +311,10 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 						body[stack[0]] = refs[tag].tag( _this, parent );
 						body.splice( i--, 1 );
 
-						if( wrapInContext( stack[0] ) ) {
+						if( wrapInContext( stack.shift() ) ) {
 							dojo.forEach( parent.sections, function(s){ unwrapFromContext( s.body ); } );
 							if( parent.body && parent.body.length )	unwrapFromContext( parent.body );
 						}
-
-						stack.shift();
 					}
 				} else { // Literal
 					if( lit_seq_start < 0 )	lit_seq_start = i;
