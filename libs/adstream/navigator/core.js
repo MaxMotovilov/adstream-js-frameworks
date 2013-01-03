@@ -456,7 +456,7 @@ var ParsedHash = dojo.extend(
 
 		defaultView: function() {
 			return firstMapped( 
-				navigator.config.defaultViews || [ 'app-view', 'app-main' ],
+				adstream.navigator.config.defaultViews || [ 'app-view', 'app-main' ],
 				dojo.byId
 			) || this._controlledNode;
 		},
