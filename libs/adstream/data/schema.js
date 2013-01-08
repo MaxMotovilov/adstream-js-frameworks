@@ -324,9 +324,12 @@ d.declare( 'adstream.data.schema.Node', null, {
 
 		if( p.rel_url )	throw Error( "Object at " + this._.url + " is not connected to schema" );
 
+		var	item = p.obj[ split_url[2] ];
+
 		return d.when( 
 			p.obj.save( split_url[2] ),
-			function( ctr ) { return ctr[ split_url[2] ]; }
+			// Should not return item as the response may have deleted it instead of updating!
+			function( ctr ) { return ctr[ item.id() ]; }
 		);
 	},
 
