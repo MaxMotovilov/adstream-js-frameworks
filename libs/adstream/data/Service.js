@@ -282,10 +282,7 @@ dojo.declare( 'adstream.data.Service', null, {
 		var result, q = [];
 
 		for( var i in response ) 
-			if( i.indexOf('/') >= 0 &&
-				// FIXME: this looks expensive for such a trivial check
-				adstream.data._descendSchema( adstream.data._splitURL( i )[1], this.root ) instanceof adstream.data.schema.Container
-			) {
+			if( i.indexOf('/') >= 0 ) {
 				// These items ought to be processed by their respective containers
 				var split_url = [ null, null, i ], parent = response;
 				do {

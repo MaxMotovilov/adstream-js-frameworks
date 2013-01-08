@@ -140,6 +140,12 @@ function _copyProp( src, dst )
 			dst[i] = src[i];
 }
 
+function _hasProps( o ) {
+	for( var i in o )
+		if( i != '_' ) return true;
+	return false;
+}
+
 d.declare( 'adstream.data.schema.Node', null, {
 
 	constructor: function( sub, options, proto ) {
@@ -429,16 +435,21 @@ d.declare( 'adstream.data.schema.Object', [ ads.Node ], {
 			return false;
 		}
 
+		var partial = data._ && data._.partial;
+		if( partial && !_hasProps( data ) )
+			delete data._.partial;
+
 		if( !(meta = this._copyPropsIfChanged( data, [ 'version', 'partial' ], forkme )) &&
 			_identical( data, this, true )
 		)
 			return false;
 
-		for( var i in this )
-			if( this.hasOwnProperty(i) && !(this[i] instanceof ads.Node) ) {
-				modified();
-				delete this[i];
-			}
+		if( !partial )
+			for( var i in this )
+				if( this.hasOwnProperty(i) && !(this[i] instanceof ads.Node) ) {
+					modified();
+					delete this[i];
+				}
 
 		for( var i in data )
 			if( i != '_' ) {
