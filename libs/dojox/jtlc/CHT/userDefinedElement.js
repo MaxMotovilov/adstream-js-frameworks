@@ -118,16 +118,23 @@ dojo.declare( 'dojox.jtlc.CHT.userDefinedElement', null, {
 				}
 			},
 
+			// Hook for <? module ?>
+			_compiledName: function() {
+				return this.name;
+			},
+
 			compile: function( self ) {
 
+				var name = self._compiledName();
+
 				if( !('compiledTemplates' in this) )	this.compiledTemplates = {};
-				if( !(self.name in this.compiledTemplates) ) {
+				if( !(name in this.compiledTemplates) ) {
 					// Create a forwarding thunk to resolve issues with template recursion
 					var forward_to = null;
-					this.compiledTemplates[self.name] = function(){ return forward_to.apply( this, arguments ); }
-					this.compiledTemplates[self.name].async = self.tag.def.kwarg.async || false;
+					this.compiledTemplates[name] = function(){ return forward_to.apply( this, arguments ); }
+					this.compiledTemplates[name].async = self.tag.def.kwarg.async || false;
 
-					this.compiledTemplates[self.name] = forward_to =
+					this.compiledTemplates[name] = forward_to =
 						dojox.jtlc.compile( self.tag, this.compileArguments.language, 
 									dojo.mixin( 
 										{ compiledTemplates: this.compiledTemplates }, 
@@ -138,9 +145,9 @@ dojo.declare( 'dojox.jtlc.CHT.userDefinedElement', null, {
 				}
 				
 				self._compile.call( this,
-					this.addGlobal( this.compiledTemplates[self.name] ),
+					this.addGlobal( this.compiledTemplates[name] ),
 					self.arg,
-					this.compiledTemplates[self.name].async
+					this.compiledTemplates[name].async
 				);
 			},
 

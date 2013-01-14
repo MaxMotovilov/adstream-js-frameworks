@@ -68,20 +68,28 @@ dojox.jtlc.CHT.elements = (function() {
 	var _moduleElement = d.declare( 
 		dj.CHT.userDefinedElement,
 		(function( ct ){
-			return {
-				_compiledTag: d.extend(
-					function() {
-						ct.apply( this, arguments );
-						this._compileOptions = function( compiler ) {
-							return d.mixin(
-								{ _chtSections: compiler._chtSections },
-								ct.prototype._compileOptions.apply( this, arguments )
-							);
-					 	}
-					}, 
-					ct.prototype
-				)
-			}
+			var cls = {
+				_compiledTag: function() {
+					ct.apply( this, arguments );
+				}
+			};
+
+			cls._compiledTag.prototype = d.delegate( ct.prototype, {
+				_compileOptions: function( compiler ) {
+					return d.mixin(
+						{ _chtSections: compiler._chtSections },
+						ct.prototype._compileOptions.apply( this, arguments )
+					);
+			 	},
+				_compiledName: function() {
+					var id = ++unique_module_id;
+					this.tag.sourceUrl = this.tag.def.sourceUrl + '_' + id.toString();
+					return this.name + '_' + id.toString();
+				}
+			} );
+
+			return cls;
+
 		})( dj.CHT.userDefinedElement.prototype._compiledTag )
 	);
 
@@ -135,7 +143,7 @@ dojox.jtlc.CHT.elements = (function() {
 			sections: {	"" : {allowArgument:true} },
 
 			tag: function( cht, elt, outer_def ) {
-				var name = "$module_" + (++unique_module_id).toString(),
+				var name = "$module";
 					mdl = new _moduleElement( 
 						{ arg: name, kwarg: { compiled: true } },
 						outer_def.sourceUrl + "/" + name
