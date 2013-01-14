@@ -132,7 +132,7 @@ dojox.jtlc.CHT.loader = (function() {
 		if( cache[mdl] )
 			return cache[mdl].deferred || cache[mdl];
 
-		var	ns = {};
+		var	ns = {}, sync;
 
 		cache[mdl] = { parsed: ns, compiled: {}, nls: nls };
 		cache[mdl].context = new Context( cache[mdl] );
@@ -140,12 +140,16 @@ dojox.jtlc.CHT.loader = (function() {
 		var result = d.when( 
 			chtInstance().parse( src, ns, url ),
 			function() {
-				delete cache[mdl].deferred;
+				if( cache[mdl].deferred )
+					delete cache[mdl].deferred;
+				else 
+					sync = true;
 				return cache[mdl]; 
 			}
 		);
 
-		return result.then ? (cache[mdl].deferred = result) : result;
+		if( !sync )	cache[mdl].deferred = result;
+		return result;
 	}
 
 	function loadAndParseModule( mdl_or_sn ) {
