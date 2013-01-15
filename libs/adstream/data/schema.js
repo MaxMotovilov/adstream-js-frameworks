@@ -316,36 +316,35 @@ d.declare( 'adstream.data.schema.Node', null, {
 		return result;
 	},
 
-	_saveIfNotCreated: function() {
-		if( /@.*[\/]/.test( this._.url ) )
-			throw Error( "Cannot save " + this._.url + " as its parent has not yet been saved" );
+	_parentNode: function() {
 		var split_url = ad._splitURL( this._.url ),
 			p = ad._descend( split_url[1], this._service.root );
 
-		if( p.rel_url )	throw Error( "Object at " + this._.url + " is not connected to schema" );
+		if( p.rel_url )	
+			throw Error( "Object at " + this._.url + " is not connected to schema" );
 
-		var	item = p.obj[ split_url[2] ];
+		return p.obj;		
+	},
+
+	_saveIfNotCreated: function() {
+		if( /@.*[\/]/.test( this._.url ) )
+			throw Error( "Cannot save " + this._.url + " as its parent has not yet been saved" );
+
+		var	parent = this._parentNode(),
+			item = parent[ this.id() ];
 
 		return d.when( 
-			p.obj.save( split_url[2] ),
+			parent.save( this.id() ),
 			// Should not return item as the response may have deleted it instead of updating!
 			function( ctr ) { return ctr[ item.id() ]; }
 		);
 	},
 
 	_itemDelete: function() {
-
-		if( this._notYetCreated() || this._deleteViaParent ) {
-			var	split_url = ad._splitURL( this._.url ),
-				p = ad._descend( split_url[1], this._service.root );
-
-			if( p.rel_url )	throw Error( "Object at " + this._.url + " is not connected to schema" );
-		
-			return p.obj.del( split_url[2] );
-
-		} else {
+		if( this._notYetCreated() || this._deleteViaParent )
+			return this._parentNode().del( this.id() );
+		else
 			return this._service.DELETE( this._.url, { version: this._.version } );
-		}
 	},
 
 	_anyChild: function( depth ) {	//	Iterates over subschema which is likely faster
@@ -424,7 +423,10 @@ d.declare( 'adstream.data.schema.Node', null, {
 	save: function( depth ) {
 		if( this._notYetCreated() )
 			return this._saveIfNotCreated();
-		return this._service.PUT( this._.url, this._wrap( this._marshal( depth||0 ) ) );
+		return this._service.PUT( 
+			this._.url, this._wrap( this._marshal( depth||0 ) ), 
+			this._isItem && this._parentNode()._URL_Params( 1 + (depth||0) )
+		);
 	}
 } );
 
@@ -507,6 +509,8 @@ d.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 		if( 'del' in this._subschema.item )	// Container in container
 				this._subschema.item._itemDel = this._subschema.item._itemDelete;
 		else	this._subschema.item.del = this._subschema.item._itemDelete;
+
+		this._subschema.item._isItem = true;
 	},
 
 	_defaultGetDepth: 1,
