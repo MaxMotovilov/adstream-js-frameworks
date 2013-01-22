@@ -305,8 +305,8 @@ d.declare( 'adstream.data.schema.Node', null, {
 		return /(?:\/|^)@/.test( this._.url );
 	},
 
-	_URL_Params: function( depth ) { 
-		var result = {};
+	_URL_Params: function( depth, init ) { 
+		var result = init || {};
 		if( depth )
 			for( var sp in this._subschema ) 
 				if( !_mixIfNotPresent( 
@@ -425,7 +425,7 @@ d.declare( 'adstream.data.schema.Node', null, {
 			return this._saveIfNotCreated();
 		return this._service.PUT( 
 			this._.url, this._wrap( this._marshal( depth||0 ) ), 
-			this._isItem && this._parentNode()._URL_Params( 1 + (depth||0) )
+			this._isItem && this._URL_Params( depth||0, this._parentNode()._URL_Params(0) )
 		);
 	}
 } );
@@ -612,9 +612,9 @@ d.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 		return result;		
 	},
 
-	_URL_Params: function( depth ) {
+	_URL_Params: function( depth, init ) {
 
-		var result = {};
+		var result = init || {};
 		d.forEach( [ 'filter', 'view' ], function(p) {
 			d.mixin( result, this._['_'+p] || this._[p] );
 		}, this );
