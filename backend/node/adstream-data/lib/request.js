@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2011 Adstream Holdings
+// Copyright (C) 2010-2012 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -48,7 +48,7 @@ exports = module.exports = d.extend(
 		},
 
 		get: function( rel, meta ) {
-			if( meta )	meta = collectMeta( meta, this.args );
+			if( meta )	meta = collectMeta( meta, this.args, rel.replace( /.*[\/]/, '' ) );
 			var res = packet.get( this.body, rel, meta );
 			if( meta )
 				if( res._ )	d.mixin( res._, mixinChildren( meta, res._ ) );
@@ -75,7 +75,7 @@ function mixinChildren( to, from ) {
 			else to[f] = from[f];
 }
 
-function collectMeta( tpl, args ) {
+function collectMeta( tpl, args, id ) {
 	var sub, res;
 
 	function result() {
@@ -84,6 +84,10 @@ function collectMeta( tpl, args ) {
 	}
 
 	function arg( f ) {
+		var q = id + '.' + f;
+		if( q in args )
+			f = q;
+
 		var r = args[f];
 		if( f in args )	delete args[f];
 		return r;

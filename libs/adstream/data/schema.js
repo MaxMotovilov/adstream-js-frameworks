@@ -308,11 +308,9 @@ d.declare( 'adstream.data.schema.Node', null, {
 	_URL_Params: function( depth, init ) { 
 		var result = init || {};
 		if( depth )
-			for( var sp in this._subschema ) 
-				if( !_mixIfNotPresent( 
-					result, (this[sp] || this._subschema[sp])._URL_Params( depth-1 ) 
-				) )
-					throw Error( "URL parameters conflict in request to " + this._.url + " with depth " + depth );
+			for( var sp in this._subschema )
+				(this[sp] || this._subschema[sp])._URL_Params( depth-1, result );
+
 		return result;
 	},
 
@@ -614,18 +612,22 @@ d.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 
 	_URL_Params: function( depth, init ) {
 
-		var result = init || {};
-		d.forEach( [ 'filter', 'view' ], function(p) {
-			d.mixin( result, this._['_'+p] || this._[p] );
-		}, this );
+		var result = init || {}, _this = this;
+
+		'filter,view'.replace( /\w+/g, function(m) {
+			var from = _this._['_'+m] || _this._[m];
+			for( var p in from ) {
+				var v = from[p];
+				if( p in result && (p = _this.id() + '.' + p) in result )
+					throw Error( "URL parameter " + m + "." + p.replace(/.*\./,'') + " is in conflict at " + _this._.url );
+				result[p] = v;
+			}
+		} );
 
 		if( depth )
 			for( var i in this ) 
-				if( this.hasOwnProperty(i) && this[i] instanceof ads.Node &&
-					!_mixIfNotPresent( 
-						result, this[i]._URL_Params( depth-1 ) 
-				) )
-					throw Error( "URL parameters conflict in request to " + this._.url + " with depth " + depth );
+				if( this.hasOwnProperty(i) && this[i] instanceof ads.Node )
+					this[i]._URL_Params( depth-1, result );
 
 		return result;
 	},
