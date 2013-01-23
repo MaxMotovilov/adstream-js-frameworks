@@ -2,7 +2,7 @@
 
 # Metaclass machinery: provides schema and instance creation, AOP-like method wrappers
 
-import copy as sysCopy
+import copy as sysCopy, re
 
 def _collectDeclarations( dct, policies ):
 	declarations = {}
@@ -305,9 +305,19 @@ class MetaData(_MetaClass):
 	}
 	
 	class _core_(_NonValueCore,_StructCore):
-		def _load_(self, value, url_args = {} ):
-			from_url = dict( ( ( k, url_args.pop( k ) ) for k in url_args.keys() if k in self._schema and _is_value_type( self._schema[k] ) ) )
-			t = _StructCore._load_( self, value, is_metadata = True, url_args = url_args )
+		def _load_(self, value, url_args = {}, prefix = None ):
+
+			from_url = dict((
+				( pname, url_args.pop(k) )
+					for pname, k in (
+						( k, (prefix + '.' + k) if prefix and (prefix + '.' + k) in url_args else k )
+							for k,v in self._schema.iteritems()
+							if _is_value_type( v )
+					)
+					if k in url_args
+			))
+
+			t = _StructCore._load_( self, value, is_metadata = True, url_args = url_args, prefix = prefix )
 			return _StructCore._load_( self, from_url, is_metadata = True ) or t
 
 class Object(_SchemaElement):
@@ -352,6 +362,7 @@ class _MetaDataSection(object):
 		if instance._ is None:	instance._ = instance._schema['_']()
 		setattr( instance._, self.name, value )
 	
+_lastUrlComponent = re.compile( r'.*[/]' )
 class Container(_SchemaElement):
 	_is_metaclass_ = True
 
@@ -418,7 +429,7 @@ class Container(_SchemaElement):
 		def _load_( self, value, url_args={}, **kwarg ):
 			md = dict( view={}, filter={} )
 			md.update( value.get( '_', {} ) )
-			self._ = _unmarshal( md, self._schema['_'], url_args=url_args, **kwarg )
+			self._ = _unmarshal( md, self._schema['_'], url_args=url_args, prefix = _lastUrlComponent.sub( '', self._url_() ), **kwarg )
 			for key, val in value.iteritems():
 				if key != '_':
 					self[ _key_convert( key, self._schema['key'] ) ] = _unmarshal( val, self._schema['item'], url_args = dict(url_args), **kwarg ) if val is not None else None

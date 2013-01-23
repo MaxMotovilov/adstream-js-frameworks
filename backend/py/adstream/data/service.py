@@ -280,8 +280,8 @@ class Service(object):
 		
 		try:
 			if verb=='GET':
-				depth = url_args.get( 'depth', '' )
-				self._getObject( t, key, request, response, depth and int(depth) or 0 )
+				depth = url_args.get( 'depth', None )
+				self._getObject( t, key, request, response, depth and int(depth) )
 			elif verb=='PUT':
 				self.begin( verb, url, request, response )
 				need_rollback = True
@@ -502,7 +502,7 @@ if __name__=='__main__':
 	svc = Test()
 	print svc( 'GET', '/A/5' )
 	print svc( 'GET', '/A' )
-	print svc( 'GET', '/A?offset=117&count=3' )
+	print svc( 'GET', '/A?offset=117&A.count=3' )
 	print svc( 'PUT', '/A/5', '{"A/5":{"a":5,"b":"Five"}}')
 	print svc( 'PUT', '/A', '{"A":{"5":{"a":5,"b":"Five"}}}')
 	print svc( 'POST', '/A', '{"A/@1":{"a":5,"b":"Five"}}')
