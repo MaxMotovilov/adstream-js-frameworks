@@ -618,7 +618,10 @@ d.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 			var from = _this._['_'+m] || _this._[m];
 			for( var p in from ) {
 				var v = from[p];
-				if( p in result && (p = _this.id() + '.' + p) in result )
+				if( v === null ) continue;
+				if( p in result && (p = _this.id() + '.' + p) in result &&
+					!_identical( v, result[p] ) 
+				)
 					throw Error( "URL parameter " + m + "." + p.replace(/.*\./,'') + " is in conflict at " + _this._.url );
 				result[p] = v;
 			}
