@@ -299,10 +299,11 @@ dojox.jtlc.CHT.loader = (function() {
 					} ];
 					
 				elt.arg = cht.tags.expr(
-					"[$0,$]", 
+					"[$1,$]", 
 					cht.tags.wait(
 						dj.tags.bind( loader.get, embed.template )
-					)
+					),
+					dj.tags.current()
 				);
 
 				embed.template = cht.tags.expr( "$[1]" );
