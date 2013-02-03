@@ -126,7 +126,7 @@ d.declare( 'dojox.jtlc.qplus', dj.JXL, {
 	},
 
 	_parseOwnArg: function( str ) {
-		if( /^\[\s*(.*?)\s*\]$/.exec( str ) ) try {
+		if( /^\s*\[(.*?)\]\s*$/.exec( str ) ) try {
 			var	delims = { ',': '\uffff' },
 				stack = [ this._initScanStack ],
 				brackets = this._exprBrackets,
