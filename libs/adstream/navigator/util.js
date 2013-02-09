@@ -39,17 +39,17 @@ if( !dojox || !dojox.promise ) {
 
 					function failOnce( err ) {
 						if( once ) {
-							cancel( i );
-							deferred.reject( err );
 							once = false;
+							cancel( err, i );
+							deferred.reject( err );
 						}
 					}
 				});
 
-				function cancel( except ) {
+				function cancel( err, except ) {
 					d.forEach( array, function(p,i) {
 						if( i !== except && p.then && p.cancel )	
-							p.cancel();
+							p.cancel( err );
 					} );
 				}
 
