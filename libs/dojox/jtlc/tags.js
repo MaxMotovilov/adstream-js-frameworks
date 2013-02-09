@@ -320,7 +320,7 @@ dojox.jtlc._declareTag( 'expr', dojo.declare( dojox.jtlc._MultiArgTag, {
 			refs['$#'] = (this.loop||this.lastLoop).count();
 
 		if( '$@' in refs )
-			refs['$@'] = this.scopes[0];
+			refs['$@'] = '(' + this.scopes[0] + ')';
 
 		while( this.expressions.length > old_expr_length )
 			this.popExpression();
