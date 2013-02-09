@@ -69,7 +69,7 @@ dojox.jtlc.CHT.loader = (function() {
 			then: function() {
 				if( this.list.length == 0 )	return arguments[0]([]);
 				if( this.list.length == 1 )	return apply( this.list[0], 'then', arguments );
-				return apply( new d.DeferredList( this.list ), 'then', arguments );
+				return apply( new d.DeferredList( this.list, false, true ), 'then', arguments );
 			}
 		}
 	);
@@ -139,17 +139,23 @@ dojox.jtlc.CHT.loader = (function() {
 		
 		var result = d.when( 
 			chtInstance().parse( src, ns, url ),
-			function() {
-				if( cache[mdl].deferred )
-					delete cache[mdl].deferred;
-				else 
-					sync = true;
-				return cache[mdl]; 
-			}
+			postParse, postParse
 		);
 
 		if( !sync )	cache[mdl].deferred = result;
 		return result;
+
+		function postParse( err ) {
+			if( !sync )	delete cache[mdl].deferred;
+			sync = !cache[mdl].deferred || err instanceof Error;
+
+			if( err instanceof Error ) {
+				delete cache[mdl];
+				throw err;
+			}
+
+			return cache[mdl];
+		}
 	}
 
 	function loadAndParseModule( mdl_or_sn ) {
