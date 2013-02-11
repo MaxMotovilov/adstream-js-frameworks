@@ -1,4 +1,4 @@
-// Copyright (C) 2011 Adstream Holdings
+// Copyright (C) 2011-2013 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -38,14 +38,14 @@ function makeRule( before, in_pri, out_pri, out_mode ) {
 
 		function checkLiteral( offs ) {
 			if( offs>pos )	body.push( 
-				d.replace( 'if(this.token({0})!=={1})return false;', [ "{0}", stringLiteral( before.substring( pos, offs ) ) ] )
+				d.replace( 'if(this.top({0}).t!=={1})return false;', [ "{0}", stringLiteral( before.substring( pos, offs ) ) ] )
 			);
 		}
 
 		before.replace( /[#@]/g, function( arg, offs ) {
 			checkLiteral( offs );
 			pos = offs + arg.length;
-			body.push( d.replace( 'if(this.type({0})!="{1}")return false;', [ "{0}", last_arg = arg ] ) );
+			body.push( d.replace( 'if(this.top({0}).m!=="{1}")return false;', [ "{0}", last_arg = arg ] ) );
 		} );
 
 		checkLiteral( before.length );
@@ -84,8 +84,8 @@ function makePopper( before, after ) {
 			'var callback = this.callback("{0}"), args = this.stack.splice( this.stack.length - {1}, {1} );', 
 		   [ signature, count ] 
 		) +	d.replace( 
-			'this.stack.push([ callback.apply(null,dojo.map(args,{1})), "{0}" ]);', 
-			[ after === '@' ? '@' : '#', 'function(i){return i[0];}' ] 
+			'this.pushTerm( callback.apply(this,args), "{0}" );',
+			[ after === '@' ? '@' : '#' ]
 		)
 	);
 }
@@ -137,16 +137,9 @@ function compileGrammar( grammar ) {
 
 //	Default semantics -- copy the expression as is
 
-function concatAll() {
-	return copyArguments( arguments ).join( '' );
-}
-
-function concatAllWithSpaces() {
-	return copyArguments( arguments ).join( ' ' );
-}
-
-function returnFirst( first ) {
-	return first;
+function concatEOS( result, eos ) {
+	delete eos.t;
+	return this.concatAll( result, eos );
 }
 
 function unfinishedTernary() {
@@ -218,33 +211,94 @@ var	js_expr_grammar = compileGrammar({
 
 	'<<Number>>': 		[ '100<<Number>>100' ],
 	'<<Identifier>>': 	[ '100<<Identifier>>100' ],
-	'<<EOS>>':			[ '#0<<EOS>>0', returnFirst ]
+	'<<EOS>>':			[ '#0<<EOS>>0', concatEOS ]
 });
 
+var Term = d.extend(
+	function( init, rule ) {
+		d.mixin( this, init );
+		if( rule )
+			this.r = rule;
+	}, {
+		toString: function() {
+			return this.t ? this.t.toString() : this.s.substr( this.p, this.l );
+		},
+
+		merge: function( r ) {
+			if( 'l' in this && 'l' in r ) {
+				if( this.t ) delete this.t;
+				this.l = r.l + ( r.p - this.p );
+				return true;
+			}
+			return false;
+		}
+	}
+);
+
+var TermList = d.extend(
+	function( first ) {
+		this.tl = [ first ];
+	}, {
+		toString: function() { return this.tl.join(''); },
+	
+		merge: function( t ) {
+			var last;
+
+			if( t.tl ) {
+				if( (last = this.tl[this.tl.length-1]).merge && last.merge( t.tl[0] ) )
+					t.tl.shift();
+				this.tl.push.apply( this.tl, t.tl );
+			} else if( !((last = this.tl[this.tl.length-1]).merge && last.merge( t )) )
+				this.tl.push( t );
+
+			return true;
+		}
+	}
+);
+
 var Parser = d.extend( 
-	function( grammar ) {
+	function( grammar, src ) {
 		this.stack = [];
 		this.mode = '#';
 		this.grammar = grammar;
+		this.src = src;
+		this.first = true;
 	}, {
 		top: function( n ){ 
 			return this.stack[ this.stack.length-1-(n||0) ]; 
 		},
 
-		token: function( n ){ return this.top(n)[0]; },
-
-		type: function( n ){ return this.top(n)[1]; },
-
-		rule: function( n ){ return this.top(n)[2] || {}; },
+		rule: function( n ){ return this.top(n).r || {}; },
 
 		priority: function( n ){ return this.rule(n).out_pri || 0; },
 
 		callback: function( signature ){ 
-			return this.rule( signature.length - signature.indexOf( ':' ) - 1 ).callback || 
-				   ( signature.indexOf( '@' ) >= 0 ? concatAll : concatAllWithSpaces );
+			return this.rule( signature.length - signature.indexOf( ':' ) - 1 ).callback || this.concatAll;
 		},
 
-		push: function( token ) {
+		concatAll: function( first ){
+			var tl;
+			for( var i=1; i<arguments.length; ++i )
+				if( !first.merge || !first.merge( arguments[i] ) )
+					if( !tl ) {
+						if( first.tl )	tl = first;
+						else tl = new TermList( first );
+					} else
+						tl.merge( first );
+
+			if( tl ) {
+				tl.merge( first );
+				return tl;
+			} else
+				return first;
+		},
+		
+		pushTerm: function( term, mode ) {
+			term.m = mode;
+			this.stack.push( term );
+		},
+
+		push: function( token, pos, len ) {
 			var rules = this.grammar[token], rule;
 
 			if( !rules ) {
@@ -258,7 +312,7 @@ var Parser = d.extend(
 
 			rules = rules && rules[this.mode];
 			if( !rules ) {
-				this.skip( token );
+				this.skip( pos, len );
 				return;
 			}
 
@@ -272,11 +326,17 @@ var Parser = d.extend(
 				rule = null;
 			}
 
+			if( this.first ) {
+				len += pos;
+				pos = 0;
+				delete this.first;
+			}
+
 			if( rule ) {
-				this.stack.push( [ token, '', rule ] );
+				this.pushTerm( new Term( { t: token, p: pos, l: len, s: this.src }, rule ), ' ' );
 				if( !(this.mode = rule.out_mode) )
 					this.pop();
-				else if( this.mode == '@' )	this.stack.push( [ '', '@' ] );
+				else if( this.mode == '@' )	this.pushTerm( new Term( { p: pos+len, l: 0, s: this.src } ), '@' );
 			} else {
 				if( this.stack.length > look_at )	this.pop( look_at ); // A chance at a better error message
 				throw Error( 'Unbalanced ' + token );
@@ -288,10 +348,11 @@ var Parser = d.extend(
 			if( popper )	popper.call( this );
 		},
 
-		skip: function( chars ) {
+		skip: function( pos, len ) {
+			var chars;
 			if( this.mode === '@' )	
-				this.top()[0] += chars;
-			else if( !/^\s+$/.test( chars ) )	
+				this.top().l += len;
+			else if( !/^\s+$/.test( chars = this.src.substr( pos, len ) ) )	
 				throw Error( 'Expected ' + ( this.mode=='#' ? 'operand' : 'operator' ) + ' instead of ' + chars );
 		}
 	}
@@ -312,11 +373,12 @@ function buildParser( options ) {
 		var pos = 0;
 		try {
 			str.replace( scanner_regex, function( token, offs ) { 
-				if( offs > pos )	on_skip( str.substring( pos, offs ) );
-				on_token( token );
+				if( offs > pos )	on_skip( pos, offs-pos );
+				on_token( token, offs, token.length );
 				pos = offs + token.length;
+				return '';
 			} );
-			if( pos < str.length )	on_skip( str.substring( pos, str.length ) );
+			if( pos < str.length )	on_skip( pos, str.length - pos );
 		} catch( e ) {
 			throw Error( e.message + ' after ' + str.substring( 0, pos ) );
 		}
@@ -325,14 +387,14 @@ function buildParser( options ) {
 	var grammar = dojo.mixin( {}, js_expr_grammar, compileGrammar( options && options.grammar || {} ) );
 
 	function body( src ) {
-		var parser = new Parser( grammar );
+		var parser = new Parser( grammar, src );
 		scanner( src, d.hitch( parser, 'push' ), d.hitch( parser, 'skip' ) );
 		try {		
-			parser.push( '<<EOS>>' );
+			parser.push( '<<EOS>>', src.length, 0 );
 		} catch( e ) {
 			throw Error( e.message + ' after ' + src );
 		}
-		return parser.stack.pop()[0];
+		return parser.stack.pop();
 	}
 
 	return body;
