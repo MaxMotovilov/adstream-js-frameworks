@@ -516,7 +516,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 		);
 		if( !nobreak )
 			this.code.push( 'if(' + 
-				local + ' instanceof ' + this.addGlobal( dojo.Deferred ) + 
+				local + '.then' + 
 				( this._whenCtx && this._whenCtx.hasExcept ?
 					('||' + local + ' instanceof Error')
 				: '' ) +
