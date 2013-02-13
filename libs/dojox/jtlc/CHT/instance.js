@@ -360,8 +360,11 @@ dojo.require( "dijit._Widget" );
 
 			set: function( index, value, handle_errors ) {
 				if( !(index in this.indices) )	this.indices[index] = 0;
-				if( this.instance )	this.instance._attach( value, index, this.indices[index], handle_errors );
-				this.storage.set( index, this.indices[index]++, value, handle_errors );
+				if( this.instance )
+					this.instance._attach( value, index, this.indices[index], handle_errors );
+				if( !this.has( index ) )
+					this.storage.set( index, this.indices[index], value, handle_errors );
+				return this.storage._data[index][ this.indices[index]++ ][0];
 			}
 		} 
 	);
@@ -410,15 +413,17 @@ dojo.require( "dijit._Widget" );
 						d.hitch( this, '_onNestedFailed' ),
 						d.hitch( this, '_onNestedReady' )
 					);
-			} else if( i instanceof d.Deferred ) {
+			} else if( i.then ) {
 				var	wait_ready = d.hitch( this, '_onWaitReady', index, subindex );
+				this._sync = true;
 				i.then( wait_ready, handle_errors ? wait_ready : d.hitch( this, '_onWaitFailed' ) );
+				delete this._sync;
 			}
 		},
 
 		isDeferred: function() {
 			return this._dirty && this._deferred._data.length < this._max_deferred || this._deferred.some( function(i){ 
-				return i instanceof dj._CHTIncrementalTemplateInstance ? i.isDeferred() : i instanceof d.Deferred;
+				return i instanceof dj._CHTIncrementalTemplateInstance ? i.isDeferred() : i.then;
 			} );
 		},
 
@@ -442,7 +447,8 @@ dojo.require( "dijit._Widget" );
 		},
 
 		_onNestedReady: function( who ) {
-			if( !who.canUpdateDom() )	this._dirty = true;
+			if( !who.canUpdateDom() )	
+				this._dirty = true;
 			this._propagateReady();
 		},
 
@@ -452,8 +458,10 @@ dojo.require( "dijit._Widget" );
 
 		_onWaitReady: function( index, subindex, value ) {
 			this._deferred.set( index, subindex, value );
-			this._dirty = true;
-			this._propagateReady();
+			if( !this._sync ) {
+				this._dirty = true;
+				this._propagateReady();
+			}
 		},
 
 		_onWaitFailed: function( err ) {
@@ -464,7 +472,7 @@ dojo.require( "dijit._Widget" );
 			return '_marker_query' in this ||
 					!this._dirty && 
 					this._deferred.every( function(i){ 
-						return i instanceof dj._CHTIncrementalTemplateInstance ? i.canUpdateDom() : !( always && i instanceof d.Deferred );
+						return i instanceof dj._CHTIncrementalTemplateInstance ? i.canUpdateDom() : !( always && i.then );
 					} );
 		},
 
@@ -513,7 +521,7 @@ dojo.require( "dijit._Widget" );
 					if( i instanceof dj._CHTIncrementalTemplateInstance ) {
 						var wf = i.updateDom( root, options ); // Should be able to, since canUpdateDom() checks it recursively
 						if( wf )	any = true;
-						if( wf instanceof d.Deferred )	wait_for.push( wf );
+						if( wf.then )	wait_for.push( wf );
 					}
 				} );
 

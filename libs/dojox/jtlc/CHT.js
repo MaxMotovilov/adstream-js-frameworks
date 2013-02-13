@@ -508,8 +508,8 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 	_endWait: function( local, nobreak ) {
 		this.code.push( 
-			this._chtDeferred + '.set(' + 
-				this._deferredIndex + ',' + local + '=' + this.popExpression() + 
+			local + '=' + this._chtDeferred + '.set(' + 
+				this._deferredIndex + ',' + this.popExpression() + 
 				( this._whenCtx && this._whenCtx.hasExcept ? ',true' : '' ) +
 			');}else ' + 
 				local + '=' + this._chtDeferred + '.get(' + this._deferredIndex + ');' 
