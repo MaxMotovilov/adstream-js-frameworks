@@ -38,7 +38,7 @@ dojo.require( "dijit._Widget" );
 				function( node ) {
 					var w = dijit.byNode( node );
 					if( w && ref_w !== w && w._started && !w._destroyed /* _Widget.destroy() is not protected from repeat calls */ ) {
-						d.removeAttr( '_cssState' ); // To prevent post-destruction hooks from triggering
+						d.removeAttr( node, '_cssState' ); // To prevent post-destruction hooks from triggering
 						w.destroy( true ); // The DOM will be destroyed after transition has completed
 					}
 				} 
