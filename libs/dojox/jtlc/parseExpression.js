@@ -298,7 +298,26 @@ var Parser = d.extend(
 			this.stack.push( term );
 		},
 
+		comments: { '/*' : '*/', '//' : '\n' },
+
 		push: function( token, pos, len ) {
+
+			if( this.comment ) {
+				if( token === this.comments[ this.comment ] )
+					delete this.comment;
+				return;
+			} if( this.mode !== '@' ) {
+				if( token in this.comments ) {
+					this.comment = token;
+					return;
+				}
+				if( token === '*/' ) {
+					this.push( '*', pos, 1 );
+					++pos; len = 1; token = '/';
+				}
+			} else if( token === '\n' || token === '<<EOS>>' )
+				throw Error( "Unterminated string literal" );
+
 			var rules = this.grammar[token], rule;
 
 			if( !rules ) {
@@ -366,8 +385,8 @@ function buildParser( options ) {
 		if( typeof options.scanner === 'function' )	scanner = options.scanner;
 		else	scanner_regex = typeof options.scanner === 'string' ? new RegExp( options.scanner, 'g' ) : options.scanner;
 	} else	scanner_regex = // Default Javascript scanner: copy and modify it to extend the expression grammar with new token types
-		/(?:["'(),:;?\[\]{}~]|\\.|[%*\/\^]=?|[!=](?:==?)?|\+[+=]?|-[\-=]?|&[&=]?|\|[|=]?|>{1,3}=?|<<?=?|\.\d+(?:e[+\-]?\d+)?|(?!0x)\d+(?:\.\d*(?:e[+\-]?\d+)?)?|\.(?!\d)|0x[0-9a-f]+|[a-z_$][a-z_$0-9]*)/ig;
-		//   one-char tokens  esc op/op=... eq/ne..... op/opop/op=...................... comp=/shift=.. decimal from dot.... decimal starting with digit....... dot..... hexadecimal identifier........
+		/(?:[\n"'(),:;?\[\]{}~]|\\.|[%\^]=?|\*[\/=]?|\/[\/*=]?|[!=](?:==?)?|\+[+=]?|-[\-=]?|&[&=]?|\|[|=]?|>{1,3}=?|<<?=?|\.\d+(?:e[+\-]?\d+)?|(?!0x)\d+(?:\.\d*(?:e[+\-]?\d+)?)?|\.(?!\d)|0x[0-9a-f]+|[a-z_$][a-z_$0-9]*)/ig;
+		//     one-char tokens  esc op/op=..ops/comments...... eq/ne..... op/opop/op=...................... comp=/shift=.. decimal from dot.... decimal starting with digit....... dot..... hexadecimal identifier........
 
 	if( !scanner )	scanner = function( str, on_token, on_skip ) { 
 		var pos = 0;
