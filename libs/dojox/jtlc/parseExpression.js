@@ -171,7 +171,7 @@ function unbalancedBracket() {
 }
 
 function unterminatedRegexp() {
-	throw Error( "Expected /" );
+	throw Error( "Missing /" );
 }
 
 function regexpClose() {
@@ -238,7 +238,7 @@ var	js_expr_grammar = compileGrammar({
 
 	'<<Number>>': 		[ '100<<Number>>100' ],
 	'<<Identifier>>': 	[ '100<<Identifier>>100' ],
-	'<<EOS>>':			[ '#0<<EOS>>0', concatEOS, '@100<<EOS>>0', unterminatedString ]
+	'<<EOS>>':			[ '#0<<EOS>>0', concatEOS, '@0<<EOS>>0', unterminatedString ]
 });
 
 var Term = extend(
