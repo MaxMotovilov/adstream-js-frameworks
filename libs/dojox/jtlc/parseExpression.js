@@ -120,7 +120,7 @@ function compileRule( key, rule ) {
 	);
 }
 
-function classifyRules( rules ) {
+function classifyRules( rules, key ) {
 	var result = {};
 	rules.forEach( function(r) {
 		if( r.in_mode in result ) {
@@ -146,7 +146,7 @@ function compileGrammar( grammar ) {
 				rules.push( rule );
 			}
 			
-			compiled_grammar[key] = classifyRules( rules );
+			compiled_grammar[key] = classifyRules( rules, key );
 		}
 	return compiled_grammar;
 }
