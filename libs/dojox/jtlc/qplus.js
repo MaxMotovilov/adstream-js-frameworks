@@ -6,6 +6,7 @@
 dojo.provide( "dojox.jtlc.qplus" );
 
 dojo.require( "dojox.jtlc.JXL" );
+dojo.require( "dojox.jtlc.parseExpression" );
 
 /* 
 	JSON Query plus: linearized syntax for a subset of JXL stylesheets:
@@ -230,7 +231,77 @@ d.declare( 'dojox.jtlc.qplus', dj.JXL, {
 
 (function( djqp ) {
 
-	var	dj = dojox.jtlc;
+	var	dj = dojox.jtlc, d = dojo;
+
+	var Target = d.extend(
+		function( init ){
+			d.mixin( this, init );
+		}, {
+			toString: function() { 
+				return this.original.toString();
+			},
+
+			toSlotString: function() {
+				return '(' + this.right + ',' + this.left + ')';
+			}
+		} 
+	);
+
+	function dotTarget( left, _, right ) {
+		return new Target( {
+			left: left.toString(),
+			right: dj.stringLiteral( right.toString() ),
+			original: this.concatAll.apply( this, arguments )
+		} );
+	}	
+
+	function bracketTarget( left, _, right ) {
+		return new Target( {
+			left: left.toString(),
+			right: right.toString(),
+			original: this.concatAll.apply( this, arguments )
+		} );
+	}
+
+	function asIsTarget( _, val ) {
+		return val instanceof Target ? val : this.concatAll.apply( this, arguments );
+	}
+
+	function bindSlot( propname, object ) {
+		return function( v ) {
+			if( arguments.length < 1 ) return object[propname];
+			else return object[propname] = v;
+		}
+	}
+
+	dojox.jtlc._declareTag( 'slot', {
+
+		_parser: dj.parseExpression( {
+			grammar: {
+				'.': [ '#95.95#', dotTarget ],
+				']': [ '#[#2]99', bracketTarget, '[#2]99', '[2]99' ],
+				')': [ '#(#2)99', '#(2)99', '(#2)99', asIsTarget ],
+			}
+		} ),
+
+		constructor: function( expr ) {
+			if( !expr instanceof dj.tags._expr && typeof expr !== 'string' )
+				throw Error( "slot: can only be used as a modifier on the expr:" );
+			this.expr = expr;
+		},
+
+		compile: function( self ) {
+			this.compile( self.expr );
+			var expr = self._parser( this.popExpression() );
+			if( expr instanceof Target )
+				this.expressions.push(
+					this.addGlobal( bindSlot ) + expr.toSlotString()
+				);
+			else throw Error(
+				(self.expr instanceof dj.tags._expr ? self.expr.expr : self.expr) + " does not specify a slot"
+			);
+		}
+	} );
 
 	djqp._declareTag( 'expr', dojo.declare( dj.tags._expr, {
 	
