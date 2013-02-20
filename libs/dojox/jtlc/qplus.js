@@ -274,13 +274,14 @@ d.declare( 'dojox.jtlc.qplus', dj.JXL, {
 		}
 	}
 
-	dojox.jtlc._declareTag( 'slot', {
+	dj._declareTag( 'slot', {
 
 		_parser: dj.parseExpression( {
 			grammar: {
 				'.': [ '#95.95#', dotTarget ],
 				']': [ '#[#2]99', bracketTarget, '[#2]99', '[2]99' ],
 				')': [ '#(#2)99', '#(2)99', '(#2)99', asIsTarget ],
+				'<<EOS>>': [ '#0<<EOS>>0', function(v){return v;}, '@0<<EOS>>0' ]
 			}
 		} ),
 

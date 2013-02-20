@@ -238,7 +238,7 @@ var	js_expr_grammar = compileGrammar({
 
 	'<<Number>>': 		[ '100<<Number>>100' ],
 	'<<Identifier>>': 	[ '100<<Identifier>>100' ],
-	'<<EOS>>':			[ '#0<<EOS>>0', concatEOS, '@0<<EOS>>0', unterminatedString ]
+	'<<EOS>>':			[ '#0<<EOS>>0', concatEOS, '@0<<EOS>>0' ]
 });
 
 var Term = extend(
@@ -306,18 +306,13 @@ var Parser = extend(
 		concatAll: function( first ){
 			var tl;
 			for( var i=1; i<arguments.length; ++i )
-				if( !first.merge || !first.merge( arguments[i] ) )
-					if( !tl ) {
-						if( first.tl )	tl = first;
-						else tl = new TermList( first );
-					} else
-						tl.merge( first );
+				if( tl )
+					tl.merge( arguments[i] );
+				else if( !first.merge || !first.merge( arguments[i] ) )
+					if( first.tl )	tl = first;
+					else tl = new TermList( first );
 
-			if( tl ) {
-				tl.merge( first );
-				return tl;
-			} else
-				return first;
+			return tl || first;
 		},
 		
 		pushTerm: function( term, mode ) {
@@ -452,7 +447,7 @@ function buildParser( options ) {
 		}
 	}
 
-	var grammar = mix2( mix2( {}, compileGrammar( options && options.grammar || {} ) ), js_expr_grammar );
+	var grammar = mix2( mix2( {}, js_expr_grammar ), compileGrammar( options && options.grammar || {} ) );
 
 	function body( src ) {
 		var parser = new Parser( grammar, src );
