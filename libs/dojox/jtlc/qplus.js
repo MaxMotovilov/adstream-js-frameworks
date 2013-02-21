@@ -54,7 +54,7 @@ function parseConstant( str ) {
 	return str;
 }
 
-d.declare( 'dojox.jtlc.qplus', dj.JXL, {
+d.declare( 'dojox.jtlc._qplusL', dj.JXL, {
 
 	string: function( value ) {
 		this.compile(
@@ -63,6 +63,31 @@ d.declare( 'dojox.jtlc.qplus', dj.JXL, {
 				this.tags.expr( value )
 		);
 	},
+
+	// Default slot abstraction is a function with 0 or 1 argument.
+	// Can be replaced by the user of the Q+ (or CHT)
+	bindSlot: function( propname, object ) {
+		return function( v ) {
+			if( arguments.length < 1 ) return object[propname];
+			else return object[propname] = v;
+		}
+	},
+
+	tags: {
+		//	Populated with calls to _declareTag()
+		dict: 	function( arg ) { return { _: dj.tags.many( arg ) }; },
+		array:	function( arg ) { return [ arg ]; }
+	},
+
+	_declareTag: dj._declareTag,
+
+	filters: {
+		lower: '$.toString().toLowerCase()', 
+		upper: '$.toString().toUpperCase()'
+	}
+} );
+
+d.declare( 'dojox.jtlc.qplus', dojox.jtlc._qplusL, {
 
 	_exprBrackets: {
 		'[': { close: ']', allow: '[]({"\'' },
@@ -211,19 +236,6 @@ d.declare( 'dojox.jtlc.qplus', dj.JXL, {
 		}
 		
 		throw Error( "Unknown filter or tag: '" + tag.join( '.' ) + "'" );
-	},
-
-	tags: {
-		//	Populated with calls to _declareTag()
-		dict: 	function( arg ) { return { _: dj.tags.many( arg ) }; },
-		array:	function( arg ) { return [ arg ]; }
-	},
-
-	_declareTag: dj._declareTag,
-
-	filters: {
-		lower: '$.toString().toLowerCase()', 
-		upper: '$.toString().toUpperCase()'
 	}
 });
 
@@ -267,13 +279,6 @@ d.declare( 'dojox.jtlc.qplus', dj.JXL, {
 		return val instanceof Target ? val : this.concatAll.apply( this, arguments );
 	}
 
-	function bindSlot( propname, object ) {
-		return function( v ) {
-			if( arguments.length < 1 ) return object[propname];
-			else return object[propname] = v;
-		}
-	}
-
 	dj._declareTag( 'slot', {
 
 		_parser: dj.parseExpression( {
@@ -296,7 +301,7 @@ d.declare( 'dojox.jtlc.qplus', dj.JXL, {
 			var expr = self._parser( this.popExpression() );
 			if( expr instanceof Target )
 				this.expressions.push(
-					this.addGlobal( bindSlot ) + expr.toSlotString()
+					this.addGlobal( this.bindSlot ) + expr.toSlotString()
 				);
 			else throw Error(
 				(self.expr instanceof dj.tags._expr ? self.expr.expr : self.expr) + " does not specify a slot"

@@ -34,7 +34,7 @@ dj._replaceN = function( fmt ) {
 
 dj._chtGlobalContext = { refID: 0, markerID: 0 };
 
-dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
+dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 
 	domMarkerPrefix: '_CHT_DOM_Marker_',
 
@@ -529,10 +529,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj.Language, {
 
 	// at this point, dojox.jtlc.CHT.tags and dojox.jtlc.CHT.elements are not yet overwritten!
 	tags: dojo.delegate( dj.qplus.prototype.tags, dj.CHT.tags ),
-	elements: dj.CHT.elements,
-
-	string: dojox.jtlc.qplus.prototype.string,
-	queryLanguage: dojox.json.query
+	elements: dj.CHT.elements
 });
 
 })();
