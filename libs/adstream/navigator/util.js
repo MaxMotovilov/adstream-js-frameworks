@@ -1,4 +1,4 @@
-// Copyright (C) 2012 Adstream Holdings
+// Copyright (C) 2012-2013 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -48,7 +48,7 @@ if( !dojox || !dojox.promise ) {
 
 				function cancel( err, except ) {
 					d.forEach( array, function(p,i) {
-						if( i !== except && p.then && p.cancel )	
+						if( i !== except && p && p.then && p.cancel )	
 							p.cancel( err );
 					} );
 				}
