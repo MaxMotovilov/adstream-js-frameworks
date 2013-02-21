@@ -58,7 +58,11 @@ d.declare( 'dojox.jtlc._qplusL', dj.JXL, {
 
 	string: function( value ) {
 		this.compile(
-			this.loop && !this.loop.started() ? 
+			value.charAt(0) === '@' ?
+				dj.tags.lambda(
+					this.tags.expr( value.substr(1) )
+				)
+			: this.loop && !this.loop.started() ? 
 				this.tags.query( value ) : 
 				this.tags.expr( value )
 		);

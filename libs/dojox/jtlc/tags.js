@@ -453,6 +453,37 @@ dojox.jtlc._declareTag( 'bind', dojo.declare( dojox.jtlc._MultiArgTag, {
 	}
 } ) );
 
+/* lambda( tpl ) -- encapsulates its argument as a function of current
+   input within the same closure 
+*/
+
+dojox.jtlc._declareTag( 'lambda', {
+
+	constructor: function( body ) {
+		if( arguments.length != 1 )
+			throw Error( "lambda() must have exactly 1 argument" );
+		this.body = body;
+	},
+
+	compile: function( self ) {
+		var arg = this.addLocal(),
+			cp = this.code.length;
+		
+		this.nonAccumulated( function() {
+			this.compile( self.body );
+		}, '(' + arg + ')' );
+
+		this.code.push( "return " + this.popExpression() + ';' );
+		this.locals.pop();
+
+		this.expressions.push(
+			"(function(" + arg + "){" +
+				this.code.splice( cp, this.code.length-cp ).join( '' ) +
+			"})"
+		);
+	}
+} );
+
 /* last( [tpl] ) -- returns last element of the generated sequence */
 
 dojo.declare( 'dojox.jtlc._LastSink', dojox.jtlc._Sink, {
