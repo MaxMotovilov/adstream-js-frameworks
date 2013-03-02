@@ -309,8 +309,7 @@ var Parser = extend(
 				if( tl )
 					tl.merge( arguments[i] );
 				else if( !first.merge || !first.merge( arguments[i] ) )
-					if( first.tl )	tl = first;
-					else tl = new TermList( first );
+					(tl = new TermList( first )).merge( arguments[i] );
 
 			return tl || first;
 		},
