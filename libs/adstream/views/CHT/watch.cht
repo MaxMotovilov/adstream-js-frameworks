@@ -1,0 +1,42 @@
+<!--
+	Watchers for adstream.data objects:
+
+		Set up an adstream.data watcher (argument must be an adstream.data node of any type)
+		triggered by server-side updates. Note that when used inside a form with backup copy 
+		the watchers may trigger on changes in the original object that would not be 
+		observable through the copy.
+
+		<? adstream.views.change.Watch ["sub-object"] 
+			[minDepth="N"] [maxDepth="N"] [refresh="NNN"] 
+		?>
+		
+		Emits dataChange when watch is triggered.
+
+		<? adstream.views.change.WatchAndRefresh ["sub-object"] 
+			[minDepth="N"] [maxDepth="N"] [refresh="NNN"] 
+		?>
+
+		Refreshes the enclosing view when watch is triggered.
+!-->
+
+<? template Watch ?>
+	<? adstream.views.composite.Controller @"adstream.views.change.Watch" ?>
+	<? _Watch ?>
+<? /template ?>
+
+<? template WatchAndRefresh ?>
+	<? adstream.views.composite.Controller @"adstream.views.change.WatchAndRefresh" ?>
+	<? _Watch ?>
+	<? adstream.views.composite.Parameter @"scope:'{{ref:$@.composite}}'" ?>
+<? /template ?>
+
+<? template _Watch ?>
+	<? adstream.views.composite.Parameter @"watched:'{{ref:$}}'" ?>
+	<? _WatchOptions "(adstream.view.formatParams($@.attributes,{minDepth:1,maxDepth:1,refresh:1})" ?>
+<? /template ?>
+
+<? template _WatchOptions ?>
+	<? if ?>
+		<? adstream.views.composite.Parameter @"watchOptions:{ {{$}} }" ?>
+	<? /if ?>
+<? /template ?>

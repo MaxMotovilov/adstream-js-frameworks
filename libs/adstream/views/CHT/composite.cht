@@ -1,0 +1,99 @@
+<!--
+	Composite templates/controllers:
+
+		<? adstream.views.composite.Element 
+			[type=@"div"] [class=@"classList"]
+			[controller=@"full.class.name"] 	
+			[scopeClass="(adstream.views.Scope)"]
+		?>
+			Content
+		<? /Element ?>
+
+		Creates composite element by mixing together traits from multiple templates.
+		Scope: { composite:{ mixins: [ controller? ], params: {}, classes: "" } }
+
+		<? adstream.views.composite.View ...attributes... ?>
+			Content
+		<? /View ?>
+		
+		Creates a composite view that can be refreshed independently (suicide pattern).
+		Scope: { composite:{ self: <<module bound to scope>>, ... } }
+
+		<? adstream.views.composite.Parameter @"name:{{<<substitution>>}}" ?>
+
+		Adds a uniquely named controller parameter; duplicates are ignored (FCFS)
+
+		<? adstream.views.composite.Controller @"full.class.name" ?>
+
+		Adds a mix-in to the synthetic controller class.
+!-->
+
+<? template Element ?>
+	<? _Scope ?>
+		<? _Body ?>
+			<? section ?><? /section ?>
+		<? /_Body ?>
+	<? /_Scope ?>
+<? /template ?>
+
+<? template View ?>
+	<? _Scope ?>
+		{{do: $@.view = $@.composite}}
+		<? module "$@.composite.data || $" ?>
+			{{$@.composite | do: 
+				if(!$.initComplete) 
+					$.self = $.bindModule( $@, $self, arguments );
+			}}
+			<? _Body ?>
+				<? section ?><? /section ?>
+			<? /_Body ?>
+		<? /module ?>
+	<? /_Scope ?>
+<? /template ?>
+
+<? template _Scope ?>
+	<? scope composite="(
+				new ($@.attributes && $@.attributes.scopeClass || adstream.views.base.Scope)( {
+					mixins:($@.attributes && $@.attributes.controller ? [$@.attributes.controller] : []), 
+					params:{}, classes: ($@.attributes && $@.attributes['class']||'')
+				} )
+			 )" attributes="{}|extend" 
+	?>
+		<? section ?><? /section ?>
+	<? /scope ?>
+<? /template ?>
+
+<? template _Body ?>
+	<? shuffle ?>
+       	<? section ?><? /section ?>
+		</{{$@attributes.type||'div' | raw}}>
+		{{do: $@.composite.initComplete = true}}
+	<? cut back="2" forward="1" ?>
+		<{{$@attributes.type && $@attributes.type.split(/\s/,1)[0]||'div' | raw}}
+			{{$@.composite.classList() | expr:$ && ('class="' + $ + '"') | raw}}
+			data-dojo-type="{{$@.composite.mixins.shift()}}"
+			data-dojo-mixins="{{$@.composite.mixins.join(',')}}"
+			data-dojo-params="{{adstream.views.formatParams:$@.composite.params}}"
+		>
+ 	<? /shuffle ?>
+<? /template ?>
+
+<? template Parameter ?>
+	<? _Set_Parameter "$.split(':')" ?>
+<? /template ?>
+
+<? template _Set_Parameter ?>
+	{{do:
+		if( !$@.composite.initComplete && 
+			!($[0] in $@.composite.params) )
+			$@.composite.params[$[0]]=$.slice(1).join(':');
+	}}
+<? /template ?>
+
+<? template Controller ?>
+	{{do: 
+		if( !$@.composite.initComplete )
+			$@.composite.mixins.push($);
+	}}
+<? /template ?>
+

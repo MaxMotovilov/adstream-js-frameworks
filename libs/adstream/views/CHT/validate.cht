@@ -1,0 +1,64 @@
+<!--
+	Validators:
+
+		Both validators take the predicate as the argument. Predicate is evaluated
+		on the form data object if on=@"form" is specified and on the actual value
+		passed into the slot otherwise. The content of the message or view is evaluated
+		under the same rules. The validator either prevents the invalid value from
+		being stored in the slot or rolls the slot back to the old value, returning
+		the old value in both cases.
+
+		<? adstream.views.validate.Message "lambda:<<predicate>>" [on=@"form"] ?>
+			Message content
+		<? /Message ?>
+
+		Emits validationFailed with { message: "<<Formatted message>>" }
+
+		<? adstream.views.validate.View "lambda:<<predicate>>" [on=@"form"] ?>
+			View content
+		<? /View ?>
+
+		Emits validationFailed with { snapshot: <<Evaluated view template>> }.
+!-->
+
+<? template Message ?>
+	<? _Controller ?>
+	<? module "(null)" ?>
+		<? if "$@.composite.initCompleted" ?>
+			<? section ?><? /section ?>
+		<? else ?>
+			{{ $@.composite | do:
+				 $._val = $.bindModule( $@, $self, arguments )
+			}}
+		<? /if ?>
+	<? /module ?>
+	<? adstream.views.composite.Parameter @"validateMessage:{{ref:$@.composite._val}}" ?>
+	{{do: delete $@.composite._val}}
+<? /template ?>
+
+<? template View ?>
+	<? _Controller ?>
+	{{do: $@._outer = $@.composite}}
+	<? adstream.views.composite.View "(null)" ?>
+		<? if "$@.composite.initCompleted" ?>
+			<? section ?><? /section ?>
+		<? else ?>
+			{{do: $@._outer._val = $@.composite.bindModule( $@, $self, arguments )}}
+		<? /if ?>
+	<? /View ?>
+	<? adstream.views.composite.Parameter @"validateView:{{ref:$@._outer._val}}" ?>
+	{{do: 
+		delete $@._outer._val;
+		delete $@._outer;
+	}}
+<? /template ?>
+
+<? template _Controller ?>
+	<? adstream.views.composite.Controller @"adstream.views.validate.Mixin" ?>
+	<? adstream.views.composite.Parameter @"validatePredicate: {{
+		ref: ($@.attributes.on === 'form' ? dojo.hitch( null, $, $@.form.data ) : $)
+	}}" ?>
+	<? if "$@.attributes.on" ?>
+		<? adstream.views.composite.Parameter @"validateOn: '{{$@.attributes.on}}'" ?>
+	<? /if ?>
+<? /template ?>

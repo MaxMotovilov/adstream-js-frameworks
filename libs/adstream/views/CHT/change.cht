@@ -1,0 +1,76 @@
+<!--
+	Dynamic view updates sensitive to data changes:
+
+		<? adstream.views.change.SetClassIf "<<predicate>>" class=@"className" ?>
+
+		Upon dataChange event in the form, toggles the specified class. Predicate is
+		evaluated on the object associated with the form. Can be used inside any composite.
+		
+		<? adstream.views.change.SetClassIfFormReady class=@"className" ?>
+
+		Same, but uses form.ready instead of predicate. Can be used inside any composite.
+
+		<? adstream.views.change.RefreshIfChanged "<<key-function>>" ?>
+
+		Refreshes (i.e. overwrites) the view if key-function returns a different value upon
+		dataChange event in the form. The key-function is evaluated on the object associated 
+		with the form. Can be used only inside a view.
+
+		<? adstream.views.change.RefreshIfFormReadyChanged ?>
+
+		Same, but uses form.ready instead of key-function.
+!-->
+
+<? template SetClassIf ?>
+	<? _SetClass_Controller @"adstream.views.change.SetClassIf" ?>
+	{{do:
+		if( !$@.composite.initComplete )
+			$@.composite.setClassIf = $;
+		if( $@.composite.lastSetClassIfState = $( $@.form.data ) ) 
+			$@.composite.classes += ' ' + $@.attributes['class'];
+	}}	
+<? /template ?>
+
+<? template SetClassIfFormReady ?>
+	<? _SetClass_Controller @"adstream.views.change.SetClassIfFormReady" ?>
+	{{do: 
+		if( $@.composite.lastFormReadyState = $@.form.ready ) 
+			$@.composite.classes += ' ' + $@.attributes['class'];
+	}}	
+<? /template ?>
+
+<? template _SetClass_Controller ?>
+	<? adstream.views.composite.Controller ?>
+	<? adstream.views.composite.Parameter @"toggleClass:'{{$@.attributes['class']}}'" ?>
+	<? adstream.views.composite.Parameter @"form:'{{ref:$@.form}}'" ?>
+	<? adstream.views.composite.Parameter @"scope:'{{ref:$@.composite}}'" ?>
+<? /template ?>
+
+<? template RefreshIfChanged ?>
+	<? _Refresh_Controller ?>
+	{{do:
+		if( !$@.composite.initComplete )
+			$@.composite.refreshIfChanged = $;
+		$@.composite.lastRefreshKey = $( $@.form.data );
+	}}
+<? /template ?>
+
+<? template RefreshIfFormReadyChanged ?>
+	<? _Refresh_Controller ?>
+	{{do:
+		if( !$@.composite.initComplete )
+			$@.composite.refreshIfChanged = dojo.hitch( $@.form, 'hasValidContent' );
+		$@.composite.lastRefreshKey = $@.form.ready;
+	}}
+<? /template ?>
+
+<? template _Refresh_Controller ?>
+	<? adstream.views.composite.Controller @"adstream.views.change.RefreshIfChanged" ?>
+	<? adstream.views.composite.Parameter @"form:'{{ref:$@.form}}'" ?>
+	<? adstream.views.composite.Parameter @"scope:'{{ref:$@.composite}}'" ?>
+
+	<? if "$@.view !== $@.composite" ?>
+		<? adstream.views.composite.Parameter @"view:'{{ref:$@.view}}'" ?>
+	<? /endif ?>
+<? /template ?>
+

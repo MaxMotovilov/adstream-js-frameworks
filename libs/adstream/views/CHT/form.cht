@@ -1,0 +1,48 @@
+<!--
+
+	Form environment:
+
+		<? adstream.views.form.Element "<<data root>>"
+			[type=@"div"] [class=@"className"]
+			[scopeMixin="<<class or list>>"]
+			[validWhen="<<predicate>>"]
+			[backupCopy="true|<<backup impl>>"]
+		?>
+			Content
+		<? /Element ?>
+
+		Sets up form tied to the <<data root>> model object.
+		Scope: { form:{ data:<<data root>> } }
+
+		<? adstream.views.form.View "<<data root>>" ...attributes... ?>
+			Content
+		<? /View ?>
+
+		Form is encapsulated as a view that can be refreshed independently.
+!-->
+
+<? template Element ?>
+	<? adstream.views.composite.Element controller=@"adstream.views.form.Form" scopeClass="(adstream.views.form.scopeClass($@.attributes))" ?>
+		<? _ExtendScope ?>	
+		<? section ?><? /section ?>
+	<? /Element ?>
+<? /template ?>
+
+<? template View ?>
+	<? adstream.views.composite.View controller=@"adstream.views.form.Form" scopeClass="(adstream.views.form.scopeClass($@.attributes))" ?>
+		<? _ExtendScope ?>	
+		<? section ?><? /section ?>
+	<? /View ?>
+<? /template ?>
+
+<? template _ExtendScope ?>
+	{{do: 
+		if( !$@.composite.initComplete ) {
+			$@.form = $@.composite;
+			$@.form.initData( $ );
+		}
+	}}
+
+	<? adstream.views.composite.Parameter @"scope:{{ref:$@.form}}" ?>
+<? /template ?>
+

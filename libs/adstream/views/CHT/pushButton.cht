@@ -1,0 +1,43 @@
+<!--
+	Push button:
+
+		<? adstream.views.pushButton.Element 
+			event=@"event to emit"
+			[type=@"div"] [class=@"className"]
+		?>
+			Content
+		<? /Element ?>
+
+		Creates button element which will emit a DOM event when clicked.
+
+		<? adstream.views.pushButton.View ...attributes... ?>
+			Content
+		<? /View ?>
+		
+		Encapsulates button in a view of its own (use when content has to be 
+		independently updated due to external events/data changes)
+
+		<? adstream.views.pushButton.Controller emit=@"event to emit" ?>
+
+		Embed button functionality into another composite element or view.
+!-->
+
+<? template Element ?>
+	<? adstream.views.composite.Element ?>
+		<? Controller ?>
+		<? section ?><? /section ?>
+	<? /Element ?>
+<? /template ?>
+
+<? template View ?>
+	<? adstream.views.composite.View ?>
+		<? Controller ?>
+		<? section ?><? /section ?>
+	<? /View ?>
+<? /template ?>
+
+<? template Controller ?>
+	<? adstream.views.composite.Controller @"adstream.views.pushButton.Button" ?>
+	<? adstream.views.composite.Parameter @"activationEvent:'{{$@.attributes.event}}'" ?>
+<? /template ?>
+
