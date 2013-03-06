@@ -1,7 +1,7 @@
 <!--
 	Validators:
 
-		Both validators take the predicate as the argument. Predicate is evaluated
+		Validators take the predicate as the argument. Predicate is evaluated
 		on the form data object if on=@"form" is specified and on the actual value
 		passed into the slot otherwise. The content of the message or view is evaluated
 		under the same rules. The validator either prevents the invalid value from
@@ -14,15 +14,13 @@
 
 		Emits validationFailed with { message: "<<Formatted message>>" }
 
-		<? adstream.views.validate.View "lambda:<<predicate>>" [on=@"form"] ?>
-			View content
-		<? /View ?>
+		<? adstream.views.validate.Controller "lambda:<<predicate>>" [on=@"form"] ?>
 
-		Emits validationFailed with { snapshot: <<Evaluated view template>> }.
+		Emits validationFailed without parameters.
 !-->
 
 <? template Message ?>
-	<? _Controller ?>
+	<? Controller ?>
 	<? module "(null)" ?>
 		<? if "$@.composite.initCompleted" ?>
 			<? section ?><? /section ?>
@@ -36,24 +34,7 @@
 	{{do: delete $@.composite._val}}
 <? /template ?>
 
-<? template View ?>
-	<? _Controller ?>
-	{{do: $@._outer = $@.composite}}
-	<? adstream.views.composite.View "(null)" ?>
-		<? if "$@.composite.initCompleted" ?>
-			<? section ?><? /section ?>
-		<? else ?>
-			{{do: $@._outer._val = $@.composite.bindModule( $@, $self, arguments )}}
-		<? /if ?>
-	<? /View ?>
-	<? adstream.views.composite.Parameter @"validateView:{{ref:$@._outer._val}}" ?>
-	{{do: 
-		delete $@._outer._val;
-		delete $@._outer;
-	}}
-<? /template ?>
-
-<? template _Controller ?>
+<? template Controller ?>
 	<? adstream.views.composite.Controller @"adstream.views.validate.Mixin" ?>
 	<? adstream.views.composite.Parameter @"validatePredicate: {{
 		ref: ($@.attributes.on === 'form' ? dojo.hitch( null, $, $@.form.data ) : $)

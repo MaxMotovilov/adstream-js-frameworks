@@ -13,7 +13,6 @@ dojo.declare( 'adstream.views.validate.Mixin', adstream.views.EventEmitter, {
 
 	validateOn: 		"value",
 	validatePredicate:	null,
-	validateView:		null,
 	validateMessage:	null,	
 
 	constructor: function() {
@@ -58,14 +57,10 @@ dojo.declare( 'adstream.views.validate.Mixin', adstream.views.EventEmitter, {
 	},
 
 	validationFailed: function( v ) {
-		var props = {}, instance = arguments.length < 1 
-			? ( this.validateView || this.validateMessage )()
-			: ( this.validateView || this.validateMessage )( v );
+		var props = {};
 
-		if( this.validateView )	
-			props.snapshot = instance;
-		else
-			props.message = instance.toString();
+		if( this.validateMessage )
+			props.message = (arguments.length < 1 ? this.validateMessage )(): this.validateMessage )( v )).toString();
 
 		this.emitEvent( "validationFailed", props );
 	}
