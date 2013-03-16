@@ -60,7 +60,7 @@ dojo.declare( 'adstream.views.validate.Mixin', adstream.views.EventEmitter, {
 		var props = {};
 
 		if( this.validateMessage )
-			props.message = (arguments.length < 1 ? this.validateMessage )(): this.validateMessage )( v )).toString();
+			props.message = (arguments.length < 1 ? this.validateMessage(): this.validateMessage( v )).toString();
 
 		this.emitEvent( "validationFailed", props );
 	}

@@ -45,7 +45,7 @@ dojo.declare( 'adstream.views.Scope', d.Evented, {
 		this.classes.replace( /\w+/g, function( c ) { 
 			cls[c] = true; 
 			return "";
-		) );
+		} );
 		return keys( cls ).join( " " );	
 	},
 

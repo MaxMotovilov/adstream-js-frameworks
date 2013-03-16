@@ -67,7 +67,7 @@ var Scope = dojo.declare( adstream.views.Scope, {
 
 } );
 
-dojo.declare( 'adstream.views.form.Form', [dijit._WidgetBase, adstream.views.EventEmitter] {
+dojo.declare( 'adstream.views.form.Form', [dijit._WidgetBase, adstream.views.EventEmitter], {
 
 	scope: null,
 

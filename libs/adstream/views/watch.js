@@ -20,7 +20,7 @@ var Watcher = dojo.declare( [dijit._WidgetBase, adstream.data.Watcher], {
 		this.watch( '_onWatch', this.watched, "", this.watchOptions );
 		this.inherited( arguments );
 	}
-};
+} );
 
 dojo.declare( 'adstream.views.change.Watch', [ Watcher, adstream.views.EventEmitter ], {
 	_onWatch: function() {
