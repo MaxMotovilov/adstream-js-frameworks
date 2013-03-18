@@ -17,7 +17,7 @@ var OnChange = dojo.declare( dijit._WidgetBase, {
 	scope: null,
 
 	postCreate: function() {
-		d.own( form.on( 'dataChange', dojo.hitch( this, '_onChange' ) ) );
+		this.own( this.form.on( 'dataChange', dojo.hitch( this, '_onChange' ) ) );
 		this._onChange();
 		this.inherited( arguments );
 	}

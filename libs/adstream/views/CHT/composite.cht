@@ -73,7 +73,7 @@
 			{{$@.composite.classList() | expr:$ && ('class="' + $ + '"') | raw}}
 			data-dojo-type="{{$@.composite.mixins.shift()}}"
 			data-dojo-mixins="{{$@.composite.mixins.join(',')}}"
-			data-dojo-params="{{adstream.views.formatParams:$@.composite.params}}"
+			data-dojo-props="{{adstream.views.formatParams:$@.composite.params}}"
 		>
  	<? /shuffle ?>
 <? /template ?>

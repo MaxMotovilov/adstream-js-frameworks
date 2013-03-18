@@ -16,7 +16,7 @@ dojo.declare( 'adstream.views.pushButton.Button', [dijit._WidgetBase, adstream.v
 	activationEvent: "",
 
 	postCreate: function() {
-		d.own( d.on( this.domNode, 'click', dojo.hitch( this, '_onClick' ) ) );
+		this.own( d.on( this.domNode, 'click', dojo.hitch( this, '_onClick' ) ) );
 		this.inherited( arguments );
 	},
 
