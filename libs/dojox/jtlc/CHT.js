@@ -177,7 +177,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 				var	s = _this.qplus.parse( subst );
 				substitutions.push(
 					is_attr ? 
-						_this.tags.escapeAttribute( s )
+						s
 					: t.charAt(0)=='<' ? 
 							/^<script/i.test( t ) ?
 								s : _this.tags.escapeAttribute( s )
