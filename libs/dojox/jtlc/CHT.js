@@ -233,7 +233,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 			}
 
 			function qualify( tag ) {
-				if( tag.indexOf('.') < 0 && !tag[refs] )
+				if( tag.indexOf('.') < 0 && !refs[tag] )
 					for( var i=0; i<stack.length; ++i ) {
 						var alt = body[stack[i]].openTag.replace( /\.[^.]+$/, '' );
 						if( alt && refs[ alt = alt + "." + tag ] ) return alt;
@@ -266,9 +266,6 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 					if( section && body[i].closeTag )
 						throw Error( 'Closing tags not allowed for sections: ' + body[i].text );
 
-					if( !section && !((tag = qualify(tag)) in refs) )
-						throw Error( 'Unknown CHT element: ' + body[i].text );
-
 					if( body[i].openTag ) {
 						body[i].openTag = tag;
 						if( section ) {
@@ -286,20 +283,27 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 
 							parent.sections.push( body[i] );
 							stack.unshift( i );
-						} else if(
-							(def_sections = refs[tag].sections) && // Hook for CHT loader follows
-							(typeof def_sections !== 'function' || (def_sections = def_sections( body[i] )))
-						) {
-							stack.unshift( i );
-							body[i].def_sections = def_sections;
-							body[i].sections = [];
-						} else { // non-sectioned element (widget)
-							body[i] = refs[tag].tag( _this, body[i] );
-							wrapInContext( i );
+						} else {
+							if( !((tag = qualify(tag)) in refs) )
+								throw Error( 'Unknown CHT element: ' + body[i].text );
+
+							if(
+								(def_sections = refs[tag].sections) && // Hook for CHT loader follows
+								(typeof def_sections !== 'function' || (def_sections = def_sections( body[i] )))
+							) {
+								stack.unshift( i );
+								body[i].def_sections = def_sections;
+								body[i].sections = [];
+							} else { // non-sectioned element (widget)
+								body[i] = refs[tag].tag( _this, body[i] );
+								wrapInContext( i );
+							}
 						}
 					} else { // body[i].closeTag
-						if( !parent || parent.openTag != tag )
+						if( !parent || parent.openTag != tag && parent.openTag.replace( /^.*\./, '' ) != tag )
 							throw Error( 'Unbalanced closing tag: ' + body[i].text );
+						else
+							tag = parent.openTag;
 
 						body[stack[0]].body = body.splice( stack[0]+1, i - stack[0] - 1 );
 						i = stack[0] + 1;
