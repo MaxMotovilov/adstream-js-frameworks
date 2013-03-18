@@ -78,22 +78,25 @@ dojox.jtlc._splitIntoStatements = function( body ) {
 	var	brackets = {
 			'"' : { suffix: '"', allow: '"' },
 			"'" : { suffix: "'", allow: "'" },
-			"(": { suffix: ")", allow: "()[{" },
-			"[": { suffix: "]", allow: "([]{" },
+			"(": { suffix: ")", allow: "()[{", in_expr: 1 },
+			"[": { suffix: "]", allow: "([]{", in_expr: 1 },
 			"{": { suffix: "}", allow: "([{};" }
 		},
-		stack = [ { allow: '"\'({[;' } ];
+		stack = [ { allow: '"\'({[;' } ],
+		in_expr = 0;
 	
 	return body.replace(
 		/(?:["'{}()\[\];]|\\.)/g,
 		function( ch ) {
 			if( stack[0].allow.indexOf( ch ) < 0 )
 				;
-			else if( ch === stack[0].suffix )
+			else if( ch === stack[0].suffix ) {
+				in_expr -= stack[0].in_expr || 0;
 				stack.shift();
-			else if( ch in brackets )
+			} else if( ch in brackets ) {
 				stack.unshift( brackets[ch] );
-			else if( ch === ';' )
+				in_expr += stack[0].in_expr || 0;
+			} else if( ch === ';' && !in_expr )
 				return '\uffff';
 			return ch;
 		}
