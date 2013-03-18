@@ -71,6 +71,6 @@
 
 	<? if "$@.view !== $@.composite" ?>
 		<? adstream.views.composite.Parameter @"view:'{{ref:$@.view}}'" ?>
-	<? /endif ?>
+	<? /if ?>
 <? /template ?>
 
