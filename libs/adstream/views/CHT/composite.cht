@@ -69,7 +69,7 @@
 		</{{$@.attributes.type||'div' | raw}}>
 		{{do: $@.composite.initComplete = true}}
 	<? cut back="2" forward="1" ?>
-		<{{$@.attributes.type && $@.attributes.type.split(/\s/,1)[0]||'div' | raw}}
+		<{{$@.attributes.type||'div' | raw}}
 			{{$@.composite.classList() | expr:$ && ('class="' + $ + '"') | raw}}
 			data-dojo-type="{{$@.composite.mixins.shift()}}"
 			data-dojo-mixins="{{$@.composite.mixins.join(',')}}"
