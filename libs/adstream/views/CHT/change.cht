@@ -42,8 +42,8 @@
 <? template _SetClass_Controller ?>
 	<? adstream.views.composite.Controller ?>
 	<? adstream.views.composite.Parameter @"toggleClass:'{{$@.attributes['class']}}'" ?>
-	<? adstream.views.composite.Parameter @"form:'{{ref:$@.form}}'" ?>
-	<? adstream.views.composite.Parameter @"scope:'{{ref:$@.composite}}'" ?>
+	<? adstream.views.composite.Parameter @"form:{{ref:$@.form}}" ?>
+	<? adstream.views.composite.Parameter @"scope:{{ref:$@.composite}}" ?>
 <? /template ?>
 
 <? template RefreshIfChanged ?>
@@ -66,11 +66,11 @@
 
 <? template _Refresh_Controller ?>
 	<? adstream.views.composite.Controller @"adstream.views.change.RefreshIfChanged" ?>
-	<? adstream.views.composite.Parameter @"form:'{{ref:$@.form}}'" ?>
-	<? adstream.views.composite.Parameter @"scope:'{{ref:$@.composite}}'" ?>
+	<? adstream.views.composite.Parameter @"form:{{ref:$@.form}}" ?>
+	<? adstream.views.composite.Parameter @"scope:{{ref:$@.composite}}" ?>
 
 	<? if "$@.view !== $@.composite" ?>
-		<? adstream.views.composite.Parameter @"view:'{{ref:$@.view}}'" ?>
+		<? adstream.views.composite.Parameter @"view:{{ref:$@.view}}" ?>
 	<? /if ?>
 <? /template ?>
 
