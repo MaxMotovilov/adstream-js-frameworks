@@ -62,7 +62,7 @@ dojo.declare( 'dojox.jtlc.CHT.userDefinedElement', null, {
 				}
 
 				if( self.sections )	
-					this._chtSections[ self.def.name ] = self.sections;
+					this._chtSections[ self.def.sourceUrl ] = self.sections;
 				
 				if( !self.def.kwarg.macro && ( self.arg || this.current_input === self._notAnExpression ) ) {
 					var	new_input, local;
@@ -91,7 +91,7 @@ dojo.declare( 'dojox.jtlc.CHT.userDefinedElement', null, {
 				} else	this.compileSequence( self.def.body );
 
 				if( self.sections )
-					delete this._chtSections[ self.def.name ];
+					delete this._chtSections[ self.def.sourceUrl ];
 
 				if( self.def.kwarg.macro && self.arg ) {		
 					if( old_generator )	this.generator = old_generator;

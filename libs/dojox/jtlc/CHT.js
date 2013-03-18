@@ -34,6 +34,8 @@ dj._replaceN = function( fmt ) {
 
 dj._chtGlobalContext = { refID: 0, markerID: 0 };
 
+var uniqueModuleId = 0;
+
 dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 
 	domMarkerPrefix: '_CHT_DOM_Marker_',
@@ -67,7 +69,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 			input = [ { src: input } ];
 
 		return dojo.when( 
-			this._buildTemplates( input, ns, url || '[CHT-Templates]' ),
+			this._buildTemplates( input, ns, url || ('[CHT-Templates-' + (++uniqueModuleId) + ']') ),
 			dojo.hitch( this, '_buildAST', ns )
 		);
 	},
@@ -257,7 +259,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 								  &&  parent.def_sections[tag];
 
 					if( tag == 'section' ) {
-						body[i] = new _this._userDefinedSection( body[i].arg, parseDefinition( body[i].body ), elt_name );
+						body[i] = new _this._userDefinedSection( body[i].arg, parseDefinition( body[i].body ), ns[elt_name].sourceUrl );
 						continue;
 					}
 
@@ -490,13 +492,14 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 	},
 
 	_userDefinedSection: dojo.extend(
-		function( name, body, tpl_name ) {
+		function( name, body, tpl_url ) {
 			this.body = body;
 			this.name = name;
-			this.tplName = tpl_name;
+			this.tplUrl = tpl_url;
 		}, {
 			compile: function( self ) {
-				this.compileSequence( (this._chtSections[self.tplName]||{})[self.name] || self.body );
+				console.log( self.tplUrl + '/' + self.name );
+				this.compileSequence( (this._chtSections[self.tplUrl]||{})[self.name] || self.body );
 			}
 		}
 	),
