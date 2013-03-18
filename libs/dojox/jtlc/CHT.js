@@ -226,8 +226,8 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 			}
 
 			function unwrapFromContext( body ) {
-				body.unshift( _this._contextSwitch( refs[tag].context, 'exit' ) );
-				body.push( _this._contextSwitch( refs[tag].context, 'enter' ) );
+				body.unshift( _this._contextSwitch( refs[tag].context, 'enterParent' ) );
+				body.push( _this._contextSwitch( refs[tag].context, 'exitParent' ) );
 			}
 
 			function qualify( tag ) {
