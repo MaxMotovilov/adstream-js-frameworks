@@ -502,7 +502,6 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 			this.tplUrl = tpl_url;
 		}, {
 			compile: function( self ) {
-				console.log( self.tplUrl + '/' + self.name );
 				this.compileSequence( (this._chtSections[self.tplUrl]||{})[self.name] || self.body );
 			}
 		}
