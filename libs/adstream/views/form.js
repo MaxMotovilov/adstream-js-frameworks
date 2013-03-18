@@ -27,7 +27,7 @@ adstream.views.form.scopeClass = function( attributes ) {
 
 	function add( name, prop ) {
 		if( !result ) result = {};
-		results[name] = prop;
+		result[name] = prop;
 	}
 }
 
@@ -103,7 +103,9 @@ dojo.declare( 'adstream.views.form.Form', [dijit._WidgetBase, adstream.views.Eve
 } );
 
 function hasValidContent( predicate ) {
-	return predicate( this.data );
+	return function() {
+		return predicate( this.data );
+	}
 }
 
 function baseClassList( first, rest ) {
