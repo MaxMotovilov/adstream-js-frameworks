@@ -110,7 +110,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 						current = body = null;
 					} else if( elt.openTag in tos ) {
 						if( elt.arg in tos || elt.arg in _this.elements ||
-							!/^[a-z]\w*$/i.test( elt.arg||'' ) && (elt.openTag != 'section' || elt.arg) )
+							!/^[a-z_]\w*$/i.test( elt.arg||'' ) && (elt.openTag != 'section' || elt.arg) )
 							throw Error( 'Bad or missing name for CHT ' + elt.openTag + ': ' + t );
 						if( elt.openTag == 'template' ) {
 							current = elt;
