@@ -57,7 +57,7 @@
 					mixins:($@.attributes && $@.attributes.controller ? [$@.attributes.controller] : []), 
 					params:{}, classes: ($@.attributes && $@.attributes['class']||'')
 				} )
-			 )" attributes="{}|extend" 
+			 )" attributes="{controller:null}|extend" 
 	?>
 		<? section ?><? /section ?>
 	<? /scope ?>
