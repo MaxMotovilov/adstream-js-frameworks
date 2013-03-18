@@ -343,10 +343,11 @@ d.declare( 'dojox.jtlc.qplus', dojox.jtlc._qplusL, {
 		_cant_simplify: function() {},
 
 		compile: function( self ) {
-			var	need_scope_var = self.usesScope && this.scopes[0] === 'this';
-			if( need_scope_var )	this.pushScope( '{}' );
+			if( self.usesScope && this.scopes[0] === 'this' ) {
+				this.scopes[0] = this.addLocal(); // var _this = this;
+				this.code.push( this.scopes[0] + '=this;' );
+			}
 			djqp.tags._expr.prototype.compile.call( this, self );
-			if( need_scope_var )	this.popScope();
 		}
 	} ) );
 
