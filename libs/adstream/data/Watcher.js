@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2012 Adstream Holdings
+// Copyright (C) 2010-2013 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -19,10 +19,14 @@ dojo.declare( 'adstream.data.Watcher', null, {
 		this._dataWatches[ obj.watch( dojo.hitch( this, method ), rel_url, options ) ] = obj.service();
 	},
 
-	ignore: function( obj, rel_url ) {
+	ignore: function( obj, rel_url, with_subtree ) {
 		var	del = [];
+		rel_url = obj._composeURL( rel_url );
 		for( var ru in this._dataWatches ) 
-			if( this._dataWatches.hasOwnProperty( ru ) && ru.substr( 0, rel_url.length ) == rel_url ) {
+			if( this._dataWatches[ru] === obj.service() &&
+				ru.substr( 0, rel_url.length ) == rel_url &&
+				{ ':': true, '/': with_subtree }[ ru.charAt( rel_url.length ) ]
+			) {
 				this._dataWatches[ru].ignore( ru );
 				del.push( ru );
 			}
