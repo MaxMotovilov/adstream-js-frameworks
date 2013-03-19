@@ -267,8 +267,8 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 						throw Error( 'Closing tags not allowed for sections: ' + body[i].text );
 
 					if( body[i].openTag ) {
-						body[i].openTag = tag;
 						if( section ) {
+							body[i].openTag = tag;
 							if( body[i].arg && !section.allowArgument )
 								throw Error( 'Argument not allowed here: ' + body[i].text );
 							if( !section.allowMultiple && dojo.some( parent.sections, function(s){ return s.openTag == tag; } ) )
@@ -286,6 +286,8 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 						} else {
 							if( !((tag = qualify(tag)) in refs) )
 								throw Error( 'Unknown CHT element: ' + body[i].text );
+
+							body[i].openTag = tag;
 
 							if(
 								(def_sections = refs[tag].sections) && // Hook for CHT loader follows
