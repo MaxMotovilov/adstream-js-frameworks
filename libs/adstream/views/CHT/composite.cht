@@ -26,6 +26,10 @@
 		<? adstream.views.composite.Controller @"full.class.name" ?>
 
 		Adds a mix-in to the synthetic controller class.
+
+		<? adstream.views.composite.Attributes ...any attributes... ?>
+
+		Adds attributes from the list as HTML attributes to the composite element.
 !-->
 
 <? template Element ?>
@@ -42,7 +46,7 @@
 		<? module "$@.composite.data || $" ?>
 			{{$@.composite | do: 
 				if(!$.initComplete) 
-					$.self = $.bindModule( $@, $self, arguments );
+					$.self = $.bindModule( $@, $self, arguments )
 			}}
 			<? _Body ?>
 				<? section ?><? /section ?>
@@ -55,7 +59,7 @@
 	<? scope composite="(
 				new ($@.attributes && $@.attributes.scopeClass || adstream.views.base.Scope)( {
 					mixins:($@.attributes && $@.attributes.controller ? [$@.attributes.controller] : []), 
-					params:{}, classes: ($@.attributes && $@.attributes['class']||'')
+					params:{}, classes: ($@.attributes && $@.attributes['class']||''), attributes: {}
 				} )
 			 )" attributes="{controller:null}|extend" 
 	?>
@@ -71,6 +75,7 @@
 	<? cut back="2" forward="1" ?>
 		<{{$@.attributes.type||'div' | raw}}
 			{{$@.composite.classList() | expr:$ && ('class="' + $ + '"') | raw}}
+			{{attributes: $@.composite.attributes}}
 			data-dojo-type="{{$@.composite.mixins.shift()}}"
 			data-dojo-mixins="{{$@.composite.mixins.join(',')}}"
 			data-dojo-props="{{adstream.views.formatParams:$@.composite.params}}"
@@ -86,14 +91,21 @@
 	{{do:
 		if( !$@.composite.initComplete && 
 			!($[0] in $@.composite.params) )
-			$@.composite.params[$[0]]=$.slice(1).join(':');
+			$@.composite.params[$[0]]=$.slice(1).join(':')
+	}}
+<? /template ?>
+
+<? template Attributes ?>
+	{{do:
+		if( !$@.composite.initComplete )
+			$@.composite.mixAttributes( $@.attributes )
 	}}
 <? /template ?>
 
 <? template Controller ?>
 	{{do: 
 		if( !$@.composite.initComplete )
-			$@.composite.mixins.push($);
+			$@.composite.mixins.push($)
 	}}
 <? /template ?>
 

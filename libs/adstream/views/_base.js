@@ -62,6 +62,12 @@ dojo.declare( 'adstream.views.Scope', d.Evented, {
 		if( typeof this.self !== 'function' )
 			throw Error( "Composite is not a View: $@.composite.self is incorrect" );
 		this.self().render( node, 'replace' );
+	},
+
+	mixAttributes: function( dict ) {
+		for( var i in dict )
+			if( dict.hasOwnProperty(i) )
+				this.attributes[i] = dict[i];
 	}
 } );
 
