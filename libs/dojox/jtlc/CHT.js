@@ -233,11 +233,13 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 			}
 
 			function qualify( tag ) {
-				if( tag.indexOf('.') < 0 && !refs[tag] )
+				if( tag.indexOf('.') < 0 && !refs[tag] ) {
 					for( var i=0; i<stack.length; ++i ) {
 						var alt = body[stack[i]].openTag.replace( /\.[^.]+$/, '' );
 						if( alt && refs[ alt = alt + "." + tag ] ) return alt;
 					}
+					return null;
+				}
 				return tag;
 			}
 
@@ -284,7 +286,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 							parent.sections.push( body[i] );
 							stack.unshift( i );
 						} else {
-							if( !((tag = qualify(tag)) in refs) )
+							if( !(tag = qualify(tag)) )
 								throw Error( 'Unknown CHT element: ' + body[i].text );
 
 							body[i].openTag = tag;
