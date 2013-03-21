@@ -330,23 +330,25 @@ d.declare( 'dojox.jtlc.qplus', dojox.jtlc._qplusL, {
 
 			var _this = this;
 			dojox.jtlc.replaceWithinJavascript( this.expr, /\$@/, function(){ _this.usesScope = true; } );
-
-			this.expr = '(function(){' + this.expr + ';return $;})()';
-
-			this.simplify = arguments.length <= 1 ? this._simplify : this._cant_simplify;			
+			dojox.jtlc.replaceWithinJavascript( this.expr, /\bvar\b/, function(){ _this.hasLocalVars = true; } );
 		},
 
-		_simplify: function() {
-			this.expr = this.expr.replace( /;return \$;\}\)\(\)$/, '})()' );
+		makeVoid: function() {
+			this.isVoid = true;
 		},
-	
-		_cant_simplify: function() {},
 
 		compile: function( self ) {
-			if( self.usesScope && this.scopes[0] === 'this' ) {
+
+			var wrap = !self.isVoid || self.hasLocalVars;
+
+			if( wrap && self.usesScope && this.scopes[0] === 'this' ) {
 				this.scopes[0] = this.addLocal(); // var _this = this;
 				this.code.push( this.scopes[0] + '=this;' );
 			}
+
+			if( wrap )
+				self.expr = '(function(){' + self.expr + ( self.isVoid ? '' : ';return $;' ) + '})()';
+
 			djqp.tags._expr.prototype.compile.call( this, self );
 		}
 	} ) );

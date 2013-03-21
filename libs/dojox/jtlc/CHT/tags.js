@@ -51,7 +51,9 @@ dojo.require( 'dojox.jtlc.tags' );
 
 			this.loop.lockItem( this.popExpression() );
 			this.compileSequence( self.body );
-		}
+		},
+
+		makeVoid: function() {}
 	} );
 
 	dj.CHT._declareTag( 'genericBody', {
@@ -74,8 +76,10 @@ dojo.require( 'dojox.jtlc.tags' );
 			}, v );
 
 			if( v )	this.locals.pop();
-			this.generator();
-		}
+			if( !self.isVoid )	this.generator();
+		},
+
+		makeVoid: function() { this.isVoid = true; }
 	} );
 
 	dj.CHT._declareTag( 'replaceN', dojo.declare( dj._MultiArgTag, {

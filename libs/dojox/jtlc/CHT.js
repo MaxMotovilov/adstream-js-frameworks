@@ -185,11 +185,13 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 								_this.tags.escapeText( s )
 				);
 
-				return s instanceof _this.tags._do ? '' : '{' + (substitutions.length-1).toString() + '}';
+				return s.makeVoid ? '' : '{' + (substitutions.length-1).toString() + '}';
 			}
 		);
 
-		if( t == '{0}' )	
+		if( !t )
+			return this.tags.genericBody( substitutions );
+		else if( t == '{0}' )	
 			return( substitutions[0] );
 		else if( t.charAt(0) != '<' && /\b(?:[a-zA-Z][a-z]*|[A-Z]+)\b/.test( t.replace( /&[a-z]{3,4};/,'' ) ) )
 			return this.tags.i18n( t, substitutions );
@@ -445,6 +447,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 		this.sink = new dj._NullSink( this );
 
 		dojo.forEach( body, function(v) {
+			if( v.makeVoid )	v.makeVoid();
 			this.compile( v );
 			this.sink.append();
 		}, this );
@@ -458,14 +461,12 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 	_appendToOutput: dojo.extend(
 		function( body ) {
 			this.body = body;
-			dojo.forEach( this.body, function(v) {
-				if( v.simplify )	v.simplify();
-			} );
 		},{
 			compile: function( self ) {
 				dojo.forEach( self.body, function(v) {
+					if( v.makeVoid )	v.makeVoid();
 					this.compile( v );
-					if( v instanceof this.tags._do )
+					if( v.makeVoid )
 							this.code.push( this.popExpression() + ';' );
 					else	this.code.push( this._chtHTML + '.push(' + this.popExpression() + ');' );
 				}, this );
