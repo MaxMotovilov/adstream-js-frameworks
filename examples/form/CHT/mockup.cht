@@ -1,0 +1,17 @@
+<? template TextBox ?>
+
+	<? adstream.views.composite.Element type=@"span" ?>
+		<? Attributes style="$@.attributes.width ? 'width:' + $@.attributes.width + 'px;display:inline-block' : ''" ?>
+		<? Controller @"mockup.TextBox" ?>
+		<? Parameter @"slot: {{ref: $}}" ?>
+		<input type="text" value="{{$()||''}}" {{$@.attributes.width ? 'style="width:100%;"' : ''|raw}}>
+		<? section ?><? /section ?>
+	<? /Element ?>
+
+<? /template ?>
+
+<? template MessageField ?>
+	<? adstream.views.composite.Controller @"mockup.MessageField" ?>
+	<? adstream.views.composite.Parameter @"form: {{ref: $@.form}}" ?>
+	<br><span class="_messageField"></span>
+<? /template ?>

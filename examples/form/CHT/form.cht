@@ -1,0 +1,28 @@
+<? template Test ?>
+	<? adstream.views.form.View 
+		class=@"form"
+		validWhen="lambda: $.name && $.age > 0 && $.age < 100" 
+	?>
+
+		Name: &nbsp;
+		<? mockup.TextBox "slot: name" width=@"200" ?>
+		<? /TextBox ?>
+		&nbsp;
+		Age: &nbsp;
+		<? mockup.TextBox "slot: age" width=@"50" ?>
+			<? adstream.views.validate.Message "lambda: /^-?[0-9]+/.test( $ )" ?>
+				Please enter a number instead of <b>{{$}}</b>.
+			<? /Message ?>
+		<? /TextBox ?>
+		&nbsp;
+
+		<? adstream.views.pushButton.Element event=@"submit" type=@"span" class=@"button" ?>
+			<? adstream.views.change.SetClassIfFormReady class=@"enabled" ?>
+			OK
+		<? /Element ?>
+
+		<? mockup.MessageField ?>
+
+	<? /View ?>
+<? /template ?>
+
