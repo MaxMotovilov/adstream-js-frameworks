@@ -104,7 +104,7 @@ dojo.declare( 'adstream.views.form.Form', [dijit._WidgetBase, adstream.views.Eve
 
 function hasValidContent( predicate ) {
 	return function() {
-		return predicate( this.data );
+		return !!predicate( this.data );
 	}
 }
 

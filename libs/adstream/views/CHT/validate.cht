@@ -22,7 +22,7 @@
 <? template Message ?>
 	<? Controller ?>
 	<? module "(null)" ?>
-		<? if "$@.composite.initCompleted" ?>
+		<? if "$@.composite.initComplete" ?>
 			<? section ?><? /section ?>
 		<? else ?>
 			{{ $@.composite | do:

@@ -13,13 +13,16 @@ dojo.declare( 'adstream.views.validate.Mixin', adstream.views.EventEmitter, {
 
 	validateOn: 		"value",
 	validatePredicate:	null,
-	validateMessage:	null,	
+	validateMessage:	null,
 
-	constructor: function() {
+	slot: null,
+
+	postCreate: function() {
 		if( this.slot )
 			this.slot = this.validateOn == "form" ?
 				this.validateAfter( this.slot ) :
 				this.validateBefore( this.slot );
+		this.inherited( arguments );
 	},
 
 	validateAfter: function( slot ) {

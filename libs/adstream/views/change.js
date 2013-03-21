@@ -41,9 +41,9 @@ dojo.declare( 'adstream.views.change.SetClassIfFormReady', OnChange, {
 	toggleClass: "",
 
 	_onChange: function() {
-		if( this.formReady != this.scope.lastFormReadyState ) {
-			this.scope.lastFormReadyState = this.formReady;
-			d.toggleClass( this.domNode, this.toggleClass, this.formReady );
+		if( this.form.ready != this.scope.lastFormReadyState ) {
+			this.scope.lastFormReadyState = this.form.ready;
+			d.toggleClass( this.domNode, this.toggleClass, this.form.ready );
 		}
 	}
 } );
