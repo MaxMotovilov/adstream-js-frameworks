@@ -110,14 +110,14 @@ function collectMeta( tpl, args, id ) {
 					break;
 				case 'number':
 					if( f in args ) {
-						if( (sub = Number( arg( f ) )) === NaN )						
+						if( Number.isNaN( sub = Number( arg( f ) ) ) )						
 							throw d.mixin(
 								new Error( 'Query argument ' + f + '=' + args[f] + ' is not a number' ),
 								{ httpCode: 400 }
 							);
 					} else sub = tpl[f];
 
-					if( sub != NaN )	result()[f] = sub;
+					if( !Number.isNaN( sub ) )	result()[f] = sub;
 					break;
 				case 'boolean':
 					if( f in args )
