@@ -58,7 +58,7 @@ dojo.require( "dijit._Widget" );
 		: function _startupWidgets( instances ) {
 			dojo.forEach( instances, function(instance){
 				if(	instance && instance.startup &&	!instance._started && 
-					(!instance.getParent || !instance.getParent())
+					(!instance.getParent || !instance.getParent() || instance.getParent()._started)
 				){
 					instance.startup();
 				}
