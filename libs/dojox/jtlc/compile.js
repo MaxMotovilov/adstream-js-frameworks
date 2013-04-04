@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2012 Adstream Holdings
+// Copyright (C) 2010-2013 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -292,14 +292,12 @@ dojo.declare( 'dojox.jtlc.Language', null, {
 			if( init ) this.code.push( this.sink.accumulator + init );
 		}
 
-		if( loop !== old_loop ) {
-			if( loop )	this.loop = loop;
-			else		delete this.loop;
-		}
+		if( loop && loop !== old_loop )
+			this.loop = loop;
 
 		var	old_current_input = this.hasOwnProperty( 'current_input' ) ? this.current_input : null;
 
-		if( old_loop && loop !== old_loop && old_loop.lockedItem )
+		if( old_loop && loop && loop !== old_loop && old_loop.lockedItem )
 			this.current_input = '(' + old_loop.item() + ')';
 
 		inner.call( this );
@@ -309,7 +307,7 @@ dojo.declare( 'dojox.jtlc.Language', null, {
 			else 					delete this.current_input; 			
 		}
 
-		if( loop !== old_loop ) {
+		if( this.loop !== old_loop ) {
 			if( old_loop )	this.loop = old_loop;
 			else			delete this.loop;
 		}
