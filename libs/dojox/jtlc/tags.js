@@ -833,7 +833,7 @@ dojox.jtlc._declareTag( 'scope', {
 				this.code.push( v + '=' + arg + ';' );
 		}
 
-		this.nonAccumulated( function() {
+		this.withCurrentInput( function() {
 
 			var	sink = {};
 

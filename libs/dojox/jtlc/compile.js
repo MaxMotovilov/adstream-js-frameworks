@@ -351,6 +351,13 @@ dojo.declare( 'dojox.jtlc.Language', null, {
 		}
 	},
 
+	withCurrentInput: function( inner, current ) {
+		if( current ) 
+			this.nonAccumulated( inner, current );
+		else
+			inner.call( this );
+	},
+
 	generator: function( expr ) {
 
 		if( !expr )	expr = this.current_input;
