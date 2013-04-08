@@ -373,7 +373,7 @@ d.declare( 'adstream.data.schema.Node', null, {
 		var	schema_obj = ad._descendSchema( p.rel_url, p.obj ),
 			params = schema_obj._URL_Params( depth );
 
-		if( depth = depth||schema_obj._defaultGetDepth||0 )
+		if( (depth = depth||schema_obj._defaultGetDepth||0) >= 0 )
 			params.depth = depth;
 
 		return this._service.GET( this._composeURL( rel_url ), params );
