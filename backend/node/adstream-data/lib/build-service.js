@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2011 Adstream Holdings
+// Copyright (C) 2010-2013 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -253,8 +253,8 @@ var MethodCompiler = d.extend(
 							var result = g.length>1 ? [ "d.allOrNone([" ] : [];
 							g.forEach( function( expr, i ) {
 								if( i )	result.push( ',' );
-								if( g[0].depth > 0 )
-									result = result.concat( "(depth===null||depth>=", g[0].depth, ")&&" );
+								if( g[i].depth > 0 )
+									result = result.concat( "(depth===null||depth>=", g[i].depth, ")&&" );
 								result = result.concat( expr );
 							} );
 							if( g.length>1 )	result.push( "])" );
