@@ -286,7 +286,7 @@ dojox.jtlc.CHT.loader = (function() {
 			d.when( cached, function( cached_value ) { cached = cached_value; } );
 			return cached.then ? new deferredTemplateInstance( this, arguments ) :
 								 getTemplate( sn ).apply( this, arguments );
-		}, cached );
+		}, cached.then( function() { return getTemplate( sn ); } ) );
 	}
 	
 	// <? load template= [async=] ?>
