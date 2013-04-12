@@ -314,6 +314,8 @@ d.declare( 'adstream.data.schema.Node', null, {
 		return result;
 	},
 
+	_URL_Version: function() {},
+
 	_parentNode: function() {
 		var split_url = ad._splitURL( this._.url ),
 			p = ad._descend( split_url[1], this._service.root );
@@ -342,7 +344,7 @@ d.declare( 'adstream.data.schema.Node', null, {
 		if( this._notYetCreated() || this._deleteViaParent )
 			return this._parentNode().del( this.id() );
 		else
-			return this._service.DELETE( this._.url, { version: this._.version } );
+			return this._service.DELETE( this._.url, this._URL_Version() );
 	},
 
 	_anyChild: function( depth ) {	//	Iterates over subschema which is likely faster
@@ -475,10 +477,10 @@ d.declare( 'adstream.data.schema.Object', [ ads.Node ], {
 
 		if( this._readOnly )	return null;
 	
-		var to = {}, item;
-
-		if( 'version' in this._ )	
-			to._= { version: this._.version };
+		var to = {}, item,
+			meta = this._URL_Version();
+		
+		if( meta )	to._ = meta;
 
 		for( var i in this ) {
 			if( !this.hasOwnProperty(i) )	continue;
@@ -489,8 +491,12 @@ d.declare( 'adstream.data.schema.Object', [ ads.Node ], {
 		}
 		
 		return to;
-	}
+	},
 
+	_URL_Version: function() {
+		if( 'version' in this._ )
+			return { version: this._.version };
+	}
 } );
 
 d.declare( 'adstream.data.schema.Container', [ ads.Node ], {
@@ -696,10 +702,11 @@ d.declare( 'adstream.data.schema.Container', [ ads.Node ], {
 
 		var	packet = {};
 		d.forEach( to_delete, function( item ) {
-			packet[item.id()] = 'version' in item._ ? { _: { version: item._.version, 'delete': true } } : null;
+			var meta = item._URL_Version();
+			packet[item.id()] = meta ? ( meta['delete'] = true, { _: meta } ) : null;
 		} );
 
-		return this._service.PUT( this._.url, this._wrap( packet ), this._URL_Params( -1 ) );
+		return this._service.PUT( this._.url, this._wrap( packet ), this._URL_Params( 0 ) );
 	},
 
 	save: function( what, depth ) {
