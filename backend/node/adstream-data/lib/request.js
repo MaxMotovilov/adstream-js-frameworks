@@ -38,6 +38,7 @@ exports = module.exports = d.extend(
 				) );
 			else try { 
 				this.body = body && JSON.parse( body ) || {};
+				this.headers = req.headers;
 				res.resolve( false );
 			} catch( e ) {
 				res.reject( d.mixin(
