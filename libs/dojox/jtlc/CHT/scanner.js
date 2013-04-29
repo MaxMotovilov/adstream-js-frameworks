@@ -165,7 +165,9 @@ dojox.jtlc._CHTElement = dojo.extend(
 
 				parse: function( cht, mult ) { 
 					if( mult ) throw Error( "Literal attribute cannot be used here: " + this.s );
-					return cht._parseTextWithSubstitutions( this.s, true );
+					var v = cht._parseTextWithSubstitutions( this.s, true );
+					if( v.length != 1 ) throw Error( "\"do:\" blocks are not allowed in literal attributes" );
+					return v[0];
 				}
 			}
 		)

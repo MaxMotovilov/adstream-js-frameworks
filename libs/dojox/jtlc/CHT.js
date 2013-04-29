@@ -150,11 +150,11 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 						t = _this._parseTextWithSubstitutions( t );
 					
 						if( body.length && body[body.length-1] instanceof dj.tags._quote &&
-							t instanceof dj.tags._quote 
+							t.length == 1 && t[0] instanceof dj.tags._quote 
 						)
-							body[body.length-1].value += t.value;
+							body[body.length-1].value += t[0].value;
 						else
-							body.push( t );
+							body.push.apply( body, t );
 					}
 				}
 			}, this );
@@ -170,11 +170,17 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 	},
 
 	_parseTextWithSubstitutions: function( t, is_attr ) {
-		var substitutions = [], _this = this;
+		var substitutions = [], injections = [], _this = this;
 
 	 	t = t.replace( /\ufffd([\s\S]*?)\ufffd/g, 
 			function( _, subst ) {
 				var	s = _this.qplus.parse( subst );
+				
+				if( s.makeVoid ) {
+					injections.push( s );
+					return '';
+				}
+				
 				substitutions.push(
 					is_attr ? 
 						s
@@ -185,20 +191,21 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 								_this.tags.escapeText( s )
 				);
 
-				return s.makeVoid ? '' : '{' + (substitutions.length-1).toString() + '}';
+				return '{' + (substitutions.length-1).toString() + '}';
 			}
 		);
 
-		if( !t )
-			return this.tags.genericBody( substitutions );
-		else if( t == '{0}' )	
-			return( substitutions[0] );
+		if( substitutions.length == 0 ) {
+			if( t && (injections.length == 0 || /\S/.test( t )) )
+				injections.push( dj.tags.quote( t ) );
+		} else if( t == '{0}' )	
+			injections.push( substitutions[0] );
 		else if( t.charAt(0) != '<' && /\b(?:[a-zA-Z][a-z]*|[A-Z]+)\b/.test( t.replace( /&[a-z]{3,4};/,'' ) ) )
-			return this.tags.i18n( t, substitutions );
-		else if( substitutions.length )
-			return this.tags.replaceN( t, substitutions );
+			injections.push( this.tags.i18n( t, substitutions ) );
 		else
-			return dj.tags.quote( t );
+			injections.push( this.tags.replaceN( t, substitutions ) );
+
+		return injections;
 	},
 
 	/*
