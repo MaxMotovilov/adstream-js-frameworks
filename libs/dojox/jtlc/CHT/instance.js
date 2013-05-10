@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2012 Adstream Holdings
+// Copyright (C) 2010-2013 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -26,7 +26,7 @@ dojo.require( "dijit._Widget" );
 			ref_node.query ?
 				ref_node.filter( function(node){ return node.nodeType==1; } ).query( '[widgetid]' ) :
 			ref_node.nodeType == 1 ?
-				dojo.query( '[widgetId]', ref_node ) :
+				d.query( '[widgetId]', ref_node ) :
 			null;
 
 		if( nodes ) nodes.concat( 
@@ -37,12 +37,19 @@ dojo.require( "dijit._Widget" );
 			).forEach( 
 				function( node ) {
 					var w = dijit.byNode( node );
-					if( w && ref_w !== w && w._started && !w._destroyed /* _Widget.destroy() is not protected from repeat calls */ ) {
-						d.removeAttr( node, '_cssState' ); // To prevent post-destruction hooks from triggering
+					if( w && ref_w !== w && w._started && !w._destroyed /* _Widget.destroy() is not protected from repeat calls */ )
 						w.destroy( true ); // The DOM will be destroyed after transition has completed
-					}
 				} 
 			);
+
+		// Workaround to prevent post-destruction hooks from triggering and causing an exception.
+		// FIXME: Very expensive; ought to be removed when the underlying issue in dijit is fixed.
+
+		nodes = ( ref_node.query ? ref_node.query( '*' ) 
+				: ref_node.nodeType == 1 ? d.query( '*', ref_node ) : null );
+		
+		if( nodes )	nodes.forEach( function(n){ if( '_cssState' in n ) delete n._cssState; } );
+			
 	}
 
 	// The following code has been lifted from dojo.parser as there's no convenience API for it. Note that
