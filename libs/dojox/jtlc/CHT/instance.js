@@ -48,7 +48,14 @@ dojo.require( "dijit._Widget" );
 		nodes = ( ref_node.query ? ref_node.query( '*' ) 
 				: ref_node.nodeType == 1 ? d.query( '*', ref_node ) : null );
 		
-		if( nodes )	nodes.forEach( function(n){ if( '_cssState' in n ) delete n._cssState; } );
+		if( nodes )	{
+			if( ref_node.query )
+				nodes.push.apply( nodes, ref_node );
+			else
+				nodes.push( ref_node );
+
+			nodes.forEach( function(n){ if( '_cssState' in n ) delete n._cssState; } );
+		}
 			
 	}
 
