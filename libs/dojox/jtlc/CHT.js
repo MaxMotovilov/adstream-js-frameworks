@@ -196,7 +196,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 		);
 
 		if( substitutions.length == 0 ) {
-			if( t && (injections.length == 0 || /\S/.test( t )) )
+			if( is_attr || t && (injections.length == 0 || /\S/.test( t )) )
 				injections.push( dj.tags.quote( t ) );
 		} else if( t == '{0}' )	
 			injections.push( substitutions[0] );
