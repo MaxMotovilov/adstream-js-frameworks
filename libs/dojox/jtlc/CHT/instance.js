@@ -24,7 +24,7 @@ dojo.require( "dijit._Widget" );
 
 		var nodes = 
 			ref_node.query ?
-				ref_node.filter( function(node){ return node.nodeType==1; } ).query( '[widgetid]' ) :
+				ref_node.filter( isElement ).query( '[widgetid]' ) :
 			ref_node.nodeType == 1 ?
 				d.query( '[widgetId]', ref_node ) :
 			null;
@@ -45,7 +45,7 @@ dojo.require( "dijit._Widget" );
 		// Workaround to prevent post-destruction hooks from triggering and causing an exception.
 		// FIXME: Very expensive; ought to be removed when the underlying issue in dijit is fixed.
 
-		nodes = ( ref_node.query ? ref_node.query( '*' ) 
+		nodes = ( ref_node.query ? ref_node.filter( isElement ).query( '*' ) 
 				: ref_node.nodeType == 1 ? d.query( '*', ref_node ) : null );
 		
 		if( nodes )	{
@@ -56,7 +56,10 @@ dojo.require( "dijit._Widget" );
 
 			nodes.forEach( function(n){ if( '_cssState' in n ) delete n._cssState; } );
 		}
-			
+
+		function isElement(node){ 
+			return node.nodeType==1; 
+		}
 	}
 
 	// The following code has been lifted from dojo.parser as there's no convenience API for it. Note that
