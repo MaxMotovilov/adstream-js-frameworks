@@ -5,9 +5,17 @@
 
 try {
 dojo.provide( "dojox.jtlc.parseExpression" );
-} catch(e){}
+} catch(e){ var dojo = null; }
 
 (function(){
+
+function applyMethod( call, method ) {
+	return function() { return call.apply( method, arguments ); }
+}
+
+var map = dojo && dojo.map || applyMethod( Function.prototype.call, Array.prototype.map );
+	forEach = dojo && dojo.forEach || applyMethod( Function.prototype.call, Array.prototype.forEach );
+;
 
 function replace( str, args ) {
 	return str.replace( /\{(\d+)\}/g, function( _, n ) { return args[parseInt(n)]; } );
@@ -19,7 +27,8 @@ function extend( cons, proto ) {
 }
 
 function mix2( to, from ) {
-	Object.keys( from ).forEach(
+	forEach( 
+		Object.keys( from ),
 		function( k ) { to[k] = from[k]; } 
 	);
 	return to;
@@ -67,7 +76,7 @@ function makeRule( before, in_pri, out_pri, out_mode ) {
 		checkLiteral( before.length );
 
 		body.reverse();
-		body = body.map( function( line, index ){ return replace( line, [ index ] ); } );
+		body = map( body, function( line, index ){ return replace( line, [ index ] ); } );
 
 		body.unshift( replace( 'if(this.stack.length<{0})return false;', [ body.length ] ) );
 
@@ -122,7 +131,7 @@ function compileRule( key, rule ) {
 
 function classifyRules( rules, key ) {
 	var result = {};
-	rules.forEach( function(r) {
+	forEach( rules, function(r) {
 		if( r.in_mode in result ) {
 			if( result[r.in_mode].in_pri != r.in_pri )
 				throw Error( "BUG -- conflict between rules for key " + key );
