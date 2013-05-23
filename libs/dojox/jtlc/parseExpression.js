@@ -26,7 +26,7 @@ function extend( cons, proto ) {
 	return cons;
 }
 
-function mix2( to, from ) {
+var mix2 = dojo && dojo.mixin || function mix2( to, from ) {
 	forEach( 
 		Object.keys( from ),
 		function( k ) { to[k] = from[k]; } 
