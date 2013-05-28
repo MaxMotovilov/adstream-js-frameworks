@@ -195,13 +195,13 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 			}
 		);
 
-		if( substitutions.length == 0 ) {
+		if( t.charAt(0) != '<' && /\b(?:[a-zA-Z][a-z]*|[A-Z]+)\b/.test( t.replace( /&[a-z]{3,4};/,'' ) ) )
+			injections.push( this.tags.i18n( t, substitutions ) );
+		else if( substitutions.length == 0 ) {
 			if( is_attr || t && (injections.length == 0 || /\S/.test( t )) )
 				injections.push( dj.tags.quote( t ) );
 		} else if( t == '{0}' )	
 			injections.push( substitutions[0] );
-		else if( t.charAt(0) != '<' && /\b(?:[a-zA-Z][a-z]*|[A-Z]+)\b/.test( t.replace( /&[a-z]{3,4};/,'' ) ) )
-			injections.push( this.tags.i18n( t, substitutions ) );
 		else
 			injections.push( this.tags.replaceN( t, substitutions ) );
 
