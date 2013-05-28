@@ -16,11 +16,6 @@ dojox.jtlc.CHT.loader = (function() {
 
 	var	d = dojo, dj = dojox.jtlc;
 
-	function decorateUrl( url ) {
-		return d.config.cacheBust ?
-			url + (url.indexOf("?") == -1 ? "?" : "&") + String(d.config.cacheBust).replace(/\W+/g,"") :
-			url;
-	}
 	var SplitName = d.extend( 
 		function( mdl, file, tpl ) {
 			this.moduleName = mdl;
@@ -47,9 +42,8 @@ dojox.jtlc.CHT.loader = (function() {
 			},
 
 			sourceText: function() {
-				var pre = d.global.preloadedCHT || (d.global.preloadedCHT = {});
-				return pre[this.url()] ||
-					   ( pre[this.url()] = d.xhrGet({ url: decorateUrl( this.url() ) }) );
+				return (d.global.preloadedCHT || {})[this.url()] ||
+						d.xhrGet({ url: this.url() });
 			}
 		}
 	);
@@ -127,7 +121,6 @@ dojox.jtlc.CHT.loader = (function() {
 			}
 		}
 	);
-
 	var cache = {},	cht_instance = null;
 
 	function chtInstance() {
@@ -144,12 +137,11 @@ dojox.jtlc.CHT.loader = (function() {
 
 		cache[mdl] = { parsed: ns, compiled: {}, nls: nls };
 		cache[mdl].context = new Context( cache[mdl] );
-		
+
 		var result = d.when( 
 			chtInstance().parse( src, ns, url ),
 			postParse, postParse
 		);
-
 		if( !sync )	cache[mdl].deferred = result;
 		return result;
 
@@ -180,7 +172,6 @@ dojox.jtlc.CHT.loader = (function() {
 	}
 
 	function loadAndParseModuleList( mdl_list ) {
-
 		var root = mdl_list[0],
 			all = d.map( mdl_list.reverse(), splitModuleName ),
 			nls,
@@ -210,13 +201,10 @@ dojox.jtlc.CHT.loader = (function() {
 					throw Error( '<?' + tpl + '?> is not defined in ' + mdl );
 				addToRefs( tpl );
 			} );
-
 			for( var r in refs )
 				if( r.indexOf('.') < 0 && r in cached.parsed )
 					addToRefs( r );
-					
 			return false; // Prevent propagation of a deferred
-
 			function addToRefs( tpl ) {
 				refs[mdl + '.' + tpl] = d.delegate( 
 					cached.parsed[tpl],
@@ -232,10 +220,10 @@ dojox.jtlc.CHT.loader = (function() {
 
 		for( var tpl in refs )
 			if( sn = splitTemplateName( tpl, true ) ) {
-				if( !(sn.namespace() in namespaces) )
-					namespaces[sn.namespace()] = [];
-				namespaces[sn.namespace()].push( sn.templateName );
-			}
+			if( !(sn.namespace() in namespaces) )
+				namespaces[sn.namespace()] = [];
+			namespaces[sn.namespace()].push( sn.templateName );
+		}
 		
 		for( var ns in namespaces )
 			deferred.push( d.when(
@@ -288,7 +276,7 @@ dojox.jtlc.CHT.loader = (function() {
 								 getTemplate( sn ).apply( this, arguments );
 		}, cached.then( function() { return getTemplate( sn ); } ) );
 	}
-	
+
 	// <? load template= [async=] ?>
 	var loadExtension = {		
 		tag: function( cht, elt ) {
@@ -338,7 +326,6 @@ dojox.jtlc.CHT.loader = (function() {
 
 	return loader || (loader = {
 		initCompiler: function( opts ) {
-		
 			opts = opts ? d.mixin( {}, opts, { loadTemplates: loadTemplates } ) : { loadTemplates: loadTemplates };
 		
 			opts.elements = opts.elements
@@ -371,7 +358,7 @@ dojox.jtlc.CHT.loader = (function() {
 					loadAndParseModule( sn );
 			return cached.then ? deferGetTemplate( cached, sn ) : getTemplate( sn );
 		},
-		
+
 		getSync: function( tpl ) {
 			var sn = splitTemplateName( tpl ),
 				cached = 
@@ -383,7 +370,6 @@ dojox.jtlc.CHT.loader = (function() {
 					
 			return getTemplate( sn );
 		},
-		
 		getLocalization: function( mdl ) {
 			var	cached = cache[ splitModuleName( mdl ).namespace() ];
 			return cached && cached.nls;
