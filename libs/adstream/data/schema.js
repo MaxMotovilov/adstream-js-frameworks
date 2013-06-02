@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2012 Adstream Holdings
+// Copyright (C) 2010-2013 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -15,6 +15,16 @@ function mix( to, from ) {
 	for( var i in from )
 		if( from.hasOwnProperty(i) )
 			to[i] = from[i];
+	return to;
+}
+
+function forkProps( to, from, proto ) {
+	for( var i in from )
+		if( from.hasOwnProperty(i) )
+			if( typeof from[i] === 'object' )
+				to[i] = mix( i in proto ? d.delegate( proto[i] ) : {}, from[i] );
+			else
+				to[i] = from[i];
 	return to;
 }
 
@@ -85,16 +95,6 @@ function _identical( a, b, ignore_schema_objects )
 				return false;
 
 	return true;	
-}
-
-function _mixIfNotPresent( dst, src ) 
-{
-	for( var i in src ) {
-		if( i in src && i in dst && !_identical( src[i], dst[i] ) )
-			return false;
-		dst[i] = src[i];
-	}
-	return true;
 }
 
 function _bySchema( obj, path_item ) 
@@ -170,13 +170,13 @@ d.declare( 'adstream.data.schema.Node', null, {
 		if( !this.hasOwnProperty( '_subschema' ) )
 			throw Error( "_new() called on an instance instead of the schema object" );
 
-		var	impl = d.delegate( this, {
-				_: 			d.delegate( this._, { url: url } ),
+		var	meta_proto = this._,
+			impl = d.delegate( this, {
+				_: 			d.delegate( meta_proto, { url: url } ),
 				_service: 	svc,
 				
 				_fork: function( props, proto, meta ) {
 					if( meta ) {
-						meta = d.delegate( this._, meta );
 						if( proto )
 							proto._ = meta;
 						else
@@ -187,6 +187,10 @@ d.declare( 'adstream.data.schema.Node', null, {
 					else		proto = impl;
 					
 					return d.delegate( proto, props );
+				},
+
+				_forkMeta: function() {
+					return forkProps( d.delegate( meta_proto ), this._, meta_proto );
 				},
 
 				_override: function( name, mtd ) {
@@ -293,7 +297,7 @@ d.declare( 'adstream.data.schema.Node', null, {
 		
 		function modified() {
 			if( !meta )
-				meta = !forkme || mix( {}, _this._ );
+				meta = !forkme || _this._forkMeta();
 		}
 	},
 
