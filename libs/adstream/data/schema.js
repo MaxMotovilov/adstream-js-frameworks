@@ -21,9 +21,10 @@ function mix( to, from ) {
 function forkProps( to, from, proto ) {
 	for( var i in from )
 		if( from.hasOwnProperty(i) )
-			if( typeof from[i] === 'object' )
-				to[i] = mix( i in proto ? d.delegate( proto[i] ) : {}, from[i] );
-			else
+			if( typeof from[i] === 'object' ) {
+				var proto_id = i.charAt(0) == '_' ? i.substr(1) : i;
+				to[i] = mix( proto_id in proto ? d.delegate( proto[proto_id] ) : {}, from[i] );
+			} else
 				to[i] = from[i];
 	return to;
 }
