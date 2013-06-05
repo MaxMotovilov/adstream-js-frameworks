@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2012 Adstream Holdings
+// Copyright (C) 2010-2013 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -214,17 +214,18 @@ dojo.declare( 'adstream.data.Service', null, {
 		var	err = null, result = null, 
 			headers = {};
 
-		if( ioargs ) dojo.forEach( ( ioargs.xhr.getAllResponseHeaders() || "" )
-			.split( /\s*\n/ ), function( hdr ) {
-				var kv = hdr.split( /:\s*/ ),
-					key = kv[0].toLowerCase().replace( /(?:^|-)./g, function( s ){ return s.toUpperCase(); } );
-				if( kv[0] ) {
-					if( key in headers ) {
-	 					if( !(headers[key] instanceof Array) )	headers[key] = [ headers[key], kv[1]||"" ];
-						else	headers[key].push( kv[1]||"" );
-					} else		headers[key] = kv[1]||"";
-				}
-			} );
+		if( ioargs && ioargs.xhr.readyState >= 2 ) 
+			dojo.forEach( ( ioargs.xhr.getAllResponseHeaders() || "" )
+				.split( /\s*\n/ ), function( hdr ) {
+					var kv = hdr.split( /:\s*/ ),
+						key = kv[0].toLowerCase().replace( /(?:^|-)./g, function( s ){ return s.toUpperCase(); } );
+					if( kv[0] ) {
+						if( key in headers ) {
+		 					if( !(headers[key] instanceof Array) )	headers[key] = [ headers[key], kv[1]||"" ];
+							else	headers[key].push( kv[1]||"" );
+						} else		headers[key] = kv[1]||"";
+					}
+				} );
 
 		if( !response && !ioargs.xhr.status ) {
 			//	Dojo failed to signal connection loss as an error :(
@@ -232,7 +233,7 @@ dojo.declare( 'adstream.data.Service', null, {
 		} else if( response instanceof Error ) {
 			//	Error detected by dojo.xhr() -- timeout, HTTP code etc.
 			err = response;
-			response = response.responseText || ioargs && ioargs.xhr.responseText || '';
+			response = response.responseText || ioargs && ioargs.xhr.readyState == 4 && ioargs.xhr.responseText || '';
 		}
 
 		if( method === 'GET' && (!err || err.dojoType != 'cancel') && this._pending_gets.hasOwnProperty( arg_url ) )
