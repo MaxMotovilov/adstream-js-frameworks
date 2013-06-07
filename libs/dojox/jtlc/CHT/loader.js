@@ -110,17 +110,9 @@ dojox.jtlc.CHT.loader = (function() {
 			exit: function( state ) {
 				state.compileArguments.options = state.compileArguments.options.oldOptions;
 				state.i18nDictionary = state.compileArguments.options.i18nDictionary;
-			},
-
-			enterParent: function( state ) {
-				state.i18nDictionary = state.compileArguments.options.oldOptions.i18nDictionary;
-			},
-
-			exitParent: function( state ) {
-				state.i18nDictionary = this.cached.nls;
-			}
-		}
+			}		}
 	);
+
 	var cache = {},	cht_instance = null;
 
 	function chtInstance() {
