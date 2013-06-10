@@ -1,0 +1,68 @@
+<!--
+	Dropdown:
+
+		<? adstream.views.dropdown.Element 
+			[wrap=@"span.av-has-dropdown"]
+			[type=@"div.av-dropdown"]
+		?>
+			Content
+		<? /Element ?>
+
+		Embeds a dropdown controller into another composite element or view
+		and encapsulates user-supplied content into an element of its own. 
+		Use for dropdown content that is not expected to change as a result
+		of user's interaction with the control.
+
+		<? adstream.views.dropdown.View
+			[wrap=@"span.av-has-dropdown"]
+			[type=@"div.av-dropdown"]
+		?>
+			Content
+		<? /View ?>
+
+		Embeds a dropdown controller into another composite element or view
+		and encapsulates user-supplied content into a dynamic view of its own.
+		Use for dropdown content that will be changing independently of the 
+		control (e.g. as a result of user's interaction with control or other
+		dynamic events that do not impact the embedding control itself).
+!-->
+
+<? template Element ?>
+
+	<? _Outer ?>
+
+	<? adstream.views.composite.After ?>
+		<? adstream.views.composite.Element ?>
+			<? _Inner ?>
+			<? section ?><? /section ?>
+		<? /View ?>
+	<? /After ?>
+
+<? /template ?>
+
+<? template View ?>
+
+	<? _Outer ?>
+
+	<? adstream.views.composite.After ?>
+		<? adstream.views.composite.View ?>
+			<? _Inner ?>
+			<? section ?><? /section ?>
+		<? /View ?>
+	<? /After ?>
+
+<? /template ?>
+
+<? template _Outer ?>
+	<? adstream.views.composite.Controller @"adstream.views.dropdown.Parent" ?>
+	<? adstream.views.composite.Wrap "$@.attributes.wrap || 'span.av-has-dropdown'" ?>
+	<? adstream.views.composite.Parameter @"scope: {{ref:$@.composite}}" ?>
+<? /template ?>
+
+<? template _Inner ?>
+	<? adstream.views.composite.Controller @"adstream.views.dropdown.Pane" ?>
+	<? adstream.views.composite.Parameter @"scope: {{ref:$@.composite}}" ?>
+	<? if "!$@.composite.type" ?>
+		<? adstream.views.composite.Type @"div.av-dropdown" ?>
+	<? /if ?>
+<? /template ?>

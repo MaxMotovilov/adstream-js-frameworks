@@ -3,7 +3,7 @@
 	Form environment:
 
 		<? adstream.views.form.Element "<<data root>>"
-			[type=@"div"] [class=@"className"]
+			[type=@"div[.class]"]
 			[scopeMixin="<<class or list>>"]
 			[validWhen="<<predicate>>"]
 			[backupCopy="true|<<backup impl>>"]
@@ -37,10 +37,9 @@
 
 <? template _ExtendScope ?>
 	{{do: 
-		if( !$@.composite.initComplete ) {
+		if( !$@.composite.initComplete )
 			$@.form = $@.composite;
-			$@.form.initData( $ );
-		}
+		$@.form.initData( $ );
 	}}
 
 	<? adstream.views.composite.Parameter @"scope:{{ref:$@.form}}" ?>

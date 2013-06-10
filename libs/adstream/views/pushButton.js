@@ -3,7 +3,7 @@
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
 
-dojo.provide( "adstream.views.form" );
+dojo.provide( "adstream.views.pushButton" );
 
 dojo.require( "adstream.views._base" );
 dojo.require( "dojo.on" );

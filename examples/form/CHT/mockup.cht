@@ -1,7 +1,7 @@
 <? template TextBox ?>
 
 	<? adstream.views.composite.Element type=@"span" ?>
-		<? Attributes style="$@.attributes.width ? 'width:' + $@.attributes.width + 'px;display:inline-block' : ''" ?>
+		<? Attributes "({style:$@.attributes.width ? 'width:' + $@.attributes.width + 'px;display:inline-block' : ''})" ?>
 		<? Controller @"mockup.TextBox" ?>
 		<? Parameter @"slot: {{ref: $}}" ?>
 		<input type="text" value="{{$()||''}}" {{$@.attributes.width ? 'style="width:100%;"' : ''|raw}}>

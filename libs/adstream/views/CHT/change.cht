@@ -24,8 +24,7 @@
 <? template SetClassIf ?>
 	<? _SetClass_Controller @"adstream.views.change.SetClassIf" ?>
 	{{do:
-		if( !$@.composite.initComplete )
-			$@.composite.setClassIf = $;
+		$@.composite.setClassIf = $;
 		if( $@.composite.lastSetClassIfState = $( $@.form.data ) ) 
 			$@.composite.classes += ' ' + $@.attributes['class'];
 	}}	
@@ -49,8 +48,7 @@
 <? template RefreshIfChanged ?>
 	<? _Refresh_Controller ?>
 	{{do:
-		if( !$@.composite.initComplete )
-			$@.composite.refreshIfChanged = $;
+		$@.composite.refreshIfChanged = $;
 		$@.composite.lastRefreshKey = $( $@.form.data );
 	}}
 <? /template ?>
@@ -58,8 +56,7 @@
 <? template RefreshIfFormReadyChanged ?>
 	<? _Refresh_Controller ?>
 	{{do:
-		if( !$@.composite.initComplete )
-			$@.composite.refreshIfChanged = dojo.hitch( $@.form, 'hasValidContent' );
+		$@.composite.refreshIfChanged = dojo.hitch( $@.form, 'hasValidContent' );
 		$@.composite.lastRefreshKey = $@.form.ready;
 	}}
 <? /template ?>

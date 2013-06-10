@@ -8,7 +8,7 @@ dojo.require( "dojo.Evented" );
 dojo.require( "dojo.on" );
 
 (function(d){
-
+	
 var keys = Object.keys || 
 	function( o ) {
 		if( !o ) return [];
@@ -35,18 +35,55 @@ adstream.views.validate = function( slot, predicate ) {
 	}
 }
 
+adstream.views.configurable = function( clazz, configure ) {
+	var cons = function( config ) {
+		var cons = function() {
+			clazz.apply( this, arguments );
+			if( configure )
+				this[configure].call( this, config );
+			else
+				d.mixin( this, config );
+		};
+		cons.prototype = clazz.prototype;
+
+		if( this instanceof clazz )
+			clazz.apply( this, arguments );
+		else return cons;
+	};
+
+	cons.prototype = clazz.prototype;
+	return cons;
+}
+
 dojo.declare( 'adstream.views.Scope', d.Evented, {
-	constructor: function( props ) {
-		d.mixin( this, props );
+	constructor: function( scope ) {
+
+		if( scope.composite )
+			this.parentScope = scope;
+
+		var attributes = scope.attributes;
+
+		this._initValues = {
+			mixins: attributes && attributes.controller 
+						? attributes.controller instanceof Array ? attributes.controller : [attributes.controller]
+						: [],
+			params: {}, classes: '', wrapper: { classes: '' }, attributes: {}
+		};
+
+		if( attributes && attributes.type )
+			this.setTypeClass( this._initValues, attributes.type );
+
+		this.resetInstance();
 	},
 
-	classList: function() {
+	classList: function( from ) {
 		var cls = {};
-		this.classes.replace( /\w+/g, function( c ) { 
+		( from || this.classes ).replace( /\w+/g, function( c ) { 
 			cls[c] = true; 
 			return "";
 		} );
-		return keys( cls ).join( " " );	
+		var v = keys( cls ).join( " " );
+		return v && ('class="' + v + '"');
 	},
 
 	bindModule: function( scope, self, args ) {
@@ -58,16 +95,40 @@ dojo.declare( 'adstream.views.Scope', d.Evented, {
 		}
 	},
 
-	refresh: function( node ) {
+	refresh: function( node /* ... */ ) {
 		if( typeof this.self !== 'function' )
 			throw Error( "Composite is not a View: $@.composite.self is incorrect" );
-		this.self().render( node, 'replace' );
+		this.self.call( null, Array.prototype.slice.call( arguments, 1 ).render( node, 'replace' );
 	},
 
 	mixAttributes: function( dict ) {
 		for( var i in dict )
 			if( dict.hasOwnProperty(i) )
-				this.attributes[i] = dict[i];
+				if( i === 'class' )
+					this.classes += ' ' + dict[i];
+				else
+					this.attributes[i] = dict[i];
+	},
+
+	resetInstance: function() {
+		d.mixin( this, clone( this._initValues, {} ) );	
+	},
+
+	setTypeClass: function( where, arg ) {
+		var type = (arg = arg.split( /\s*\.\s*/ )).shift();
+
+		if( !where.type && type )
+			where.type = type;
+
+		if( arg.length )
+			where.classes += (where.classes && ' ') + arg.join( ' ' );
+	},
+
+	hideAttributes: function( attributes ) {
+		if( this.mixins.length )
+			attributes.controller = null;
+		if( this.type )
+			attributes.type = '';
 	}
 } );
 

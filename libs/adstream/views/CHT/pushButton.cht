@@ -3,7 +3,7 @@
 
 		<? adstream.views.pushButton.Element 
 			event=@"event to emit"
-			[type=@"div"] [class=@"className"]
+			[type=@"div[.class]"]
 		?>
 			Content
 		<? /Element ?>
@@ -17,7 +17,7 @@
 		Encapsulates button in a view of its own (use when content has to be 
 		independently updated due to external events/data changes)
 
-		<? adstream.views.pushButton.Controller emit=@"event to emit" ?>
+		<? adstream.views.pushButton.Controller event=@"event to emit" ?>
 
 		Embed button functionality into another composite element or view.
 !-->

@@ -1,6 +1,6 @@
 <? template Test ?>
 	<? adstream.views.form.View 
-		class=@"form"
+		type=@"div.form"
 		validWhen="lambda: $.name && $.age > 0 && $.age < 100" 
 	?>
 
@@ -16,7 +16,7 @@
 		<? /TextBox ?>
 		&nbsp;
 
-		<? adstream.views.pushButton.Element event=@"submit" type=@"span" class=@"button" ?>
+		<? adstream.views.pushButton.Element event=@"submit" type=@"span.button" ?>
 			<? adstream.views.change.SetClassIfFormReady class=@"enabled" ?>
 			OK
 		<? /Element ?>

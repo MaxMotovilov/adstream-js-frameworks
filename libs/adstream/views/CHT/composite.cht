@@ -2,7 +2,7 @@
 	Composite templates/controllers:
 
 		<? adstream.views.composite.Element 
-			[type=@"div"] [class=@"classList"]
+			[type=@"div[.class...]"]
 			[controller=@"full.class.name"] 	
 			[scopeClass="(adstream.views.Scope)"]
 		?>
@@ -19,17 +19,38 @@
 		Creates a composite view that can be refreshed independently (suicide pattern).
 		Scope: { composite:{ self: <<module bound to scope>>, ... } }
 
+		<? adstream.views.composite.Type @"type[.class...]" ?>
+
+		Injects element type/classes from within the content (as if the type attribute was
+		specified in the call to Element or View).
+
 		<? adstream.views.composite.Parameter @"name:{{<<substitution>>}}" ?>
 
 		Adds a uniquely named controller parameter; duplicates are ignored (FCFS)
 
 		<? adstream.views.composite.Controller @"full.class.name" ?>
+		<? adstream.views.composite.Controller "<<expression yielding constructor>>" ?>
 
 		Adds a mix-in to the synthetic controller class.
 
-		<? adstream.views.composite.Attributes ...any attributes... ?>
+		<? adstream.views.composite.Attributes "(dictionary)" ?>
+		<? adstream.views.composite.Attributes "(null)" ...any attributes... ?>
 
-		Adds attributes from the list as HTML attributes to the composite element.
+		Adds contents of the dictionary or attributes specified inline as HTML attributes 
+		to the composite element.
+
+		<? adstream.views.composite.Wrap @"type[.class...]" ?>
+
+		Wraps the composite element into an element of specified type with optional
+		class(es). Classes are cumulative from multiple uses of Wrap within the same
+		composite. The wrapping element is refreshed as part of the view.		
+
+		<? adstream.views.composite.(Before|After|Front|Back) ?>
+			Content
+		<? /(Before|After|Front|Back) ?>
+
+		Places out-of sequence content before, after, at the front or at the back of
+		the composite element.
 !-->
 
 <? template Element ?>
@@ -46,7 +67,9 @@
 		<? module "$@.composite.data || $" ?>
 			{{$@.composite | do: 
 				if(!$.initComplete) 
-					$.self = $.bindModule( $@, $self, arguments )
+					$.self = $.bindModule( $@, $self, arguments );
+				else
+					$.resetInstance()
 			}}
 			<? _Body ?>
 				<? section ?><? /section ?>
@@ -56,13 +79,10 @@
 <? /template ?>
 
 <? template _Scope ?>
-	<? scope composite="(
-				new ($@.attributes && $@.attributes.scopeClass || adstream.views.base.Scope)( {
-					mixins:($@.attributes && $@.attributes.controller ? [$@.attributes.controller] : []), 
-					params:{}, classes: ($@.attributes && $@.attributes['class']||''), attributes: {}
-				} )
-			 )" attributes="{controller:null}|extend" 
+	<? scope composite="(new ($@.attributes && $@.attributes.scopeClass || adstream.views.Scope)( $@ ))" 
+			 attributes="{} | extend"
 	?>
+		{{do: $@.composite.hideAttributes( $@.attributes )}}
 		<? section ?><? /section ?>
 	<? /scope ?>
 <? /template ?>
@@ -70,17 +90,63 @@
 <? template _Body ?>
 	<? shuffle ?>
        	<? section ?><? /section ?>
-		</{{$@.attributes.type||'div' | raw}}>
-		{{do: $@.composite.initComplete = true}}
-	<? cut back="2" forward="1" ?>
-		<{{$@.attributes.type||'div' | raw}}
-			{{$@.composite.classList() | expr:$ && ('class="' + $ + '"') | raw}}
+	<? cut forward="10" back="5" ?>
+		</{{$@.composite.type||'div' | raw}}>
+
+	<? if "$@.composite.wrapper.type" ?>
+		<? cut forward="20" ?>
+			</{{$@.composite.wrapper.type||'div' | raw}}>
+	<? /if ?>
+
+	<? if "$@.composite.wrapper.type" ?>
+		<? cut forward="-10" ?>
+			<{{$@.composite.wrapper.type | raw}}
+				{{$@.composite.classList( $@.composite.wrapper.classes ) | raw}}
+			>
+	<? /if ?>
+
+	<? cut forward="0" ?>
+		<{{$@.composite.type||'div' | raw}}
+			{{$@.composite.classList() | raw}}
 			{{attributes: $@.composite.attributes}}
 			data-dojo-type="{{$@.composite.mixins.shift()}}"
 			data-dojo-mixins="{{$@.composite.mixins.join(',')}}"
 			data-dojo-props="{{adstream.views.formatParams:$@.composite.params}}"
 		>
  	<? /shuffle ?>
+	{{do: $@.composite.initComplete = true}}
+<? /template ?>
+
+<? template Before ?>
+	<? cut back="5" forward="-1" ?>
+	<? section ?><? /section ?>
+	<? cut forward="5" ?>
+<? /template ?>
+
+<? template After ?>
+	<? cut back="5" forward="11" ?>
+	<? section ?><? /section ?>
+	<? cut forward="5" ?>
+<? /template ?>
+
+<? template Front ?>
+	<? cut back="5" forward="1" ?>
+	<? section ?><? /section ?>
+	<? cut forward="5" ?>
+<? /template ?>
+
+<? template Back ?>
+	<? cut back="5" forward="9" ?>
+	<? section ?><? /section ?>
+	<? cut forward="5" ?>
+<? /template ?>
+
+<? template Wrap ?>
+	{{do: $@.composite.setTypeClass( $@.composite.wrapper, $ )}}
+<? /template ?>
+
+<? template Type ?>
+	{{do: $@.composite.setTypeClass( $@.composite, $ )}}
 <? /template ?>
 
 <? template Parameter ?>
@@ -89,23 +155,24 @@
 
 <? template _Set_Parameter ?>
 	{{do:
-		if( !$@.composite.initComplete && 
-			!($[0] in $@.composite.params) )
+		if( !($[0] in $@.composite.params) )
 			$@.composite.params[$[0]]=$.slice(1).join(':')
 	}}
 <? /template ?>
 
 <? template Attributes ?>
-	{{do:
-		if( !$@.composite.initComplete )
-			$@.composite.mixAttributes( $@.attributes )
-	}}
+	{{do: $@.composite.mixAttributes( $ || $@.attributes )}}
 <? /template ?>
 
 <? template Controller ?>
-	{{do: 
-		if( !$@.composite.initComplete )
-			$@.composite.mixins.push($)
-	}}
+	<? if "(typeof $ === 'function')" ?>
+		<? _Controller "ref:$" ?>
+	<? else ?>
+		<? _Controller ?>
+	<? /if ?>
+<? /template ?>
+
+<? template _Controller ?>
+	{{do: $@.composite.mixins.push($)}}
 <? /template ?>
 
