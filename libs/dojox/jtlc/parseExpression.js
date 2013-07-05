@@ -26,6 +26,10 @@ function extend( cons, proto ) {
 	return cons;
 }
 
+var bind = Function.prototype.bind
+	? function bind( o, m ) { return m.bind(o); }
+	: function bind( o, m ) { return function(){ return m.apply( o, arguments ); } }
+
 var mix2 = dojo && dojo.mixin || function mix2( to, from ) {
 	forEach( 
 		Object.keys( from ),
@@ -459,7 +463,7 @@ function buildParser( options ) {
 
 	function body( src ) {
 		var parser = new Parser( grammar, src );
-		scanner( src, parser.push.bind( parser ), parser.skip.bind( parser ) );
+		scanner( src, bind( parser, parser.push ), bind( parser, parser.skip ) );
 		try {		
 			parser.push( '<<EOS>>', src.length, 0 );
 		} catch( e ) {
