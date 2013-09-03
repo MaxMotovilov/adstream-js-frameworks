@@ -37,7 +37,7 @@ function compile( text, axes ) {
 
 var Selector = d.extend(
 	function( text, axes ) {
-		d.mixin( this, compile( text, axes || {} );
+		d.mixin( this, compile( text, axes || {} ) );
 		this._key = compileKey( text );
 	}, {
 		better: function( other ) {
