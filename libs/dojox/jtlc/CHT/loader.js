@@ -43,7 +43,7 @@ dojox.jtlc.CHT.loader = (function() {
 
 			sourceText: function() {
 				return (d.global.preloadedCHT || {})[this.url()] ||
-						d.xhrGet({ url: this.url() });
+						d.xhrGet({ url: this.url(), headers: { "X-Requested-With": null } });
 			}
 		}
 	);
