@@ -442,7 +442,7 @@ dojo.require( "dijit._Widget" );
 
 		isDeferred: function() {
 			return this._dirty && this._deferred._data.length < this._max_deferred || this._deferred.some( function(i){ 
-				return i instanceof dj._CHTIncrementalTemplateInstance ? i.isDeferred() : i.then;
+				return i && (i instanceof dj._CHTIncrementalTemplateInstance ? i.isDeferred() : i.then);
 			} );
 		},
 
