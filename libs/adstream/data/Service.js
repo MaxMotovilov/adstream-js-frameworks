@@ -99,8 +99,10 @@ dojo.declare( 'adstream.data.Service', null, {
 			refresh: 	options && options.refreshRate || 0
 		} );
 
-		if( !this._refresh_timer && options && options.refreshRate )	
+		if( options && options.refreshRate ) {
+			this._clearRefreshTimer();
 			this._startRefreshTimer( 0 );
+		}
 
 		return cb ? rel_url + ':' + cb._on_sync_id : rel_url;
 	},
@@ -509,13 +511,17 @@ dojo.declare( 'adstream.data.Service', null, {
 		if( err && err instanceof Error )	throw err;			
 	},
 
-	pause: function( all ) {
-		this._paused = all ? "all" : "auto";
-		this._refresh_queue = [];
+	_clearRefreshTimer: function() {
 		if( this._refresh_timer ) {
 			dojo.global.clearTimeout( this._refresh_timer );
 			delete this._refresh_timer;
 		}
+	},
+
+	pause: function( all ) {
+		this._paused = all ? "all" : "auto";
+		this._refresh_queue = [];
+		this._clearRefreshTimer();
 		if( all )
 			for( var rel_url in this._pending_gets )
 				if( this._pending_gets[ rel_url ].result.xhrPromise ) {
