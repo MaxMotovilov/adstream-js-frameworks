@@ -143,11 +143,12 @@ dojox.jtlc.CHT.elements = (function() {
 			sections: {	"" : {allowArgument:true} },
 
 			tag: function( cht, elt, outer_def ) {
-				var name = "$module";
-					mdl = new _moduleElement( 
-						{ arg: name, kwarg: { compiled: true } },
-						outer_def.sourceUrl + "/" + name
-					),
+				var name = "$module",
+					args = { arg: name, kwarg: elt.kwarg };
+
+				args.kwarg.compiled = true;
+
+				var mdl = new _moduleElement( args, outer_def.sourceUrl + "/" + name ),
 					ref = { openTag: name };
 
 				mdl.body = elt.body;
