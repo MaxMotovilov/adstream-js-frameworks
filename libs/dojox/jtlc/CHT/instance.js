@@ -315,9 +315,16 @@ dojo.require( "dijit._Widget" );
 			return outer_ctx || opts.returnContext && new _outerContext( ref_node, pos );
 		},
 
+		render: function() {
+			var result = this.place.apply( this, arguments );
+			return this._transitionCompletion || result;
+		},
+
 		_beginTransition: function( outer_ctx, dom, instances ) {
 			var tr = this._transition( outer_ctx, dom, this );
-			return d.when( tr, d.hitch( this, '_endTransition', instances ) );
+			delete this._transition;
+			this._transitionCompletion = d.when( tr, d.hitch( this, '_endTransition', instances ) );
+			return outer_ctx;
 		},
 
 		_endTransition: function( instances, result ) {
@@ -325,9 +332,6 @@ dojo.require( "dijit._Widget" );
 			return result;
 		} 
 	});
-
-	//	Alias place() as render() for synchronous templates
-	dj._CHTTemplateInstance.prototype.render = dj._CHTTemplateInstance.prototype.place;
 
 	function deferred() { this._data = []; }
 
@@ -524,6 +528,7 @@ dojo.require( "dijit._Widget" );
 			if( this._activeTransition ) {
 				this._activeTransition.cancel();
 				delete this._activeTransition;
+				delete this._transitionCompletion;
 			}
 		},
 
@@ -543,8 +548,6 @@ dojo.require( "dijit._Widget" );
 						if( wf.then )	wait_for.push( wf );
 					}
 				} );
-
-				if( any )	this._stopTransition();
 
 				if( !this.isDeferred() && this._marker_query ) {
 					d.query( this._marker_query, root ).forEach( function(m) {
@@ -593,7 +596,7 @@ dojo.require( "dijit._Widget" );
 
 			var	ctx = this.place.apply( this, args );
 			if( !this.isDeferred() )
-				return ctx;
+				return this._transitionCompletion || ctx;
 
 			if( !this.canUpdateDom( true ) )
 				this._innerCtx = ctx.inner();
@@ -604,7 +607,10 @@ dojo.require( "dijit._Widget" );
 				!this._innerCtx ? d.mixin( {}, options, { canUpdateDom: true } ) : options
 			);
 
-			return d.when( this, upd, null, upd );
+			var result= d.when( this, upd, null, upd ),
+				trans = this._transitionCompletion;
+
+			return trans && result.then( function(){ return trans; } ) || result;
 		}
 	});
 })();
