@@ -34,7 +34,7 @@ dojo.declare( 'adstream.data.Watcher', null, {
 		dojo.forEach( del, function(ru){ delete this._dataWatches[ ru ]; }, this );
 	},
 
-	uninitialize: function() {
+	destroy: function() {
 		for( var rel_url in this._dataWatches )
 			this._dataWatches[rel_url].ignore( rel_url );
 		return this.inherited( arguments );
