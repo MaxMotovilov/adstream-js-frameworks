@@ -47,6 +47,7 @@ if( !dojox || !dojox.promise ) {
 				});
 
 				function cancel( err, except ) {
+					once = false;
 					d.forEach( array, function(p,i) {
 						if( i !== except && p && p.then && p.cancel )	
 							p.cancel( err );
