@@ -1,13 +1,13 @@
 {
   "name"         : "adstream-data",
-  "version"      : "0.1.13",
+  "version"      : "0.1.14",
   "description"  : "Framework for adstream.data compliant services",
   "author"       : "Max Motovilov <max@motovilov.com>",
   "main"         : "index.js",
   "files"		 : [ "package.json", "index.js", "lib" ],
   "dependencies" : {
 	"connect": ">= 1.8.1",
-	"node-promise": ">= 0.5.9"
+	"node-promise": ">= 0.5.10"
   },
   "repository"	 : {
 	"type": "git",
