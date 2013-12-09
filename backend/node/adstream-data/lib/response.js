@@ -16,6 +16,7 @@ exports = module.exports = d.extend(
 				this.body._error = d.mixin(
 					this.body._error || {},
 					{ message: this.error.message },
+					this.error.errorCode ? { errorCode: this.error.errorCode } : {},
 					this.error.stack ? { backtrace: this.error.stack.split( /\n\s*/ ).slice(1) } : {}
 				);
 	
