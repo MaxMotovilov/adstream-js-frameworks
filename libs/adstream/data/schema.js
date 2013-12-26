@@ -72,7 +72,7 @@ ads._byAutoInstantiatedSchema = function( obj, path_item ) {
 var	_unique_id = 0;
 function _uniqueID() { return ++_unique_id; }
 
-function _identical( a, b, ignore_schema_objects ) 
+function _identical( a, b, ignore_schema_objects, is_partial_update ) 
 {
 
 	if( typeof a === 'undefined' || typeof b === 'undefined' )
@@ -90,9 +90,10 @@ function _identical( a, b, ignore_schema_objects )
 			return false;
 
 	for( var i in b )
-		if( i != '_' && b.hasOwnProperty(i) && 
-			!(ignore_schema_objects && b[i] instanceof ads.Node) && 
-			!(i in a) )	
+		if( i != '_' && b.hasOwnProperty(i) && !(
+				is_partial_update || ignore_schema_objects && b[i] instanceof ads.Node
+			) && !(i in a) 
+		)	
 				return false;
 
 	return true;	
@@ -452,10 +453,13 @@ d.declare( 'adstream.data.schema.Object', [ ads.Node ], {
 		if( partial && !_hasProps( data ) )
 			delete data._.partial;
 
-		if( !(meta = this._copyPropsIfChanged( data, [ 'version', 'partial' ], forkme )) &&
-			_identical( data, this, true )
+		if( !(meta = this._copyPropsIfChanged( data, [ 'version' ], forkme )) &&
+			_identical( data, this, true, partial )
 		)
 			return false;
+
+		if( this._.partial && !partial )
+			delete this._.partial;
 
 		if( !partial )
 			for( var i in this )
