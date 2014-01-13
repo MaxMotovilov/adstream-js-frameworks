@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2011 Adstream Holdings
+// Copyright (C) 2010-2013 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -43,11 +43,10 @@ exports = module.exports = d.extend(
 		},
 
 		_fail: function( code, msg, headers ) {
-			if (msg && typeof msg === "object") {
-				return d.mixin( new Error( msg.message ), { content: msg }, { httpCode: code }, headers ? { httpHeaders: headers } : {} );
-			} else {
-				return d.mixin( new Error( errorMessage ), { httpCode: code }, headers ? { httpHeaders: headers } : {} );
-			}
+			if( msg && typeof msg === "object" )
+				return d.mixin( new Error( msg.message ), { content: msg, httpCode: code }, headers ? { httpHeaders: headers } : {} );
+			else
+				return d.mixin( new Error( msg ), { httpCode: code }, headers ? { httpHeaders: headers } : {} );
 		},
 
 		fail: function( a, b, c, d ) {
