@@ -16,7 +16,7 @@ exports = module.exports = d.extend(
 				this.body._error = d.mixin(
 					this.body._error || {},
 					{ message: this.error.message },
-					this.error.errorCode ? { errorCode: this.error.errorCode } : {},
+					this.error.content ? { content: this.error.content } : {},
 					this.error.stack ? { backtrace: this.error.stack.split( /\n\s*/ ).slice(1) } : {}
 				);
 	
@@ -43,7 +43,11 @@ exports = module.exports = d.extend(
 		},
 
 		_fail: function( code, msg, headers ) {
-			return d.mixin( new Error( msg ), { httpCode: code }, headers ? { httpHeaders: headers } : {} );
+			if (msg && typeof msg === "object") {
+				return d.mixin( new Error( msg.message ), { content: msg }, { httpCode: code }, headers ? { httpHeaders: headers } : {} );
+			} else {
+				return d.mixin( new Error( errorMessage ), { httpCode: code }, headers ? { httpHeaders: headers } : {} );
+			}
 		},
 
 		fail: function( a, b, c, d ) {
