@@ -1,3 +1,4 @@
+// Copyright (C) 2013-2014 12 Quarters Consulting
 // Copyright (C) 2010-2013 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
@@ -122,8 +123,10 @@ dojox.jtlc.CHT.loader = (function() {
 	}
 
 	function registerModuleInCache( mdl, nls ) {
-		cache[mdl] = { parsed: {}, compiled: {}, nls: nls, deferred: new d.Deferred() };
+		cache[mdl] = { parsed: {}, compiled: {}, deferred: new d.Deferred() };
 		cache[mdl].context = new Context( cache[mdl] );
+		// nlsBundle() blocks and allows re-entrant event processing!
+		cache[mdl].nls = nls();
 	}
 
 	function parseAndResolveModule( mdl, src, url ) {
@@ -154,7 +157,7 @@ dojox.jtlc.CHT.loader = (function() {
 		var	sn  = mdl_or_sn instanceof SplitName ? mdl_or_sn : splitModuleName( mdl_or_sn ),
 			src = sn.sourceText();
 
-		registerModuleInCache( mdl, sn.nlsBundle() );
+		registerModuleInCache( mdl, d.hitch( sn, 'nlsBundle' ) );
 
 		return d.when( src,	function( src ) {
 			return parseAndResolveModule( mdl, src, sn.url() );
@@ -167,7 +170,6 @@ dojox.jtlc.CHT.loader = (function() {
 			return cache[root].deferred || cache[root];
 
 		var	all = d.map( mdl_list.reverse(), splitModuleName ),
-			nls,
 			src = [],
 			wait = new WaitingList();
 
@@ -177,12 +179,14 @@ dojox.jtlc.CHT.loader = (function() {
 			} );
 		} );
 
-		d.forEach( all, function( sn ) {
-			if( nls )	mergeNlsBundles( nls, sn.nlsBundle() );
-			else		nls = sn.nlsBundle();
+		registerModuleInCache( root, function() {
+			var nls;
+			d.forEach( all, function( sn ) {
+				if( nls )	mergeNlsBundles( nls, sn.nlsBundle() );
+				else		nls = sn.nlsBundle();
+			} );
+			return nls;
 		} );
-
-		registerModuleInCache( root, nls );
 
 		return d.when( wait, function() {
 			return parseAndResolveModule( root, src );
