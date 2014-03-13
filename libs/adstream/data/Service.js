@@ -1,3 +1,4 @@
+// Copyright (C) 2013-2014 12 Quarters Consulting
 // Copyright (C) 2010-2013 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
@@ -107,6 +108,15 @@ dojo.declare( 'adstream.data.Service', null, {
 		return cb ? rel_url + ':' + cb._on_sync_id : rel_url;
 	},
 
+	_newTopic: (function() {
+		var id = 0;
+		return function() {	return this._topic = ++id; }
+	})(),
+
+	topic: function() {
+		return '/adstream/data/' + (this._topic || this._newTopic());
+	},
+
 	ignore: function( rel_url, cb ) {
 
 		var parent = null, 
@@ -137,6 +147,7 @@ dojo.declare( 'adstream.data.Service', null, {
 		return cb ? rel_url + ':' + cb : rel_url;
 	},
 
+	// FIXME: deprecated, use topic messages instead
 	catchAll: function( cb ) {
 		var	old = this._error_cb || null;
 		this._error_cb = cb;
@@ -145,8 +156,24 @@ dojo.declare( 'adstream.data.Service', null, {
 
 	_makeResult: function() {
 		var	result = new dojo.Deferred();
-		if( this._error_cb )	result.then( null, dojo.hitch( this, this._error_cb ) );
+		if( this._topic || this._error_cb )	
+			result.then( 
+				dojo.hitch( this, success ),
+				dojo.hitch( this, failure )
+			);
 		return result;
+
+		function success( result ) {
+			if( this._topic )
+				dojo.publish( this.topic(), result );
+		}
+
+		function failure( err ) {
+			if( this._topic )
+				dojo.publish( this.topic() + "/error", err );
+			if( this._error_cb )
+				this._error_cb( err );
+		}
 	},
 
 	_xhr: function( method, seed, rel_url, params, result ) {
@@ -204,10 +231,11 @@ dojo.declare( 'adstream.data.Service', null, {
 	},
 
 	push: function( data, arg_url ) {
+		var p = this._makeResult();
 		try {
-			this._sync( data, arg_url || "" );
+			p.resolve( this._sync( data, arg_url || "" ) );
 		} catch( e ) {
-			if( this._error_cb )	this._error_cb( e );
+			p.reject( e );
 		}
 	},
 
