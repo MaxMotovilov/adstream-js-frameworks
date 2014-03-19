@@ -8,6 +8,7 @@ dojo.provide( 'adstream.data.connect' );
 dojo.provide( 'adstream.data.Service' );
 
 dojo.require( 'adstream.data.schema' );
+dojo.require( 'adstream.data.extensions._Session' );
 
 adstream.data._urlDepth = function( url ) {
 	return url ? url.replace( /[^\/]+/g, '' ).length + 1 : 0;
@@ -571,14 +572,29 @@ dojo.declare( 'adstream.data.Service', null, {
 	}
 } );
 
-adstream.data.connect = function( ep_url, options, schema ) {
+adstream.data.connect = (function() {
 
-	if( !schema ) {
-		schema = options;
-		delete options;
+	var ServiceWithSession = 
+			dojo.declare( adstream.data.Service, {
+				"-chains-": { _xhr: "before" },
+				_xhr: function( _1, _2, _3, params ) {
+					this.root._injectSessionProperties( params );
+				}
+			} );		
+
+	return function( ep_url, options, schema ) {
+
+		if( !schema ) {
+			schema = options;
+			delete options;
+		}
+
+		var svc = new (schema._sessionProperties ? ServiceWithSession : adstream.data.Service)( ep_url, options || {} );
+		svc.root = schema._new( svc, '' );
+
+		if( schema._sessionProperties )
+			(new adstream.data.extensions._Session()).install( svc.root );
+
+		return svc.root; 
 	}
-
-	var svc = new adstream.data.Service( ep_url, options || {} );
-	svc.root = schema._new( svc, '' );
-	return svc.root; 
-}
+})();
