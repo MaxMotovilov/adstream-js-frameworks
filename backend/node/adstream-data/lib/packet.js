@@ -1,3 +1,4 @@
+// Copyright (C) 2014 12 Quarters Consulting
 // Copyright (C) 2010-2011 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
@@ -6,6 +7,9 @@
 var d = require( './lang.js' );
 
 exports.get = function( body, rel, create ) {
+
+	if( !rel )	return body;
+
 	rel = rel.split( '/' );
 	var obj, pfx = '', last = 0;
 
