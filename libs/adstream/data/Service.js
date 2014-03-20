@@ -61,7 +61,7 @@ adstream.data._collectOnSyncItems = function( url, obj, bind_to ) {
 			}
 		);
 
-	if( !s.rel_url )
+	if( !s.rel_url && s.obj._ )
 		adstream.data._collectOnSyncItemsFrom( s.obj._, path, depth, bind_to, result );
 
 	s.list = result;
