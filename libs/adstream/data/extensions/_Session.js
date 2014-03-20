@@ -19,10 +19,12 @@ dojo.require( 'adstream.data.extensions' );
 			},
 
 			_injectSessionProperties: function( _, params ) {
+				if( !params )	params = {};
 				d.forEach( this._sessionProperties, function( p ) {
 					if( this._.hasOwnProperty( p ) )
 						params[ '.' + p ] = this._[p];
 				}, this );
+				return params;
 			}
 		}
 	} );
