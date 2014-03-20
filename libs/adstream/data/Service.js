@@ -329,7 +329,10 @@ dojo.declare( 'adstream.data.Service', null, {
 
 		for( var i in response ) {
 
-			if( i.charAt(0) == '_' )	continue;
+			if( i == '_' )
+				i = '';
+			else if( i.charAt(0) == '_' )	
+				continue;
 
 			var d = adstream.data._descend( i, this.root, adstream.data.schema._byAutoInstantiatedSchema ),
 				s = adstream.data._collectOnSyncItems( i, this._on_sync, this.root ),
@@ -343,7 +346,7 @@ dojo.declare( 'adstream.data.Service', null, {
 				throw Error( "Protocol violation: " + i + " is not a valid response to " + arg_url );
 
 			q.push( { 
-				url: i, obj: d.obj, data: response[i], 
+				url: i, obj: d.obj, data: i ? response[i] : response,
 				sync_list: s.list, sync_more: !s.rel_url && s.obj 
 			} );
 		}
