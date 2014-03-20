@@ -579,9 +579,9 @@ adstream.data.connect = (function() {
 
 	var ServiceWithSession = 
 			dojo.declare( adstream.data.Service, {
-				"-chains-": { _xhr: "before" },
 				_xhr: function() {
 					arguments[3] = this.root._injectSessionProperties( arguments[3] );
+					return this.inherited( arguments );
 				}
 			} );		
 
