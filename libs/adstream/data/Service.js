@@ -412,13 +412,15 @@ dojo.declare( 'adstream.data.Service', null, {
 
 			for( var i in props ) {
 
+				var next_url = (qi.url && (qi.url+'/')) + i;
+
 				if( props[i] ) {
 
 					if( !qi.obj.hasOwnProperty( i ) )
 						qi.obj[i] = qi.obj._schemaProp( i )._new( this, qi.obj._composeURL( i ) );
 
 					var new_qi = {
-						url: qi.url + '/' + i, obj: qi.obj[i], data: props[i], 
+						url: next_url, obj: qi.obj[i], data: props[i], 
 						sync_more: qi.sync_more && qi.sync_more[i]
 					};
 
@@ -429,7 +431,7 @@ dojo.declare( 'adstream.data.Service', null, {
 
 					q.push( new_qi );
 
-				} else if( qi.url + '/' + i == arg_url ) result = null;
+				} else if( next_url == arg_url ) result = null;
 			}
 
 			if( replaced ) 
