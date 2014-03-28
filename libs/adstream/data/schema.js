@@ -174,7 +174,7 @@ d.declare( 'adstream.data.schema.Node', null, {
 
 		var	meta_proto = this._,
 			impl = d.delegate( this, {
-				_: 			d.delegate( meta_proto, { url: url } ),
+				_: 			d.delegate( meta_proto, { url: url, partial: true } ),
 				_service: 	svc,
 				
 				_fork: function( props, proto, meta ) {
@@ -208,10 +208,8 @@ d.declare( 'adstream.data.schema.Node', null, {
 
 		if( !(this instanceof ads.Container) && this._subschema )
 			for( var i in this._subschema )
-				if( !(this._subschema[i] instanceof ads.Object) ) {
+				if( !(this._subschema[i] instanceof ads.Object) )
 					obj[i] = this._subschema[i]._new( svc, obj._composeURL( i ) );
-					obj[i]._.partial = true;
-				}
 
 		return obj;
 	},
