@@ -12,6 +12,7 @@ dojo.provide( 'dojox.jtlc.CHT.loader' );
 dojo.require( 'dojox.jtlc.CHT' );
 dojo.require( 'dojo.i18n' );
 dojo.require( 'dojo.DeferredList' );
+dojo.require( 'dojo.request.registry' );
 
 dojox.jtlc.CHT.loader = (function() {
 
@@ -43,8 +44,8 @@ dojox.jtlc.CHT.loader = (function() {
 			},
 
 			sourceText: function() {
-				return (d.global.preloadedCHT || {})[this.url()] ||
-						d.xhrGet({ url: this.url(), headers: { "X-Requested-With": null } });
+				return (d.global.preloadedCHT || {})[this.url()]
+					|| dojo.request.registry.get(this.url(), {method: 'GET', headers: {'X-Requested-With': null}});
 			}
 		}
 	);
