@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2013 Adstream Holdings
+// Copyright (C) 2010-2014 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -355,13 +355,12 @@ dojo.require( "dijit._Widget" );
 	}
 
 	dj._CHTDeferredAccessor = d.extend( 
-		function( scope ){
+		function( scope, self ){
 
 			this.indices = [];
 
-			if( scope.$CHT && !scope.$CHT._locked ) {
+			if( scope.hasOwnProperty( '$CHT' ) && scope.$CHT._self === self ) {
 				this.instance = scope.$CHT;
-				this.instance._locked = true;
 				this.storage  = this.instance._deferred;
 				for( var i=0; i<this.storage._data.length; ++i )
 					this.indices.push( 0 );

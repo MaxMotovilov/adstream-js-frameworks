@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2013 Adstream Holdings
+// Copyright (C) 2010-2014 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -376,7 +376,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 
 		var def_code_idx = this.code.length;
 		this._chtDeferred = this.addLocal();
-		this.code.push( this._chtDeferred + '=new ' + this.addGlobal( dj._CHTDeferredAccessor ) + '(this);' );
+		this.code.push( this._chtDeferred + '=new ' + this.addGlobal( dj._CHTDeferredAccessor ) + '(this,$self);' );
 
 		var refID = this.addLocal(),
 			gctx = this.addGlobal( dj._chtGlobalContext );
@@ -424,7 +424,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 		}
 
 		this.expressions.push( this._deferredIndex ?
-			this._chtDeferred + '.instance?' + this.addGlobal( dojo.mixin ) + '(this.$CHT,{_locked:false,' +
+			this._chtDeferred + '.instance?' + this.addGlobal( dojo.mixin ) + '(this.$CHT,{' +
 				baseProps( this._hasRefs ) +
 				( this._chtMarkerQuery ? ',_marker_query:' + this._chtMarkerQuery : '' ) +
 			'}):new ' + cons + '({' + baseProps( this._hasRefs ) +
