@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2012 Adstream Holdings
+// Copyright (C) 2010-2014 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -109,7 +109,7 @@ dojox.jtlc.CHT.elements = (function() {
 				
 					if( elt.arg )
 						this.arg = elt.arg.parse( cht );
-					this.async = elt.kwarg.async !== 'false';
+					this.async = elt.kwarg.async != 'false';
 				
 					// Stealing a method to avoid the complexity of inheritance
 					this._compile = cht._userDefinedElement.prototype._compiledTag.prototype._compile;
