@@ -28,18 +28,53 @@ dependencies = {
 	layers: [
 		{
 			name: "dojo.js",
-			dependencies: [	"main/collect" ],
+
+			dependencies: [	
+				"main/collect",
+				"dojox/jtlc/compile",
+				"dojox/jtlc/JXL",
+				"dojox/jtlc/parseExpression",
+				"dojox/jtlc/prettyPrint",
+				"dojox/jtlc/qplus",
+				"dojox/jtlc/tags",
+				"dojox/jtlc/CHT",
+				"dojox/jtlc/CHT/userDefinedElement",
+				"dojox/jtlc/CHT/tags",
+				"dojox/jtlc/CHT/instance",
+				"dojox/jtlc/CHT/loader",
+				"dojox/jtlc/CHT/scanner",
+				"dojox/jtlc/CHT/elements",
+				"dojox/json/query",
+				"dojo/i18n",
+				"dojo/promise/all",
+				"dojo/DeferredList"
+			],
+
 			boot: true,
 			compat: "1.6"
 		}
 	],
 
-	prefixes: [
+	prefixes:[
 		[ "main", selfPath ],
 		[ "dojox", "../dojox" ],
-		[ "dijit", "../dijit" ],
-		[ "dojox/jtlc", selfPath + "/../../libs/dojox/jtlc" ],
-		[ "dojox/jtlc/CHT/instance", selfPath + "/dummy" ]
+		[ "dijit", "../dijit" ]	
+	],
+
+	packages:[
+		{
+			name: "main",
+			location: selfPath
+		},{
+			name: "dojo",
+			location: "."
+		},{
+			name: "dijit",
+			location: "../dijit"
+		},{
+			name: "dojox",
+			location: "../dojox"
+		}
 	]
 };
 
