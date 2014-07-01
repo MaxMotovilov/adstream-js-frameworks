@@ -59,11 +59,11 @@ dojo.when(
 			if( ns.hasOwnProperty(n) ) try {
 				dojox.jtlc.compile( ns[n], cht, { i18nDictionary: dict } );
 			} catch( err ) {
-				process.stdout.write( n + ": " + err.toString() + '\n' );
+				process.stderr.write( n + ": " + err.toString() + '\n' );
 			}
 		process.stdout.write( dojo.toJson( dict, true ) );
 	}, function( err ) {
-		process.stdout.write( err.toString() + '\n' );
+		process.stderr.write( err.toString() + '\n' );
 	}
 );
 
