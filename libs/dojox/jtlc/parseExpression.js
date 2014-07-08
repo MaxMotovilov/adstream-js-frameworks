@@ -13,9 +13,37 @@ function applyMethod( call, method ) {
 	return function() { return call.apply( method, arguments ); }
 }
 
-var map = dojo && dojo.map || applyMethod( Function.prototype.call, Array.prototype.map );
-	forEach = dojo && dojo.forEach || applyMethod( Function.prototype.call, Array.prototype.forEach );
-;
+function _forEach(callback, thisObj) {
+	var array = this;
+	if (!array) return;
+	for (var i = 0; i < array.length; i++) {
+		callback.call(thisObj || window, array[i], i, array);
+	}
+}
+
+function _map(callback, thisObj) {
+	var array = this;
+	if (!array) return;
+	var result = [];
+	for (var i = 0; i < array.length; i++) {
+		result[i] = callback.call(thisObj || window, array[i], i, array);
+	}
+	return result;
+}
+
+function _objectKeys(obj) {
+	var res = [];
+	for (var k in obj) {
+		if (obj.hasOwnProperty(k)) {
+			res.push(k);
+		}
+	}
+	return res;
+}
+
+var map = dojo && dojo.map || applyMethod( Function.prototype.call, Array.prototype.map || _map );
+	forEach = dojo && dojo.forEach || applyMethod( Function.prototype.call, Array.prototype.forEach || _forEach),
+	objectKeys = Object.keys || _objectKeys;
 
 function replace( str, args ) {
 	return str.replace( /\{(\d+)\}/g, function( _, n ) { return args[parseInt(n)]; } );
@@ -32,7 +60,7 @@ var bind = Function.prototype.bind
 
 var mix2 = dojo && dojo.mixin || function mix2( to, from ) {
 	forEach( 
-		Object.keys( from ),
+		objectKeys( from ),
 		function( k ) { to[k] = from[k]; } 
 	);
 	return to;
