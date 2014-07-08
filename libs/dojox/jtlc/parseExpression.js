@@ -2,33 +2,14 @@
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
-
 try {
 dojo.provide( "dojox.jtlc.parseExpression" );
-} catch(e){ var dojo = null; }
+} catch(e){ }
 
 (function(){
 
 function applyMethod( call, method ) {
 	return function() { return call.apply( method, arguments ); }
-}
-
-function _forEach(callback, thisObj) {
-	var array = this;
-	if (!array) return;
-	for (var i = 0; i < array.length; i++) {
-		callback.call(thisObj || window, array[i], i, array);
-	}
-}
-
-function _map(callback, thisObj) {
-	var array = this;
-	if (!array) return;
-	var result = [];
-	for (var i = 0; i < array.length; i++) {
-		result[i] = callback.call(thisObj || window, array[i], i, array);
-	}
-	return result;
 }
 
 function _objectKeys(obj) {
@@ -41,8 +22,8 @@ function _objectKeys(obj) {
 	return res;
 }
 
-var map = dojo && dojo.map || applyMethod( Function.prototype.call, Array.prototype.map || _map );
-	forEach = dojo && dojo.forEach || applyMethod( Function.prototype.call, Array.prototype.forEach || _forEach),
+var map = dojo && dojo.map || applyMethod( Function.prototype.call, Array.prototype.map);
+	forEach = dojo && dojo.forEach || applyMethod( Function.prototype.call, Array.prototype.forEach),
 	objectKeys = Object.keys || _objectKeys;
 
 function replace( str, args ) {
