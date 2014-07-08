@@ -2,10 +2,9 @@
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
-
 try {
 dojo.provide( "dojox.jtlc.parseExpression" );
-} catch(e){ var dojo = null; }
+} catch(e){ }
 
 (function(){
 
@@ -13,9 +12,19 @@ function applyMethod( call, method ) {
 	return function() { return call.apply( method, arguments ); }
 }
 
-var map = dojo && dojo.map || applyMethod( Function.prototype.call, Array.prototype.map );
-	forEach = dojo && dojo.forEach || applyMethod( Function.prototype.call, Array.prototype.forEach );
-;
+function _objectKeys(obj) {
+	var res = [];
+	for (var k in obj) {
+		if (obj.hasOwnProperty(k)) {
+			res.push(k);
+		}
+	}
+	return res;
+}
+
+var map = dojo && dojo.map || applyMethod( Function.prototype.call, Array.prototype.map);
+	forEach = dojo && dojo.forEach || applyMethod( Function.prototype.call, Array.prototype.forEach),
+	objectKeys = Object.keys || _objectKeys;
 
 function replace( str, args ) {
 	return str.replace( /\{(\d+)\}/g, function( _, n ) { return args[parseInt(n)]; } );
@@ -32,7 +41,7 @@ var bind = Function.prototype.bind
 
 var mix2 = dojo && dojo.mixin || function mix2( to, from ) {
 	forEach( 
-		Object.keys( from ),
+		objectKeys( from ),
 		function( k ) { to[k] = from[k]; } 
 	);
 	return to;
