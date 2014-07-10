@@ -359,7 +359,9 @@ dojo.require( "dijit._Widget" );
 
 			this.indices = [];
 
-			if( scope.hasOwnProperty( '$CHT' ) && scope.$CHT._self === self ) {
+			if( '$CHT' in scope && // IE8 doesn't have window.hasOwnProperty()!
+				scope.hasOwnProperty( '$CHT' ) && scope.$CHT._self === self 
+			) {
 				this.instance = scope.$CHT;
 				this.storage  = this.instance._deferred;
 				for( var i=0; i<this.storage._data.length; ++i )
