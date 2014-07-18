@@ -1,3 +1,4 @@
+// Copyright (C) 2013-2014 12 Quarters Consulting
 // Copyright (C) 2010-2012 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
@@ -33,6 +34,10 @@ dojo.require( 'dojox.jtlc.tags' );
 					) + '"' 
 				);
 		return v.join( ' ' );
+	}
+
+	function isLowerCase(c) {
+		return c == c.toLowerCase();
 	}
 
 	dj.CHT._declareTag( 'foreachBody', {
@@ -148,6 +153,41 @@ dojo.require( 'dojox.jtlc.tags' );
 			);
 		}
 	} ) );
+
+	dj.CHT._declareTag( 'p11n', {
+		constructor: function( words, arg ) {
+			if( typeof words !== 'string' )
+				throw Error( "p11n() expects a string, not " + words.toString() );
+			this.words = words.replace( /^\s*|\s*$/g, '' ).replace( /\s*\+\s*/g, '+' );
+			if( this.words.indexOf( '+' ) < 0 ) {
+				if( "sS".indexOf( this.words.charAt( this.words.length-1 ) ) )
+					this.words = this.words.substr(0,this.words.length-1) + '+' + this.words;
+				else
+					this.words += '+' + this.words + ( isLowerCase( this.words.charAt( this.words.length-1 ) ) ? 's' : 'S' );
+			}
+			if( arg )	this.arg = arg;
+		},
+
+		compile: function( self ) {
+			var	d = this.i18nDictionary;
+			if( self.arg )	this.compile( self.arg );
+			else			this.generator();
+
+			this._pluralizeFunction = this._pluralizeFunction || this.addGlobal( this.p11nAlgorithm );
+
+			this.expressions.push(
+				this._pluralizeFunction + '('
+					+ this.popExpression() + ',['
+					+ (
+						d && self.words in d ? d[self.words] : self.words
+					).replace( /^\s*|\s*$/g, '' )
+					 .split( /\s*\+\s*/g )
+					 .map( dj.stringLiteral )
+					 .join(',')
+				+ '])'
+			);
+		}
+	} );
 
 	var escapeTag = dojo.declare( null, {
 		constructor: function( arg ) {

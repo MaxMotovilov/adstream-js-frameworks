@@ -1,4 +1,5 @@
-// Copyright (C) 2010-2014 Adstream Holdings
+// Copyright (C) 2013-2014 12 Quarters Consulting
+// Copyright (C) 2010-2013 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -9,6 +10,7 @@ dojo.require( "dojox.jtlc.CHT.scanner" );
 dojo.require( "dojox.jtlc.CHT.instance" );
 dojo.require( "dojox.jtlc.CHT.elements" );
 dojo.require( "dojox.jtlc.CHT.tags" );
+dojo.require( "dojox.jtlc.CHT.p11nAlgorithm" );
 
 dojo.require( "dojox.jtlc.qplus" );
 
@@ -53,6 +55,9 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 
 		if( !settings.tags )
 			settings.tags = this.tags;
+
+		if( !settings.p11nAlgorithm )
+			settings.p11nAlgorithm = this.p11nAlgorithm;
 
 		this.qplus = new dj.qplus( settings );
 	},
@@ -547,7 +552,8 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 
 	// at this point, dojox.jtlc.CHT.tags and dojox.jtlc.CHT.elements are not yet overwritten!
 	tags: dojo.delegate( dj.qplus.prototype.tags, dj.CHT.tags ),
-	elements: dj.CHT.elements
+	elements: dj.CHT.elements,
+	p11nAlgorithm: dj.CHT.p11nAlgorithm
 });
 
 })();
