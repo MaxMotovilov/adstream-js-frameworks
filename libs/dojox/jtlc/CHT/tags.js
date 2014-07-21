@@ -160,10 +160,9 @@ dojo.require( 'dojox.jtlc.tags' );
 				throw Error( "p11n() expects a string, not " + words.toString() );
 			this.words = words.replace( /^\s*|\s*$/g, '' ).replace( /\s*\+\s*/g, '+' );
 			if( this.words.indexOf( '+' ) < 0 ) {
-				if( "sS".indexOf( this.words.charAt( this.words.length-1 ) ) )
-					this.words = this.words.substr(0,this.words.length-1) + '+' + this.words;
-				else
-					this.words += '+' + this.words + ( isLowerCase( this.words.charAt( this.words.length-1 ) ) ? 's' : 'S' );
+				var	lc = isLowerCase( this.words.charAt( this.words.length-1 ) ),
+					s  = "sS".indexOf( this.words.charAt( this.words.length-1 ) ) >= 0;
+				this.words += '+' + this.words + ( s ? lc ? "es" : "ES" : lc ? "s" : "S" );
 			}
 			if( arg )	this.arg = arg;
 		},
