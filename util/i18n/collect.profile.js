@@ -44,6 +44,7 @@ dependencies = {
 				"dojox/jtlc/CHT/loader",
 				"dojox/jtlc/CHT/scanner",
 				"dojox/jtlc/CHT/elements",
+				"dojox/jtlc/CHT/p11nAlgorithm",
 				"dojox/json/query",
 				"dojo/i18n",
 				"dojo/promise/all",
