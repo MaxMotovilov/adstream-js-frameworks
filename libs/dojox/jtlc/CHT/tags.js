@@ -145,7 +145,7 @@ dojo.require( 'dojox.jtlc.tags' );
 			var	d = this.i18nDictionary;
 			return dj.stringLiteral( 
 				d && ( self.format in d ? d[self.format] :
-					self.format.replace( /^(\s*)(.*?)(\s*)$/, function( _, pfx, key, sfx ) {
+					self.format.replace( /^(\s*)([\s\S]*?)(\s*)$/, function( _, pfx, key, sfx ) {
 						if( !( key in d ) )	d[key] = false;
 						return d[key] ?	(pfx||'') + d[key] + (sfx||'') : '';
 					} )
