@@ -41,7 +41,7 @@ dojox.jtlc.CHT.p11nAlgorithm = (function(){
 
 	return function( value, words ) {
 		var n = Number( value );
-		if( Number.isNaN( n ) )
+		if( isNaN( n ) )
 			throw Error( "p11nAlgorithm: \"" + value + "\" is not a number" );
 		n = Math.round( Math.abs( n ) );
 
