@@ -175,13 +175,13 @@ dojo.require( 'dojox.jtlc.tags' );
 			this._pluralizeFunction = this._pluralizeFunction || this.addGlobal( this.p11nAlgorithm );
 
 			this.expressions.push(
-				this._pluralizeFunction + '('
-					+ this.popExpression() + ',['
-					+ (
-						d && ( self.words in d ? d[self.words] : (d[self.words]=false) ) || self.words
+				dojo.map(
+					this._pluralizeFunction + '('
+						+ this.popExpression() + ',['
+						+ (
+							d && ( self.words in d ? d[self.words] : (d[self.words]=false) ) || self.words
 					).replace( /^\s*|\s*$/g, '' )
-					 .split( /\s*\+\s*/g )
-					 .map( dj.stringLiteral )
+					 .split( /\s*\+\s*/g ), dj.stringLiteral )
 					 .join(',')
 				+ '])'
 			);
