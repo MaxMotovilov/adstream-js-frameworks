@@ -12,13 +12,52 @@ dojo.require( 'adstream.navigator.util' );
 if( !navigator.config )
 	navigator.config = {};
 
-var src_map = [];
+var src_map = [],
+	interceptorFunctions = [];
 
 adstream.navigator.on = function( pattern ) {
 	var e = new MapEntry( pattern );
 	src_map.push( e );
 	return e;
 };
+
+// the interceptor function should return Deffered Object
+adstream.navigator.addInterceptor = function(interceptorFunc){
+	if (interceptorFunc != null) {
+		interceptorFunctions.push(interceptorFunc);
+	}
+
+	return adstream.navigator;
+}
+
+adstream.navigator.core.getInterceptors = function (hash) {
+	var def = new dojo.Deferred(),
+		count = 0,
+		resolveOrContinue = function () {
+			if (interceptorFunctions.length === count) {
+				def.resolve();
+			} else {
+				executeFunc();
+			}
+		},
+		executeFunc = function () {
+			var func = interceptorFunctions[count];
+			func(hash).then(
+				function () {
+					count++;
+					resolveOrContinue();
+				},
+				function (errHash) {
+					console.log(errHash);
+					def.reject(errHash);
+				}
+			);
+		};
+
+	resolveOrContinue();
+
+	return def;
+}
 
 adstream.navigator.core.mapper = function() {
 

@@ -27,16 +27,20 @@ dojo.declare('adstream.navigator.Controller', [dijit._Widget], {
 		var hash = dojo.hash(),
 			mapped = hash && this.mapper( hash );
 
-		if( !mapped ) {
-			if( adstream.navigator.config.defaultHash )	
-				dojo.hash( adstream.navigator.config.defaultHash ); // Auto-forward to default hash
-		} else if( this._lastLoaded !== hash ) {
-			this._lastLoaded = hash;
-			dojo.when( 
-				mapped.execute( hash, this.domNode ),
-				done, done
-			);
-		}
+		adstream.navigator.core.getInterceptors(hash).then(function(res){
+			if( !mapped ) {
+				if( adstream.navigator.config.defaultHash )
+					dojo.hash( adstream.navigator.config.defaultHash ); // Auto-forward to default hash
+			} else if( this._lastLoaded !== hash ) {
+				this._lastLoaded = hash;
+				dojo.when( 
+					mapped.execute( hash, this.domNode ),
+					done, done
+				);
+			}
+		}, function(newHash){
+			dojo.hash(newHash);
+		})
 
 		function done( result ) {
 			if( result instanceof Error )
