@@ -1,3 +1,4 @@
+// Copyright (C) 2013-2014 12 Quarters Consulting
 // Copyright (C) 2012 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
@@ -171,26 +172,27 @@ var MapEntry = dojo.extend(
 
 			dojo.publish( "/adstream/navigator/changing", [parsed] );
 
-			return dojo.when(
-				dojox.promise.allOrNone( 
-					dojo.map( this._execute, function(x) {
-						try {
+			try {
+				return dojo.when(
+					dojox.promise.allOrNone( 
+						dojo.map( this._execute, function(x) {
 							if( x._execute.length )
 								return x._resolve( parsed, x.callbacks );
-						} catch( err ) {
-							return err;
-						}
-					} )
-				),
-				function( result ) {
-					dojo.publish( "/adstream/navigator/changed", [parsed] );
-					return result;
-				},
-				function( err ) {
-					dojo.publish( "/adstream/navigator/error", [err] );
-					return err;
-				}
-			);
+						} )
+					),
+					function( result ) {
+						dojo.publish( "/adstream/navigator/changed", [parsed] );
+						return result;
+					},
+					function( err ) {
+						dojo.publish( "/adstream/navigator/error", [err] );
+						return err;
+					}
+				);
+			} catch( err ) {
+				dojo.publish( "/adstream/navigator/error", [err] );
+				return err;
+			}		
 		},
 
 		_resolve: function( hash, cbs ) {
