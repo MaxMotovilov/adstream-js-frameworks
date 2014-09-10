@@ -176,8 +176,7 @@ var MapEntry = dojo.extend(
 				return dojo.when(
 					dojox.promise.allOrNone( 
 						dojo.map( this._execute, function(x) {
-							if( x._execute.length )
-								return x._resolve( parsed, x.callbacks );
+							return x._execute.length && x._resolve( parsed, x.callbacks );
 						} )
 					),
 					function( result ) {
@@ -198,7 +197,7 @@ var MapEntry = dojo.extend(
 		_resolve: function( hash, cbs ) {
 			return dojox.promise.allOrNone(
 				dojo.map( cbs, function( cb ) {
-					cb( this._getArguments( hash ), hash );
+					return cb( this._getArguments( hash ), hash );
 				}, this )
 			);
 		},
