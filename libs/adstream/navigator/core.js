@@ -149,7 +149,7 @@ var MapEntry = dojo.extend(
 			var parsed = new ParsedHash( this, {
 
 				// Should be removed!
-				url:		this._pattern.replace(/\?$/,'').split('/'),
+				url:		this._pattern.replace(/\?$/,'').replace(/:.*$/,'').split('/'),
 
 				key: 		args.slice( 1, this._subs+1 ),
 				action: 	this._action ? args[this._subs+1] : '',
