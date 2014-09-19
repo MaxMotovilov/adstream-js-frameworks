@@ -1,3 +1,4 @@
+// Copyright (C) 2013-2014 12 Quarters Consulting
 // Copyright (C) 2012 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
@@ -24,13 +25,14 @@ dojo.declare('adstream.navigator.Controller', [dijit._Widget], {
 	},
 
 	onHashChanged: function() {
-		var hash = dojo.hash(),
+		var hash = dojo.hash(), 
+			original_hash = hash,
 			mapped = hash && this.mapper( hash );
 
-		if( !mapped ) {
-			if( adstream.navigator.config.defaultHash )	
-				dojo.hash( adstream.navigator.config.defaultHash ); // Auto-forward to default hash
-		} else if( this._lastLoaded !== hash ) {
+		if( !mapped && adstream.navigator.config.defaultHash )
+			mapped = this.mapper( hash = adstream.navigator.config.defaultHash ); 
+
+		if( mapped && this._lastLoaded !== hash ) {
 			this._lastLoaded = hash;
 			dojo.when( 
 				mapped.execute( hash, this.domNode ),
@@ -41,6 +43,9 @@ dojo.declare('adstream.navigator.Controller', [dijit._Widget], {
 		function done( result ) {
 			if( result instanceof Error )
 				logError( result );
+			else if( hash != original_hash && dojo.hash() == original_hash )
+				// Default hash was processed and did not redirect, set browser hash to reflect
+				dojo.hash( hash, true );
 		}
 	}
 });
