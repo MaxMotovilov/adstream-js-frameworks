@@ -14,13 +14,15 @@ dojox.jtlc._copyArguments = function( args, all_but )
 
 dojox.jtlc.tags = {}
 
+var createEmpty = Object.create || dojo.delegate;
+
 dojox.jtlc._declareTag = function( name, proto_or_class, make_constructor ) {
 	var cls = typeof proto_or_class === 'function' ? proto_or_class : dojo.declare( null, proto_or_class );
 	this.tags['_'+name] = cls;
 	this.tags[name] = make_constructor ?
-		make_constructor( cls ) :
+		make_constructor( cls ) : 
 		function() { 
-			var t = dojo.delegate( cls.prototype );
+			var t = createEmpty( cls.prototype );
 			cls.apply( t, arguments ); 
 			return t;
 		};
