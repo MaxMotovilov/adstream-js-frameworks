@@ -89,6 +89,9 @@ dojox.jtlc.CHT.loader = (function() {
 		fn.then = function( /* callbacks */ ) {
 			return deferred.then.apply( deferred, arguments );
 		}
+
+		fn._deferred = deferred;
+
 		return fn;
 	}
 
@@ -308,7 +311,7 @@ dojox.jtlc.CHT.loader = (function() {
 				elt.arg = cht.tags.expr(
 					"[$1,$]", 
 					cht.tags.wait(
-						dj.tags.bind( loader.get, embed.template )
+						dj.tags.bind( loader.get_p, embed.template )
 					),
 					dj.tags.current()
 				);
@@ -362,6 +365,11 @@ dojox.jtlc.CHT.loader = (function() {
 					cache[ sn.namespace() ] || 
 					loadAndParseModule( sn );
 			return cached.then ? deferGetTemplate( cached, sn ) : getTemplate( sn );
+		},
+
+		get_p: function( tpl ) {
+			var v = loader.get( tpl );
+			return v.then ? v._deferred : v;
 		},
 
 		getSync: function( tpl ) {

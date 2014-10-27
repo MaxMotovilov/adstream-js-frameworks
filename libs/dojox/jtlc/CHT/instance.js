@@ -62,6 +62,20 @@ dojo.require( "dijit._Widget" );
 		}
 	}
 
+	// FIXME: kludge, based on Dojo-specific behavior of promises.
+	function _syncResolve( p_or_v ) {
+		if( p_or_v.then && p_or_v.isResolved ) {
+			if( p_or_v.isResolved() )
+				p_or_v.then( function( v ) { p_or_v = v; } );
+			else if(p_or_v.isRejected() ) {
+				p_or_v.then( null, function( err ) { p_or_v = err; } );
+				throw p_or_v;
+			}
+		}
+
+		return p_or_v;
+	}
+
 	// The following code has been lifted from dojo.parser as there's no convenience API for it. Note that
 	// it has changed since Dojo 1.8
 
@@ -383,6 +397,10 @@ dojo.require( "dijit._Widget" );
 			},
 
 			set: function( index, value, handle_errors ) {
+	
+				// FIXME: Hard to avoid without changing much of the flow.
+				value = _syncResolve( value );
+
 				if( !(index in this.indices) )	this.indices[index] = 0;
 				if( this.instance )
 					this.instance._attach( value, index, this.indices[index], handle_errors );
