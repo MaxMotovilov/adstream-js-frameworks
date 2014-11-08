@@ -173,12 +173,14 @@ dojo.declare( 'dojox.jtlc.CHT.userDefinedElement', null, {
 		}
 	),
 
-	tag: function( cht, elt ) {
+	tag: function( cht, elt, _, ctx ) {
 
 		var	t = this.kwarg.compiled && elt.openTag
 				? new cht._appendToOutput( [ new this._compiledTag( cht, elt, new this._tag( cht, {}, this ) ) ] )
 				: new this._tag( cht, elt, this ),
 			slots = cht._attributeSlots( elt );
+
+		if( ctx )	t = cht._inContext( ctx, t );
 
 		if( slots ) return dojox.jtlc.tags.scope( t, slots );
 		else		return t;

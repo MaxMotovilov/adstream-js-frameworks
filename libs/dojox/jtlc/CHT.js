@@ -228,19 +228,6 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 			var	stack = [],
 				lit_seq_start = -1;
 
-			function wrapInContext( at ) {
-				if( refs[tag].context ) {
-					body.splice( at, 1, 
-						_this._contextSwitch( refs[tag].context, 'enter' ),
-						body[at],
-						_this._contextSwitch( refs[tag].context, 'exit' )
-					);
-					i += 2;
-					return true;
-				}
-				return false;
-			}
-
 			function unwrapFromContext( body ) {
 				body.unshift( _this._contextSwitch( refs[tag].context, 'exit' ) );
 				body.push( _this._contextSwitch( refs[tag].context, 'enter' ) );
@@ -313,8 +300,7 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 								body[i].def_sections = def_sections;
 								body[i].sections = [];
 							} else { // non-sectioned element (widget)
-								body[i] = refs[tag].tag( _this, body[i] );
-								wrapInContext( i );
+								body[i] = refs[tag].tag( _this, body[i], null, refs[tag].context );
 							}
 						}
 					} else { // body[i].closeTag
@@ -342,10 +328,10 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 
 						if( !parent.body.length )	delete parent.body;
 
-						body[stack[0]] = refs[tag].tag( _this, parent, ns[elt_name] );
+						body[stack.shift()] = refs[tag].tag( _this, parent, ns[elt_name], refs[tag].context );
 						body.splice( i--, 1 );
 
-						if( wrapInContext( stack.shift() ) ) {
+						if( refs[tag].context ) {
 							dojo.forEach( parent.sections, function(s){ unwrapFromContext( s.body ); } );
 							if( parent.body && parent.body.length )	unwrapFromContext( parent.body );
 						}
@@ -490,6 +476,16 @@ dojo.declare( 'dojox.jtlc.CHT', dj._qplusL, {
 		mtd = dojo.hitch( ctx, mtd );
 		return {
 			compile: function(){ mtd( this ); }
+		}
+	},
+
+	_inContext: function( ctx, what ) {
+		return {
+			compile: function() {
+				ctx.enter( this );
+				this.compile( what );
+				ctx.exit( this );
+			}
 		}
 	},
 
