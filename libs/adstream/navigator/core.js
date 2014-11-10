@@ -142,7 +142,7 @@ var MapEntry = dojo.extend(
 			_execute:		[]
 		} );
 	}, {
-		execute: function( hash, dom_node_id ) {
+		prepare: function( hash, dom_node_id ) {
 			var	args = this._parseRegex.exec( hash );
 			if( !args )	return new Error( 'Bad hash ' + hash );
 
@@ -172,26 +172,30 @@ var MapEntry = dojo.extend(
 
 			dojo.publish( "/adstream/navigator/changing", [parsed] );
 
-			try {
-				return dojo.when(
-					dojox.promise.allOrNone( 
-						dojo.map( this._execute, function(x) {
-							return x._execute.length && x._resolve( parsed, x.callbacks );
-						} )
-					),
-					function( result ) {
-						dojo.publish( "/adstream/navigator/changed", [parsed] );
-						return result;
-					},
-					function( err ) {
-						dojo.publish( "/adstream/navigator/error", [err] );
-						return err;
-					}
-				);
-			} catch( err ) {
-				dojo.publish( "/adstream/navigator/error", [err] );
-				return err;
-			}		
+			var ex = this._execute;
+
+			return function() {
+				try {
+					return dojo.when(
+						dojox.promise.allOrNone( 
+							dojo.map( ex, function(x) {
+								return x._execute.length && x._resolve( parsed, x.callbacks );
+							} )
+						),
+						function( result ) {
+							dojo.publish( "/adstream/navigator/changed", [parsed] );
+							return result;
+						},
+						function( err ) {
+							dojo.publish( "/adstream/navigator/error", [err] );
+							return err;
+						}
+					);
+				} catch( err ) {
+					dojo.publish( "/adstream/navigator/error", [err] );
+					return err;
+				}		
+			}
 		},
 
 		_resolve: function( hash, cbs ) {

@@ -18,6 +18,11 @@ dojo.declare('adstream.navigator.Controller', [dijit._Widget], {
 		startup: "after"
 	},
 
+	constructor: function() {
+		this._hashes = [];
+		this.execute = dojo.hitch( this, this.execute );
+	},
+
 	startup: function() {
 		this.mapper = adstream.navigator.core.mapper();
 		dojo.subscribe('/dojo/hashchange', dojo.hitch(this, this.onHashChanged) );
@@ -25,27 +30,40 @@ dojo.declare('adstream.navigator.Controller', [dijit._Widget], {
 	},
 
 	onHashChanged: function() {
-		var hash = dojo.hash(), 
-			original_hash = hash,
+		if( this._hashes.unshift( dojo.hash() ) == 1 )
+			this.execute();
+	},
+
+	execute: function() {
+
+		var hash, mapped, action;
+
+		while( this._hashes.length ) {
+			this._hashes.splice( 1, this._hashes.length-1 );
+
+			hash = this._hashes.shift();
+			if( this._lastLoaded == hash )
+				break;
+
 			mapped = hash && this.mapper( hash );
 
-		if( !mapped && adstream.navigator.config.defaultHash )
-			mapped = this.mapper( hash = adstream.navigator.config.defaultHash ); 
+			if( !mapped ) {
+				if( !adstream.navigator.config.defaultHash || hash == adstream.navigator.config.defaultHash )
+					break;
+				this._hashes.unshift( adstream.navigator.config.defaultHash );
+				dojo.hash( this._hashes[0] );
+				continue;
+			}
 
-		if( mapped && this._lastLoaded !== hash ) {
-			this._lastLoaded = hash;
-			dojo.when( 
-				mapped.execute( hash, this.domNode ),
-				done, done
-			);
+			var guard = dojo.hash();
+			action = mapped.prepare( hash, this.domNode );
+			if( guard != dojo.hash() )
+				action = null;
 		}
 
-		function done( result ) {
-			if( result instanceof Error )
-				logError( result );
-			else if( hash != original_hash && dojo.hash() == original_hash )
-				// Default hash was processed and did not redirect, set browser hash to reflect
-				dojo.hash( hash, true );
+		if( action ) {
+			this._lastLoaded = hash;
+			dojo.when( action(), this.execute, logError );
 		}
 	}
 });
