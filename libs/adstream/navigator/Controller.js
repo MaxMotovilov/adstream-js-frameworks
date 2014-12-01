@@ -36,7 +36,7 @@ dojo.declare('adstream.navigator.Controller', [dijit._Widget], {
 
 	execute: function() {
 
-		var hash, mapped, action;
+		var hash, mapped, action, guard;
 
 		while( this._hashes.length ) {
 			this._hashes.splice( 1, this._hashes.length-1 );
@@ -45,20 +45,18 @@ dojo.declare('adstream.navigator.Controller', [dijit._Widget], {
 			if( this._lastLoaded == hash )
 				break;
 
-			mapped = hash && this.mapper( hash );
+			guard = dojo.hash();
+			action = hash && (mapped = this.mapper( hash )) && mapped.prepare( hash, this.domNode );
+			if( guard != dojo.hash() )
+				action = null;
 
-			if( !mapped ) {
+			if( !action ) {
 				if( !adstream.navigator.config.defaultHash || hash == adstream.navigator.config.defaultHash )
 					break;
 				this._hashes.unshift( adstream.navigator.config.defaultHash );
 				dojo.hash( this._hashes[0] );
 				continue;
 			}
-
-			var guard = dojo.hash();
-			action = mapped.prepare( hash, this.domNode );
-			if( guard != dojo.hash() )
-				action = null;
 		}
 
 		if( action ) {

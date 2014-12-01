@@ -144,7 +144,10 @@ var MapEntry = dojo.extend(
 	}, {
 		prepare: function( hash, dom_node_id ) {
 			var	args = this._parseRegex.exec( hash );
-			if( !args )	return new Error( 'Bad hash ' + hash );
+			if( !args )	{
+				dojo.publish( "/adstream/navigator/error", [new Error( 'Bad hash ' + hash )] );
+				return null;
+			}
 
 			var parsed = new ParsedHash( this, {
 
@@ -167,8 +170,10 @@ var MapEntry = dojo.extend(
 				}
 			);
 
-			if( !this._execute.length )
-				return new Error( 'No action associated with ' + this._pattern );
+			if( !this._execute.length ) {
+				dojo.publish( "/adstream/navigator/error", [new Error( 'No action associated with ' + this._pattern )] );
+				return null;
+			}
 
 			dojo.publish( "/adstream/navigator/changing", [parsed] );
 
@@ -188,12 +193,14 @@ var MapEntry = dojo.extend(
 						},
 						function( err ) {
 							dojo.publish( "/adstream/navigator/error", [err] );
-							return err;
+							throw err;
 						}
 					);
 				} catch( err ) {
 					dojo.publish( "/adstream/navigator/error", [err] );
-					return err;
+					var r = new dojo.Deferred();
+					r.reject( err );
+					return r;
 				}		
 			}
 		},
