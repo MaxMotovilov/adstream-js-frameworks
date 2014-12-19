@@ -298,10 +298,10 @@ dojo.declare( 'adstream.data.Service', null, {
 			promise.resolve( result );	//	Method call with return value
 		} else {
 			var d = adstream.data._descend( arg_url, this.root );
-			if( !d.rel_url || 												//	Resolved to the object
-				(d.obj[d.rel_url] instanceof adstream.data.schema.Method) 	//	Method call w/o return value: return the object itself
-			)		promise.resolve( d.obj );
-			else	promise.reject( new Error( "Protocol violation: no relevant data returned for " + arg_url ) );
+			if( !d.obj )
+				promise.reject( new Error( "Protocol violation: no relevant data returned for " + arg_url ) );
+			else
+				promise.resolve( d.obj );
 		}
 
 		return null;
