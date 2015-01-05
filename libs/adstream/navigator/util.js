@@ -1,3 +1,4 @@
+// Copyright (C) 2013-2015 12 Quarters Consulting
 // Copyright (C) 2012-2013 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
@@ -40,6 +41,7 @@ if( !dojox || !dojox.promise ) {
 					function failOnce( err ) {
 						if( once ) {
 							once = false;
+							todo = 0;
 							cancel( err, i );
 							deferred.reject( err );
 						}
