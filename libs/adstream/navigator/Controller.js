@@ -54,7 +54,7 @@ dojo.declare('adstream.navigator.Controller', [dijit._Widget], {
 				if( !adstream.navigator.config.defaultHash || hash == adstream.navigator.config.defaultHash )
 					break;
 				this._hashes.unshift( adstream.navigator.config.defaultHash );
-				dojo.hash( this._hashes[0] );
+				dojo.hash( this._hashes[0], true );
 				continue;
 			}
 		}
