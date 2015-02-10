@@ -39,25 +39,27 @@ if( !dojox || !dojox.promise ) {
 					}
 
 					function failOnce( err ) {
-						if( once ) {
-							once = false;
-							todo = 0;
-							cancel( err, i );
+						if( cancel( err, i ) )
 							deferred.reject( err );
-						}
 					}
-				});
+				} );
 
 				function cancel( err, except ) {
-					once = false;
-					d.forEach( array, function(p,i) {
-						if( i !== except && p && p.then && p.cancel )	
-							p.cancel( err );
-					} );
+					if( once ) {
+						todo = 0;
+						once = false;
+						d.forEach( array, function(p,i) {
+							if( i !== except && p && p.then && p.cancel )	
+								p.cancel( err );
+						} );
+						return true;
+					} else {
+						return false;
+					}
 				}
 
 				return deferred;
-			};
+			}
 		}
 
 		dojox.promise.all = composeAll(false);
