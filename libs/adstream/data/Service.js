@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2014 12 Quarters Consulting
+// Copyright (C) 2013-2015 12 Quarters Consulting
 // Copyright (C) 2010-2013 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
@@ -279,7 +279,7 @@ dojo.declare( 'adstream.data.Service', null, {
 				if( ioargs.xhr.status < 400 )	err = new Error( "Unexpected content type returned: " + content_type );
 			} else if( response ) {
 				var json;
-				try { json = dojo.fromJson( response ); } catch( e ) {
+				try { json = JSON.parse( response ); } catch( e ) {
 					err = new Error( "Malformed response from the server: bad JSON syntax" );
 				}
 				if( json )	try { result = this._sync( json, arg_url ); } catch( e ) { err = e; }
