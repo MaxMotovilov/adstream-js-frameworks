@@ -10,6 +10,9 @@ var d = require( './lang.js' ),
 exports = module.exports = d.extend(
 	function() {
 		this.body = {};
+		this.headers = {
+			'Content-Type': 'application/json; charset=utf-8' 
+		};
 	}, {
 		send: function( resp ) {
 			if( this.error )
@@ -23,7 +26,7 @@ exports = module.exports = d.extend(
 			resp.writeHead(
 				this.error ? this.error.httpCode || 500 : 200,
 				d.mixin( 
-					{ 'Content-Type': 'application/json; charset=utf-8' },
+					this.headers,
 					( this.error && this.error.httpHeaders ) || {}
 				)
 			);
@@ -67,6 +70,10 @@ exports = module.exports = d.extend(
 
 		get: function( rel ) {
 			return packet.get( this.body, rel, true );
+		},
+
+		setHeader: function( name, value ) {
+			this.headers[name] = value;
 		}
 	}
 );
