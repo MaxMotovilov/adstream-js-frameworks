@@ -1,3 +1,4 @@
+// Copyright (C) 2014-2015 12 Quarters Consulting
 // Copyright (C) 2010-2014 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
@@ -553,7 +554,8 @@ dojo.require( "dijit._Widget" );
 
 		updateDom: function( root, options ) {
 
-			var	ctx = this._innerCtx;
+			var	ctx = this._innerCtx, result;
+
 			if( ctx )	root = ctx.parent;
 
 			if( !this._dirty && (!ctx || options && options.canUpdateDom || this.canUpdateDom()) ) {
@@ -587,17 +589,20 @@ dojo.require( "dijit._Widget" );
 					throw Error( "DOM cannot be updated: context is not available" );
 
 				var markers = d.query( this._marker_query, root );
-				if( markers.length != 2 )	
-					throw Error( "DOM cannot be updated: CHT markers disappeared" );
-
-				ctx = (new _innerContext( markers[0], markers[1] ));
+				if( markers.length != 2 )
+					(dojo.config.isDebug || dojo.config.jtlcIsReadable) &&
+						console.warn("DOM cannot be updated: CHT markers disappeared" );
+				else
+					ctx = (new _innerContext( markers[0], markers[1] ));
 			}
 
-			this.update();
-			var result = this.place( ctx = ctx.outer(), options );
+			if( ctx ) {
+				this.update();
+				result = this.place( ctx = ctx.outer(), options );
 			
-			if( !this._activeTransition && this._innerCtx )
-				this._innerCtx = ctx.inner();
+				if( !this._activeTransition && this._innerCtx )
+					this._innerCtx = ctx.inner();
+			}
 
 			return result || true;
 		},
