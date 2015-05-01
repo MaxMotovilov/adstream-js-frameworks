@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2014 12 Quarters Consulting
+// Copyright (C) 2013-2015 12 Quarters Consulting
 // Copyright (C) 2012 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
@@ -47,8 +47,10 @@ dojo.declare('adstream.navigator.Controller', [dijit._Widget], {
 
 			guard = dojo.hash();
 			action = hash && (mapped = this.mapper( hash )) && mapped.prepare( hash, this.domNode );
-			if( guard != dojo.hash() )
+			if( guard != dojo.hash() ) {
 				action = null;
+				continue;
+			}
 
 			if( !action ) {
 				if( !adstream.navigator.config.defaultHash || hash == adstream.navigator.config.defaultHash )
