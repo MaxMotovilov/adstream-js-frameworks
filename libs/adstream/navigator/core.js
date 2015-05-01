@@ -159,6 +159,8 @@ var MapEntry = dojo.extend(
 				parameters:	{},
 				namedKey:	getExtendIds(hash, this._pattern),
 
+				rawHash:	hash,
+
 				_controlledNode: dom_node_id
 			} );
 
