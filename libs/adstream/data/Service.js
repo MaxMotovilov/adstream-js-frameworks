@@ -207,6 +207,7 @@ dojo.declare( 'adstream.data.Service', null, {
 			if( existing.params == dojo.objectToQuery( params ) )
 				return existing.result;
 			if( existing.result.xhrPromise ) {
+				existing.result.cancelled = true;
 				existing.result.xhrPromise.cancel(); // adstream.data promises are not cancelable
 				delete  existing.result.xhrPromise;
 			}
@@ -243,9 +244,9 @@ dojo.declare( 'adstream.data.Service', null, {
 	_ioComplete: function( promise, method, arg_url, response, ioargs ) {
 
 		var	err = null, result = null, 
-			headers = {};
+			headers = {}, cancelled = promise.cancelled;
 
-		if( ioargs && ioargs.xhr.readyState >= 2 ) 
+		if( !cancelled && ioargs && ioargs.xhr.readyState >= 2 ) 
 			dojo.forEach( ( ioargs.xhr.getAllResponseHeaders() || "" )
 				.split( /\s*\n/ ), function( hdr ) {
 					var kv = hdr.split( /:\s*/ ),
@@ -267,10 +268,10 @@ dojo.declare( 'adstream.data.Service', null, {
 			response = response.responseText || ioargs && ioargs.xhr.readyState == 4 && ioargs.xhr.responseText || '';
 		}
 
-		if( method === 'GET' && (!err || err.dojoType != 'cancel') && this._pending_gets.hasOwnProperty( arg_url ) )
+		if( method === 'GET' && !cancelled && this._pending_gets.hasOwnProperty( arg_url ) )
 			delete this._pending_gets[ arg_url ];
 
-		if( (!err || err.dojoType != 'cancel') && ioargs.xhr.readyState == 4 ) { // The request has completed and was not cancelled
+		if( !cancelled && ioargs.xhr.readyState == 4 && (!err || ioargs.xhr.status) ) { // The request has completed and was not cancelled
 			var	content_type = headers[ 'Content-Type' ];
 
 			if( this.rejectContentTypes ? 
@@ -286,12 +287,16 @@ dojo.declare( 'adstream.data.Service', null, {
 			}
 		}
 
-		if( err ) {
-			if( method !== 'GET' || err.dojoType != 'cancel' || this._paused !== 'all' ) {
+		if( err || cancelled ) {
+			if( method !== 'GET' || this._paused !== 'all' ) {
+				if( !err ) 
+					err = new Error( "Request cancelled" );
 				err.ioargs = ioargs;
 				err.responseHeaders = headers;
 				err.status = ioargs.xhr.status;
 				err.responseText = response;
+				if( cancelled )	
+					err.dojoType = 'cancel';
 				promise.reject( err );
 			}
 		} else if( typeof result === 'object' )	{
@@ -557,11 +562,14 @@ dojo.declare( 'adstream.data.Service', null, {
 		this._refresh_queue = [];
 		this._clearRefreshTimer();
 		if( all )
-			for( var rel_url in this._pending_gets )
-				if( this._pending_gets[ rel_url ].result.xhrPromise ) {
-					this._pending_gets[ rel_url ].result.xhrPromise.cancel();
-					delete this._pending_gets[ rel_url ].result.xhrPromise;
+			for( var rel_url in this._pending_gets ) {
+				var result = this._pending_gets[ rel_url ].result;
+				if( result.xhrPromise ) {
+					result.cancelled = true;
+					result.xhrPromise.cancel();
+					delete result.xhrPromise;
 				}
+			}
 	},
 	
 	resume: function( discard ) {
