@@ -145,7 +145,10 @@ var MapEntry = dojo.extend(
 		prepare: function( hash, dom_node_id ) {
 			var	args = this._parseRegex.exec( hash );
 			if( !args )	{
-				dojo.publish( "/adstream/navigator/error", [new Error( 'Bad hash ' + hash )] );
+				if( adstream.navigator.config.allowForeignHashes )
+					dojo.publish( "/adstream/navigator/foreignHash", [hash] );
+				else
+					dojo.publish( "/adstream/navigator/error", [new Error( 'Bad hash ' + hash )] );
 				return null;
 			}
 
