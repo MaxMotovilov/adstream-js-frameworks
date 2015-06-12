@@ -65,15 +65,16 @@ dojo.require( "dijit._Widget" );
 
 	// FIXME: kludge, based on Dojo-specific behavior of promises.
 	function _syncResolve( p_or_v ) {
-		if( p_or_v.then && p_or_v.isResolved ) {
-			if( p_or_v.isResolved() )
-				p_or_v.then( function( v ) { p_or_v = v; } );
-			else if(p_or_v.isRejected() ) {
-				p_or_v.then( null, function( err ) { p_or_v = err; } );
-				throw p_or_v;
-			}
-		}
 
+		var thrown;
+
+		if( typeof p_or_v.then === 'function' )
+			p_or_v.then(
+				function( v ) { p_or_v = v; },
+				function( err ) { p_or_v = err; thrown = true; }
+			);
+
+		if( thrown )	throw p_or_v;
 		return p_or_v;
 	}
 
