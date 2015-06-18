@@ -155,34 +155,12 @@ dojo.declare( 'adstream.data.Service', null, {
 		return old;
 	},
 
-	_makeResult: function() {
-		var	result = new dojo.Deferred();
-		if( this._topic || this._error_cb )	
-			result.then( 
-				dojo.hitch( this, success ),
-				dojo.hitch( this, failure )
-			);
-		return result;
-
-		function success( result ) {
-			if( this._topic )
-				dojo.publish( this.topic(), result );
-		}
-
-		function failure( err ) {
-			if( this._topic )
-				dojo.publish( this.topic() + "/error", err );
-			if( this._error_cb )
-				this._error_cb( err );
-		}
-	},
-
 	_xhr: function( method, seed, rel_url, params, result ) {
 
-		if( !result )	result = this._makeResult();
+		if( !result )	result = new dojo.Deferred();
 
 		seed.url = this._ep_url + rel_url;
-		seed.handle = dojo.hitch( this, '_ioComplete', result, method, rel_url );
+		seed.handle = dojo.hitch( this, '_ioComplete', result, method, rel_url, seed, params );
 
 		if( this.acceptContentTypes && this.acceptContentTypes.length )
 			dojo.mixin( seed.headers || (seed.headers={}), { 'Accept': this.acceptContentTypes.join( ', ' ) } );
@@ -241,10 +219,10 @@ dojo.declare( 'adstream.data.Service', null, {
 		}
 	},
 
-	_ioComplete: function( promise, method, arg_url, response, ioargs ) {
+	_ioComplete: function( promise, method, arg_url, seed, params, response, ioargs ) {
 
-		var	err = null, result = null, 
-			headers = {}, cancelled = promise.cancelled;
+		var	err = null, result = null, _this = this,
+			headers = {}, cancelled = promise.cancelled, fatal;
 
 		if( !cancelled && ioargs && ioargs.xhr.readyState >= 2 ) 
 			dojo.forEach( ( ioargs.xhr.getAllResponseHeaders() || "" )
@@ -268,9 +246,6 @@ dojo.declare( 'adstream.data.Service', null, {
 			response = response.responseText || ioargs && ioargs.xhr.readyState == 4 && ioargs.xhr.responseText || '';
 		}
 
-		if( method === 'GET' && !cancelled && this._pending_gets.hasOwnProperty( arg_url ) )
-			delete this._pending_gets[ arg_url ];
-
 		if( !cancelled && ioargs.xhr.readyState == 4 && (!err || ioargs.xhr.status) ) { // The request has completed and was not cancelled
 			var	content_type = headers[ 'Content-Type' ];
 
@@ -283,7 +258,12 @@ dojo.declare( 'adstream.data.Service', null, {
 				try { json = JSON.parse( response ); } catch( e ) {
 					err = new Error( "Malformed response from the server: bad JSON syntax" );
 				}
-				if( json )	try { result = this._sync( json, arg_url ); } catch( e ) { err = e; }
+				if( json )	try { 
+					result = this._sync( json, arg_url ); 
+				} catch( e ) { 
+					fatal = true;
+					err = e; 
+				}
 			}
 		}
 
@@ -297,19 +277,53 @@ dojo.declare( 'adstream.data.Service', null, {
 				err.responseText = response;
 				if( cancelled )	
 					err.dojoType = 'cancel';
-				promise.reject( err );
+				fail( err, !cancelled && !fatal );
 			}
 		} else if( typeof result === 'object' )	{
-			promise.resolve( result );	//	Method call with return value
+			succeed( result );	//	Method call with return value
 		} else {
 			var d = adstream.data._descend( arg_url, this.root );
 			if( !d.obj )
-				promise.reject( new Error( "Protocol violation: no relevant data returned for " + arg_url ) );
+				fail( new Error( "Protocol violation: no relevant data returned for " + arg_url ) );
 			else
-				promise.resolve( d.obj );
+				succeed( d.obj );
 		}
 
 		return null;
+
+		function succeed( result ) {
+			clearPending();
+			if( _this._topic )
+				dojo.publish( _this.topic(), result );
+			promise.resolve( result );
+		}
+
+		function fail( err, may_retry ) {
+
+			var retried;
+
+			if( _this._topic )
+				dojo.publish( _this.topic() + "/error", [err, may_retry && retry] );
+			if( _this._error_cb )
+				_this._error_cb( err );
+
+			if( !retried ) {
+				clearPending();
+				promise.reject( err );
+			}
+
+			function retry() {
+				if( !retried ) {
+					retried = true;
+					_this._xhr( method, seed, arg_url, params, promise );
+				}
+			}
+		}
+
+		function clearPending() {
+			if( method === 'GET' && !cancelled && _this._pending_gets.hasOwnProperty( arg_url ) )
+				delete _this._pending_gets[ arg_url ];
+		}
 	},
 
 	_sync: function( response, arg_url ) {
