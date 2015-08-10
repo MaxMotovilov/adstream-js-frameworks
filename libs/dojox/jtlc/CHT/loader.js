@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2014 12 Quarters Consulting
+// Copyright (C) 2013-2015 12 Quarters Consulting
 // Copyright (C) 2010-2013 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
@@ -326,7 +326,7 @@ dojox.jtlc.CHT.loader = (function() {
 		},
 		
 		sections: function( elt ) {
-			return elt.kwarg.async !== 'false' && {	"" : {allowArgument:true} };
+			return elt.kwarg.async != 'false' && { "" : {allowArgument:true} };
 		}
 	};
 	
