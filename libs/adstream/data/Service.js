@@ -193,7 +193,7 @@ dojo.declare( 'adstream.data.Service', null, {
 
 		return (this._pending_gets[ rel_url ] = {
 			params: dojo.objectToQuery( params ),
-			result: this._paused === 'all' ? this._makeResult() : this._xhr( "GET", { failOk: true }, rel_url, params )
+			result: this._paused === 'all' ? new dojo.Deferred() : this._xhr( "GET", { failOk: true }, rel_url, params )
 		}).result;
 	},
 
@@ -211,12 +211,13 @@ dojo.declare( 'adstream.data.Service', null, {
 	},
 
 	push: function( data, arg_url ) {
-		var p = this._makeResult();
+		var p = new dojo.Deferred();
 		try {
 			p.resolve( this._sync( data, arg_url || "" ) );
 		} catch( e ) {
 			p.reject( e );
 		}
+		return p;
 	},
 
 	_ioComplete: function( promise, method, arg_url, seed, params, response, ioargs ) {
