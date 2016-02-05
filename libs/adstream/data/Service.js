@@ -539,9 +539,11 @@ dojo.declare( 'adstream.data.Service', null, {
 				var q = queue.shift();
 				for( var i in q.w )
 					if( q.w.hasOwnProperty(i) && q.d.hasOwnProperty(i) ) {
-						for( var j in q.w[i]._ )
-							if( q.w[i]._[j].refresh ) {
-								var ripe = (q.w[i]._[j].last_updated||0) + q.w[i]._[j].refresh;
+						for( var j in q.w[i]._ ) {
+							var refresh_after = q.w[i]._[j].refresh;
+							if( refresh_after ) {
+								var ripe = q.w[i]._[j].last_updated || 0;
+								ripe += typeof refresh_after === "function" ? refresh_after(ripe) : refresh_after;
 								if( ripe <= ts ) {
 									q.w[i]._[j].last_updated = ts;
 									this._pushRefreshQueue( q.d[i].url(), q.w[i]._[j].max_depth );
@@ -549,6 +551,7 @@ dojo.declare( 'adstream.data.Service', null, {
 								else if( isNaN(next) || next > ripe )
 									next = ripe;
 							}
+						}
 						queue.push( { d: q.d[i], w: q.w[i] } );
 					}
 			}
