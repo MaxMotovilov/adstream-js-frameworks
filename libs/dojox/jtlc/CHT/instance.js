@@ -1,4 +1,4 @@
-// Copyright (C) 2014-2015 12 Quarters Consulting
+// Copyright (C) 2014-2016 12 Quarters Consulting
 // Copyright (C) 2010-2014 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
@@ -79,6 +79,12 @@ dojo.require( "dijit._Widget" );
 
 		if( thrown )	throw p_or_v;
 		return p_or_v;
+	}
+
+	function _rejectedPromise( err ) {
+		var v = new dojo.Deferred();
+		v.reject( err );
+		return v;
 	}
 
 	// The following code has been lifted from dojo.parser as there's no convenience API for it. Note that
@@ -261,6 +267,15 @@ dojo.require( "dijit._Widget" );
 
 			var l = d.parser.parse( master, options );
 
+			// FIXME: CHT does not work with type="dojo/require" nodes!
+			// FIXME: the following code relies on Dojo-specific promise extensions
+			if( l.isFulfilled && !l.isFulfilled() )
+				throw Error( "CHT does not support HTML elements with type=\"dojo/require\"!" );
+
+			// FIXME: Dojo parser does not return the list of partially-constructed widgets
+			//		  in case of an exception. Cleanup is impossible.		
+			_syncResolve( l );
+
 			if( old_refs )	g._refs = old_refs;
 			else			g._refs = {}; // IE throws a hissy fit on delete 
 
@@ -335,7 +350,12 @@ dojo.require( "dijit._Widget" );
 		},
 
 		render: function() {
-			var result = this.place.apply( this, arguments );
+			try {
+				var result = this.place.apply( this, arguments );
+			} catch( err ) {
+				return _rejectedPromise( err );
+			}
+
 			return this._transitionCompletion || result;
 		},
 
@@ -619,10 +639,17 @@ dojo.require( "dijit._Widget" );
 					args.push( arguments[1] ); 
 			}
 
-			var options = arguments.length > args.length && arguments[ args.length ] || null;
-			args.push( d.mixin( {}, options, { returnContext: true } ) );
+			var options = arguments.length > args.length && arguments[ args.length ] || null,
+				ctx;
 
-			var	ctx = this.place.apply( this, args );
+			args.push( d.mixin( {}, options, { returnContext: true } ) );
+			
+ 			try {
+				ctx = this.place.apply( this, args );
+			} catch( err ) {
+				return _rejectedPromise( err );
+			}
+
 			if( !this.isDeferred() )
 				return this._transitionCompletion || ctx;
 
