@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2012 Adstream Holdings
+// Copyright (C) 2010-2016 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
 // available at https://github.com/MaxMotovilov/adstream-js-frameworks/wiki/License
@@ -573,7 +573,7 @@ dojox.jtlc._declareTag( 'query', dojo.declare( dojox.jtlc._MultiArgTag, {
 dojo.declare( 'dojox.jtlc._GroupLoop', dojox.jtlc._Loop, {
 
 	"-chains-": {
-		begin: "after",
+		// Not chaining "begin" because of a Safari JIT bug!
 		end:   "before"
 	},
 
@@ -597,6 +597,8 @@ dojo.declare( 'dojox.jtlc._GroupLoop', dojox.jtlc._Loop, {
 	},
 
 	begin: function() {
+
+		this.inherited( arguments );
 
 		this.compiler.code.push( "if(" + this._i + "<" + this._items + ".length-1){" );
 
