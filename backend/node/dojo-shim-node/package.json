@@ -1,0 +1,18 @@
+{
+  "name"         : "dojo-shim-node",
+  "version"      : "0.1.0",
+  "description"  : "Lightweight shim for Dojo APIs",
+  "author"       : "Max Motovilov <max@motovilov.com>",
+  "main"         : "index.js",
+  "files"		 : [ "package.json", "index.js", "dojo" ],
+  "dependencies" : {
+	"node-promise": ">= 0.5.12",
+	"dcl": ">= 1.1.3",
+	"heya-utils": ">= 0.1.2"
+  },
+  "repository"	 : {
+	"type": "git",
+	"url": "https://MaxMotovilov@github.com/MaxMotovilov/adstream-js-frameworks.git"
+  }
+}
+
