@@ -11,7 +11,7 @@ Access adstream.data application backends from node.js code -- perfect for runni
 			url, new ads.Node( /* Your schema here */ )
 		);
 
-	adstream_data.setHttpProvider( function( method, url, data ) {
+	adstream_data.setHttpProvider( function( method, url, headers, data ) {
 		// Your HTTP access code -- returns a promise to JSON content
 	} ); 
 ```
@@ -27,6 +27,6 @@ The exported object is `adstream.data` namespace with one additional function, `
 ### setHttpProvider()
 
 Has to be called before issuing any requests. The only argument is a function that receives lowercase HTTP method name,
-request URL and, optionally, a data object to be passed to the request as JSON POST body. The function should return
+request URL, request HTTP headers and, optionally, a data object to be passed to the request as JSON POST body. The function should return
 a promise that resolves to the JSON content returned by the server if the request succeeds.
 

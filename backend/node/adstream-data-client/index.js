@@ -31,6 +31,7 @@ exports.setHttpProvider = function( send_http_request ) {
 		return send_http_request( 
 					method, 
 					params.url + ( data || !params.content ? "" : "?" + dojo.objectToQuery( params.content ) ),
+					params.headers,
 					data 
 			   ).then( success, failure );
 
