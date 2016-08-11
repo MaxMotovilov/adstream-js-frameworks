@@ -1,12 +1,16 @@
 {
   "name"         : "adstream-data-client",
-  "version"      : "0.1.0",
+  "version"      : "0.1.2",
   "description"  : "Wrapper for adstream.data client code on node.js",
   "author"       : "Max Motovilov <max@motovilov.com>",
   "main"         : "index.js",
-  "files"		 : [ "package.json", "index.js", "adstream/data" ],
+  "files"		 : [ "package.json", "index.js", "adstream" ],
   "dependencies" : {
 	"dojo-shim-node": ">= 0.1.0"
+  },
+  "scripts"		 : {
+	"prepublish" : "tar cf - -C ../../../libs/adstream data | tar xf - -C adstream",
+	"postpublish": "rm -fr adstream/data"
   },
   "repository"	 : {
 	"type": "git",
