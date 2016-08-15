@@ -1,3 +1,4 @@
+// Copyright (C) 2016 12 Quarters Consulting
 // Copyright (C) 2010-2013 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
@@ -273,7 +274,7 @@ dojo.declare( 'dojox.jtlc.Language', null, {
 		new Function( // Should reside in global scope to minimize chances of namespace pollution
 			'inner_body',
 			'return dojox.jtlc._eval( "(function(" + this.globals.names.join(",") + "){function $self(){" + inner_body + "} return $self;})" +\
-						  (this.sourceUrl ? "\\r\\n//@ sourceURL=" + this.sourceUrl : "") );'
+						  (this.sourceUrl ? "\\r\\n//# sourceURL=" + this.sourceUrl : "") );'
 		),
 
 	/* Internal settings that can be overridden by tags */

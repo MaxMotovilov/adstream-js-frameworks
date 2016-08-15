@@ -1,4 +1,4 @@
-// Copyright (C) 2013-2015 12 Quarters Consulting
+// Copyright (C) 2013-2016 12 Quarters Consulting
 // Copyright (C) 2010-2013 Adstream Holdings
 // All rights reserved.
 // Redistribution and use are permitted under the modified BSD license
@@ -134,7 +134,7 @@ dojox.jtlc.CHT.loader = (function() {
 
 	function parseAndResolveModule( mdl, src, url ) {
 
-		var parse_err = chtInstance().parse( src, cache[mdl].parsed, url );
+		var parse_err = chtInstance().parse( src, cache[mdl].parsed, url && (new dojo._Url( location, url )).toString() );
 
 		return d.when( 	
 			parse_err, 
